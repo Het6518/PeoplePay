@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Edit, ArrowLeft, FileText, Calendar, Clock, DollarSign } from 'lucide-react';
+import { Edit, FileText, Calendar, Clock, DollarSign } from 'lucide-react';
 import { employeeApi } from '../../services/apiServices';
 import { getInitials, formatDate } from '../../utils/formatters';
 import { StatusBadge } from '../../components/ui/Badge';
@@ -41,13 +41,7 @@ export default function EmployeeDetailPage() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
-        <button 
-          onClick={() => navigate('/employees')}
-          className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-700"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Employees
-        </button>
+      <div className="flex items-center justify-end">
         {canEdit && (
           <Link
             to={`/employees/${id}/edit`}
