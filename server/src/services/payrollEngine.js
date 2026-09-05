@@ -192,8 +192,9 @@ async function calculateAttendanceStats(employeeId, periodStart, periodEnd, pris
   let leaveDays = 0;
   for (const leave of approvedLeave) {
     const leaveTypeName = leave.timeOffType?.name?.toLowerCase() || '';
-    const isPaidLeave = leaveTypeName.includes('paid') || leaveTypeName.includes('maternity');
-    if (!isPaidLeave) continue;
+    // Unpaid leave / Loss of Pay is excluded from paid leave
+    const isUnpaid = leaveTypeName.includes('unpaid') || leaveTypeName.includes('loss of pay') || leaveTypeName.includes('lop');
+    if (isUnpaid) continue;
 
     const overlapStart = new Date(Math.max(new Date(leave.startDate).getTime(), periodStart.getTime()));
     const overlapEnd = new Date(Math.min(new Date(leave.endDate).getTime(), periodEnd.getTime()));

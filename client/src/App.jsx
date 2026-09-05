@@ -43,8 +43,8 @@ import { useAuth } from './contexts/AuthContext';
 
 const HR_ROLES = ['HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'];
 const PAYROLL_ROLES = ['HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'];
+const PAYROLL_MANAGER_ROLES = ['HR_PAYROLL_MANAGER', 'ADMIN'];
 const ADMIN_ROLES = ['ADMIN'];
-const ALL_ROLES = ['EMPLOYEE', 'HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'];
 
 function DefaultRedirect() {
   const { currentUser } = useAuth();
@@ -69,7 +69,7 @@ function AppRoutes() {
                 <Route path="/dashboard" element={<ProtectedRoute roles={HR_ROLES}><DashboardPage /></ProtectedRoute>} />
 
                 {/* Employees */}
-                <Route path="/employees" element={<EmployeeListPage />} />
+                <Route path="/employees" element={<ProtectedRoute roles={HR_ROLES}><EmployeeListPage /></ProtectedRoute>} />
                 <Route path="/employees/new" element={<ProtectedRoute roles={HR_ROLES}><EmployeeFormPage /></ProtectedRoute>} />
                 <Route path="/employees/:id" element={<EmployeeDetailPage />} />
                 <Route path="/employees/:id/edit" element={<ProtectedRoute roles={HR_ROLES}><EmployeeFormPage /></ProtectedRoute>} />
@@ -88,19 +88,19 @@ function AppRoutes() {
                 {/* Time Off */}
                 <Route path="/time-off" element={<TimeOffPage />} />
                 <Route path="/time-off/requests" element={<TimeOffPage />} />
-                <Route path="/time-off/allocations" element={<TimeOffPage initialTab="allocations" />} />
-                <Route path="/time-off/types" element={<TimeOffPage initialTab="types" />} />
+                <Route path="/time-off/allocations" element={<ProtectedRoute roles={HR_ROLES}><TimeOffPage initialTab="allocations" /></ProtectedRoute>} />
+                <Route path="/time-off/types" element={<ProtectedRoute roles={HR_ROLES}><TimeOffPage initialTab="types" /></ProtectedRoute>} />
 
                 {/* Payroll */}
                 <Route path="/payroll/payruns" element={<ProtectedRoute roles={PAYROLL_ROLES}><PayrunListPage /></ProtectedRoute>} />
                 <Route path="/payroll/payruns/new" element={<ProtectedRoute roles={PAYROLL_ROLES}><NewPayrunPage /></ProtectedRoute>} />
                 <Route path="/payroll/payruns/:id" element={<ProtectedRoute roles={PAYROLL_ROLES}><PayrunDetailPage /></ProtectedRoute>} />
-                <Route path="/payroll/payslips" element={<PayslipListPage />} />
-                <Route path="/payroll/payslips/:id" element={<PayslipDetailPage />} />
+                <Route path="/payroll/payslips" element={<ProtectedRoute roles={PAYROLL_ROLES}><PayslipListPage /></ProtectedRoute>} />
+                <Route path="/payroll/payslips/:id" element={<ProtectedRoute roles={PAYROLL_ROLES}><PayslipDetailPage /></ProtectedRoute>} />
                 <Route path="/payroll/salary-structures" element={<ProtectedRoute roles={PAYROLL_ROLES}><SalaryStructurePage /></ProtectedRoute>} />
                 <Route path="/payroll/salary-rules" element={<ProtectedRoute roles={PAYROLL_ROLES}><SalaryStructurePage /></ProtectedRoute>} />
-                <Route path="/payroll/salary-rules/new" element={<ProtectedRoute roles={['HR_PAYROLL_MANAGER', 'ADMIN']}><SalaryRuleFormPage /></ProtectedRoute>} />
-                <Route path="/payroll/salary-rules/:id/edit" element={<ProtectedRoute roles={['HR_PAYROLL_MANAGER', 'ADMIN']}><SalaryRuleFormPage /></ProtectedRoute>} />
+                <Route path="/payroll/salary-rules/new" element={<ProtectedRoute roles={PAYROLL_MANAGER_ROLES}><SalaryRuleFormPage /></ProtectedRoute>} />
+                <Route path="/payroll/salary-rules/:id/edit" element={<ProtectedRoute roles={PAYROLL_MANAGER_ROLES}><SalaryRuleFormPage /></ProtectedRoute>} />
 
                 {/* Reports */}
                 <Route path="/reports" element={<ProtectedRoute roles={HR_ROLES}><ReportsPage /></ProtectedRoute>} />

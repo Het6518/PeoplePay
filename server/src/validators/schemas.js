@@ -62,7 +62,7 @@ const CreateContractSchema = z.object({
   endDate: z.string().optional().nullable(),
   departmentId: z.string().optional().nullable(),
   position: z.string().optional().nullable(),
-  wage: z.number().positive('Wage must be a positive number'),
+  wage: z.coerce.number().positive('Wage must be a positive number'),
   salaryStructureId: z.string().optional().nullable(),
   status: z.enum(['DRAFT', 'ACTIVE', 'EXPIRED', 'TERMINATED']).optional(),
   notes: z.string().optional().nullable(),

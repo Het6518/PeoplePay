@@ -5,11 +5,11 @@ import { timeOffApi } from '../../services/apiServices';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDate } from '../../utils/formatters';
 
-export default function TimeOffPage() {
+export default function TimeOffPage({ initialTab = 'requests' }) {
   const { currentUser } = useAuth();
   const canManageTimeOff = ['HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'].includes(currentUser?.role);
   const visibleTabs = canManageTimeOff ? ['requests', 'allocations', 'types'] : ['requests'];
-  const [activeTab, setActiveTab] = useState('requests');
+  const [activeTab, setActiveTab] = useState(visibleTabs.includes(initialTab) ? initialTab : 'requests');
 
   useEffect(() => {
     if (!visibleTabs.includes(activeTab)) {

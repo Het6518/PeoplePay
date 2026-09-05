@@ -83,7 +83,6 @@ const createContract = async (req, res, next) => {
             ],
           },
         ],
-        NOT: { id: undefined },
       },
     });
 

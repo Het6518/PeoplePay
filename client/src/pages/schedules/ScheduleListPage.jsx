@@ -64,7 +64,7 @@ export default function ScheduleListPage() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{schedule.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{schedule.type || 'Standard'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{schedule.weeklyHours || 40}h</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{schedule.employeeCount || 0}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{schedule._count?.employees ?? schedule.employeeCount ?? 0}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex space-x-3">
                     <button className="text-gray-400 hover:text-indigo-600"><Eye className="w-4 h-4" /></button>

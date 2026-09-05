@@ -29,10 +29,12 @@ export default function EmployeeDetailPage() {
     }
   };
 
-  const { isHR, isPayroll } = useAuth();
+  const { currentUser, isHR, isPayroll } = useAuth();
   const canEdit = isHR();
   const canViewContracts = isHR();
   const canViewPayroll = isPayroll();
+  const isOwnEmployeeProfile = currentUser?.role === 'EMPLOYEE'
+    && (currentUser?.employeeId || currentUser?.employee?.id) === id;
 
   if (loading) return <LoadingSpinner />;
   if (!employee) return <div>Employee not found</div>;
@@ -75,18 +77,12 @@ export default function EmployeeDetailPage() {
 
       {/* Smart Hub Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {canViewContracts ? (
+        {canViewContracts && (
           <Link to={`/contracts?employeeId=${id}`} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-indigo-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
             <FileText className="h-8 w-8 text-indigo-500 mb-2 group-hover:scale-110 transition-transform" />
             <span className="text-2xl font-bold text-gray-900">{counts.contracts}</span>
             <span className="text-sm font-medium text-gray-500">Contracts</span>
           </Link>
-        ) : (
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 opacity-60 flex flex-col items-center justify-center cursor-not-allowed">
-            <FileText className="h-8 w-8 text-slate-400 mb-2" />
-            <span className="text-2xl font-bold text-gray-900">{counts.contracts}</span>
-            <span className="text-sm font-medium text-gray-500">Contracts</span>
-          </div>
         )}
         
         <Link to={`/attendance?employeeId=${id}`} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-green-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
@@ -101,18 +97,12 @@ export default function EmployeeDetailPage() {
           <span className="text-sm font-medium text-gray-500">Time Off</span>
         </Link>
 
-        {canViewPayroll ? (
+        {canViewPayroll && (
           <Link to={`/payroll/payslips?employeeId=${id}`} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-purple-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
             <DollarSign className="h-8 w-8 text-purple-500 mb-2 group-hover:scale-110 transition-transform" />
             <span className="text-2xl font-bold text-gray-900">{counts.payslips}</span>
             <span className="text-sm font-medium text-gray-500">Payslips</span>
           </Link>
-        ) : (
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 opacity-60 flex flex-col items-center justify-center cursor-not-allowed">
-            <DollarSign className="h-8 w-8 text-slate-400 mb-2" />
-            <span className="text-2xl font-bold text-gray-900">{counts.payslips}</span>
-            <span className="text-sm font-medium text-gray-500">Payslips</span>
-          </div>
         )}
       </div>
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, Search, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { contractApi, employeeApi, departmentApi } from '../../services/apiServices';
+import { contractApi, employeeApi, departmentApi, salaryApi } from '../../services/apiServices';
 import { formatINR, formatDate } from '../../utils/formatters';
 import { StatusBadge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
@@ -17,6 +17,7 @@ export default function ContractListPage() {
   const [contracts, setContracts] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [salaryStructures, setSalaryStructures] = useState([]);
   
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -34,12 +35,12 @@ export default function ContractListPage() {
   const [formData, setFormData] = useState({
     employeeId: '',
     departmentId: '',
-    jobPosition: '',
+    position: '',
     wage: '',
     salaryStructureId: '',
     startDate: '',
     endDate: '',
-    status: 'DRAFT'
+    status: 'ACTIVE'
   });
 
   useEffect(() => {
@@ -58,12 +59,14 @@ export default function ContractListPage() {
 
   const fetchOptions = async () => {
     try {
-      const [empRes, deptRes] = await Promise.all([
+      const [empRes, deptRes, structRes] = await Promise.all([
         employeeApi.getAll({ limit: 500 }),
-        departmentApi.getAll()
+        departmentApi.getAll(),
+        salaryApi.getStructures()
       ]);
       setEmployees(empRes.data || []);
       setDepartments(deptRes.data || []);
+      setSalaryStructures(structRes.data || (Array.isArray(structRes) ? structRes : []));
     } catch (error) {
       console.error('Error fetching options:', error);
     }
@@ -98,12 +101,12 @@ export default function ContractListPage() {
     setFormData({
       employeeId: filters.employeeId || '',
       departmentId: '',
-      jobPosition: '',
+      position: '',
       wage: '',
-      salaryStructureId: '',
+      salaryStructureId: salaryStructures[0]?.id || '',
       startDate: new Date().toISOString().split('T')[0],
       endDate: '',
-      status: 'DRAFT'
+      status: 'ACTIVE'
     });
     setIsModalOpen(true);
   };
@@ -113,10 +116,10 @@ export default function ContractListPage() {
     setFormData({
       employeeId: contract.employeeId,
       departmentId: contract.departmentId || '',
-      jobPosition: contract.jobPosition || '',
+      position: contract.position || '',
       wage: contract.wage,
       salaryStructureId: contract.salaryStructureId || '',
-      startDate: contract.startDate.split('T')[0],
+      startDate: contract.startDate ? contract.startDate.split('T')[0] : '',
       endDate: contract.endDate ? contract.endDate.split('T')[0] : '',
       status: contract.status
     });
@@ -133,19 +136,21 @@ export default function ContractListPage() {
     setIsSubmitting(true);
     try {
       const payload = {
-        ...formData,
-        wage: Number(formData.wage)
+        employeeId: formData.employeeId,
+        position: formData.position || undefined,
+        wage: Number(formData.wage),
+        status: formData.status || 'ACTIVE',
+        startDate: new Date(formData.startDate).toISOString(),
       };
-      if (!payload.endDate) {
-        delete payload.endDate;
-      } else {
-        payload.endDate = new Date(payload.endDate).toISOString();
+      if (formData.endDate) {
+        payload.endDate = new Date(formData.endDate).toISOString();
       }
-      if (payload.startDate) {
-        payload.startDate = new Date(payload.startDate).toISOString();
+      if (formData.departmentId) {
+        payload.departmentId = formData.departmentId;
       }
-      if (!payload.departmentId) delete payload.departmentId;
-      if (!payload.salaryStructureId) delete payload.salaryStructureId;
+      if (formData.salaryStructureId) {
+        payload.salaryStructureId = formData.salaryStructureId;
+      }
 
       if (editingId) {
         await contractApi.update(editingId, payload);
@@ -244,7 +249,7 @@ export default function ContractListPage() {
                     <div className="text-sm text-gray-500">{contract.employee?.employeeCode}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {contract.jobPosition || '-'}
+                    {contract.position || contract.jobPosition || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {formatINR(contract.wage)}
@@ -294,7 +299,7 @@ export default function ContractListPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Job Position</label>
-              <input type="text" name="jobPosition" value={formData.jobPosition} onChange={handleFormChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+              <input type="text" name="position" value={formData.position} onChange={handleFormChange} placeholder="e.g. Senior Software Engineer" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
             </div>
           </div>
 
@@ -304,17 +309,15 @@ export default function ContractListPage() {
               <input type="number" required min="0" step="0.01" name="wage" value={formData.wage} onChange={handleFormChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Status</label>
-              <select name="status" value={formData.status} onChange={handleFormChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                <option value="DRAFT">Draft</option>
-                <option value="ACTIVE">Active</option>
-                <option value="EXPIRED">Expired</option>
-                <option value="CANCELLED">Cancelled</option>
+              <label className="block text-sm font-medium text-gray-700">Salary Structure</label>
+              <select name="salaryStructureId" value={formData.salaryStructureId} onChange={handleFormChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <option value="">Select Structure</option>
+                {salaryStructures.map(struct => <option key={struct.id} value={struct.id}>{struct.name}</option>)}
               </select>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">Start Date *</label>
               <input type="date" required name="startDate" value={formData.startDate} onChange={handleFormChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
@@ -322,6 +325,15 @@ export default function ContractListPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700">End Date</label>
               <input type="date" name="endDate" value={formData.endDate} onChange={handleFormChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Status</label>
+              <select name="status" value={formData.status} onChange={handleFormChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <option value="DRAFT">Draft</option>
+                <option value="ACTIVE">Active</option>
+                <option value="EXPIRED">Expired</option>
+                <option value="TERMINATED">Terminated</option>
+              </select>
             </div>
           </div>
 

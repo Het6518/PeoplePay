@@ -23,11 +23,49 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+const StatusStepper = ({ currentStatus }) => {
+  const steps = [
+    { key: 'DRAFT', label: '1. Draft' },
+    { key: 'COMPUTED', label: '2. Computed' },
+    { key: 'VALIDATED', label: '3. Validated' },
+    { key: 'PAID', label: '4. Paid / Final' },
+  ];
+  const order = ['DRAFT', 'COMPUTED', 'VALIDATED', 'PAID'];
+  const currentIndex = order.indexOf(currentStatus);
+
+  return (
+    <div className="flex items-center gap-2 text-xs font-semibold">
+      {steps.map((step, idx) => {
+        const isDone = currentIndex >= idx;
+        const isCurrent = currentStatus === step.key;
+        return (
+          <React.Fragment key={step.key}>
+            <span
+              className={`px-3 py-1.5 rounded-full transition-all ${
+                isCurrent
+                  ? 'bg-slate-950 text-white shadow-sm ring-2 ring-slate-950'
+                  : isDone
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-slate-100 text-slate-400'
+              }`}
+            >
+              {step.label}
+            </span>
+            {idx < steps.length - 1 && (
+              <span className={`h-0.5 w-4 ${currentIndex > idx ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+};
+
 export default function PayrunDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth(); // assuming user object has role or permissions
-  const isPayrollManager = user?.role === 'PAYROLL_MANAGER' || user?.role === 'ADMIN';
+  const { currentUser } = useAuth();
+  const canFinalize = ['HR_PAYROLL_MANAGER', 'ADMIN', 'HR_PAYROLL_USER'].includes(currentUser?.role);
 
   const [payrun, setPayrun] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -101,64 +139,88 @@ export default function PayrunDetailPage() {
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <div className="flex items-center space-x-4">
-          <button onClick={() => navigate('/payroll/payruns')} className="p-2 hover:bg-gray-100 rounded-full text-gray-500">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-              {payrun.name}
-              <StatusBadge status={payrun.status} />
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Period: <span className="font-medium text-gray-700">{formatDate(payrun.periodStart)} - {formatDate(payrun.periodEnd)}</span>
-              <span className="mx-2">•</span>
-              Structure: <span className="font-medium text-gray-700">{payrun.structureName}</span>
-            </p>
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center space-x-4">
+            <button onClick={() => navigate('/payroll/payruns')} className="p-2 hover:bg-slate-100 rounded-full text-slate-500">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                {payrun.name}
+                <StatusBadge status={payrun.status} />
+              </h1>
+              <p className="text-sm text-slate-500 mt-1">
+                Period: <span className="font-medium text-slate-700">{formatDate(payrun.periodStart)} - {formatDate(payrun.periodEnd)}</span>
+                <span className="mx-2">•</span>
+                Structure: <span className="font-medium text-slate-700">{payrun.structureName}</span>
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3">
+            {payrun.status === 'DRAFT' && (
+              <button 
+                onClick={() => handleAction(payrollApi.compute, 'Payrun computed successfully')}
+                disabled={actionLoading}
+                className="flex items-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-sm disabled:opacity-50 transition-all"
+              >
+                {actionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                1. COMPUTE PAYRUN
+              </button>
+            )}
+            {payrun.status === 'COMPUTED' && (
+              <>
+                <button 
+                  onClick={() => handleAction(payrollApi.compute, 'Payrun recomputed')}
+                  disabled={actionLoading}
+                  className="flex items-center px-4 py-2.5 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm rounded-xl disabled:opacity-50 transition-all"
+                >
+                  <Play className="w-4 h-4 mr-2" /> RE-COMPUTE
+                </button>
+                <button 
+                  onClick={() => handleAction(payrollApi.validate, 'Payrun validated and confirmed!')}
+                  disabled={actionLoading}
+                  className="flex items-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-sm disabled:opacity-50 transition-all"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                  2. CONFIRM & VALIDATE
+                </button>
+              </>
+            )}
+            {payrun.status === 'VALIDATED' && canFinalize && (
+              <>
+                <button 
+                  onClick={() => handleAction(payrollApi.markPaid, 'Payrun marked as Paid & Finalized!')}
+                  disabled={actionLoading}
+                  className="flex items-center px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm rounded-xl shadow-sm disabled:opacity-50 transition-all"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CreditCard className="w-4 h-4 mr-2" />}
+                  3. MARK PAID / FINALIZE
+                </button>
+                <button 
+                  onClick={() => handleAction(payrollApi.sendPayslips, 'Payslips sent to employees')}
+                  disabled={actionLoading}
+                  className="flex items-center px-4 py-2.5 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm rounded-xl disabled:opacity-50"
+                >
+                  <FileText className="w-4 h-4 mr-2" /> SEND PAYSLIPS
+                </button>
+              </>
+            )}
+            {payrun.status === 'PAID' && (
+              <button 
+                onClick={() => handleAction(payrollApi.sendPayslips, 'Payslips sent to employees')}
+                disabled={actionLoading}
+                className="flex items-center px-5 py-2.5 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm rounded-xl shadow-sm disabled:opacity-50"
+              >
+                <FileText className="w-4 h-4 mr-2" /> SEND PAYSLIPS
+              </button>
+            )}
           </div>
         </div>
-        
-        <div className="flex space-x-3">
-          {payrun.status === 'DRAFT' && (
-            <button 
-              onClick={() => handleAction(payrollApi.compute, 'Payrun computed successfully')}
-              disabled={actionLoading}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              {actionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
-              COMPUTE
-            </button>
-          )}
-          {payrun.status === 'COMPUTED' && (
-            <button 
-              onClick={() => handleAction(payrollApi.validate, 'Payrun validated successfully')}
-              disabled={actionLoading}
-              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {actionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
-              VALIDATE
-            </button>
-          )}
-          {payrun.status === 'VALIDATED' && isPayrollManager && (
-            <button 
-              onClick={() => handleAction(payrollApi.markPaid, 'Payrun marked as Paid')}
-              disabled={actionLoading}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-            >
-              {actionLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CreditCard className="w-4 h-4 mr-2" />}
-              MARK PAID
-            </button>
-          )}
-          {payrun.status !== 'PAID' && (
-            <button 
-              onClick={() => handleAction(payrollApi.sendPayslips, 'Payslips sent to employees')}
-              disabled={actionLoading}
-              className="flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded hover:bg-gray-50 disabled:opacity-50"
-            >
-              <FileText className="w-4 h-4 mr-2" /> SEND PAYSLIPS
-            </button>
-          )}
+
+        <div className="pt-3 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
+          <StatusStepper currentStatus={payrun.status} />
         </div>
       </div>
 

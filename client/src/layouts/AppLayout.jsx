@@ -11,9 +11,9 @@ const MANAGER_ROLES = ['HR_PAYROLL_MANAGER', 'ADMIN'];
 
 const payrollSubItems = [
   { to: '/payroll/payruns', label: 'Payruns', roles: PAYROLL_ROLES },
-  { to: '/payroll/payslips', label: 'Payslips', roles: ['EMPLOYEE', ...PAYROLL_ROLES] },
+  { to: '/payroll/payslips', label: 'Payslips', roles: PAYROLL_ROLES },
   { to: '/payroll/salary-structures', label: 'Salary Structures', roles: PAYROLL_ROLES },
-  { to: '/payroll/salary-rules', label: 'Salary Rules', roles: MANAGER_ROLES },
+  { to: '/payroll/salary-rules', label: 'Salary Rules', roles: PAYROLL_ROLES },
 ];
 
 function NavItem({ to, label, end = false, onClick }) {

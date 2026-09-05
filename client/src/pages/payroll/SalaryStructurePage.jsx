@@ -3,9 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Edit2, FileText, Settings, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { salaryApi } from '../../services/apiServices';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function SalaryStructurePage() {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const canManageSalaryConfig = ['HR_PAYROLL_MANAGER', 'ADMIN'].includes(currentUser?.role);
   const [structures, setStructures] = useState([]);
   const [selectedStructure, setSelectedStructure] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -36,13 +39,15 @@ export default function SalaryStructurePage() {
       <div className={`flex-1 transition-all ${selectedStructure ? 'hidden md:block md:w-1/3 md:flex-none' : 'w-full'}`}>
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Salary Structures</h1>
-          <button 
-            onClick={() => setShowModal(true)}
-            className="bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700"
-            title="New Structure"
-          >
-            <Plus className="w-5 h-5" />
-          </button>
+          {canManageSalaryConfig && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700"
+              title="New Structure"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -79,12 +84,14 @@ export default function SalaryStructurePage() {
               <p className="text-sm text-gray-500">{selectedStructure.description}</p>
             </div>
             <div className="flex gap-2">
-              <button 
-                onClick={() => navigate(`/payroll/salary-rules/new?structureId=${selectedStructure.id}`)}
-                className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded text-sm hover:bg-gray-50 flex items-center"
-              >
-                <Plus className="w-4 h-4 mr-1" /> Add Rule
-              </button>
+              {canManageSalaryConfig && (
+                <button
+                  onClick={() => navigate(`/payroll/salary-rules/new?structureId=${selectedStructure.id}`)}
+                  className="bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded text-sm hover:bg-gray-50 flex items-center"
+                >
+                  <Plus className="w-4 h-4 mr-1" /> Add Rule
+                </button>
+              )}
               <button onClick={() => setSelectedStructure(null)} className="p-1.5 text-gray-400 hover:text-gray-600 md:hidden">
                 <X className="w-5 h-5" />
               </button>
@@ -115,17 +122,19 @@ export default function SalaryStructurePage() {
                       <span className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-700">{rule.category}</span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
-                      {rule.computationType === 'FIXED' ? `Fixed: ${rule.amount}` : 
-                       rule.computationType === 'PERCENTAGE' ? `${rule.percentage}% of ${rule.baseRuleCode}` : 
+                      {rule.computationType === 'FIXED' ? `Fixed: ${rule.fixedAmount ?? 0}` :
+                       rule.computationType === 'PERCENTAGE' ? `${rule.percentage ?? 0}% of ${rule.percentageBase || '-'}` :
                        'Formula'}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <span className={rule.isActive ? 'text-green-600' : 'text-gray-400'}>{rule.isActive ? 'Active' : 'Inactive'}</span>
                     </td>
                     <td className="px-4 py-3 text-right text-sm font-medium">
-                      <Link to={`/payroll/salary-rules/${rule.id}/edit`} className="text-indigo-600 hover:text-indigo-900">
-                        <Edit2 className="w-4 h-4" />
-                      </Link>
+                      {canManageSalaryConfig && (
+                        <Link to={`/payroll/salary-rules/${rule.id}/edit`} className="text-indigo-600 hover:text-indigo-900">
+                          <Edit2 className="w-4 h-4" />
+                        </Link>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -15,8 +15,8 @@ router.post('/payruns/:id/mark-paid', authorize(...PAYROLL_MANAGER_ROLES), ctrl.
 router.post('/payruns/:id/send-payslips', authorize(...PAYROLL_ROLES), ctrl.sendPayslips);
 
 // Payslips
-router.get('/payslips', ctrl.getPayslips);
-router.get('/payslips/:id', ctrl.getPayslip);
-router.get('/payslips/:id/pdf', ctrl.downloadPayslipPDF);
+router.get('/payslips', authorize(...PAYROLL_ROLES), ctrl.getPayslips);
+router.get('/payslips/:id', authorize(...PAYROLL_ROLES), ctrl.getPayslip);
+router.get('/payslips/:id/pdf', authorize(...PAYROLL_ROLES), ctrl.downloadPayslipPDF);
 
 module.exports = router;

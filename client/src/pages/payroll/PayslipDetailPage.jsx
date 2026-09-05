@@ -4,6 +4,9 @@ import { ArrowLeft, Download, FileText, User, Building, Briefcase, Calendar, Che
 import { payrollApi } from '../../services/apiServices';
 import { formatINR, formatDate } from '../../utils/formatters';
 
+import { StatusBadge } from '../../components/ui/Badge';
+import toast from 'react-hot-toast';
+
 export default function PayslipDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -15,10 +18,12 @@ export default function PayslipDetailPage() {
     const fetchPayslip = async () => {
       try {
         const res = await payrollApi.getPayslip(id);
-        const data = res?.data || res;
+        const raw = res?.data ?? res;
+        const data = (raw && typeof raw.status === 'number' && raw.data) ? raw.data : raw;
         setPayslip(data);
       } catch (error) {
         console.error('Failed to fetch payslip', error);
+        toast.error('Failed to load payslip');
       } finally {
         setLoading(false);
       }
@@ -29,10 +34,21 @@ export default function PayslipDetailPage() {
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      await payrollApi.downloadPDF(id);
-      // Actual implementation might involve receiving a blob and triggering download
+      const res = await payrollApi.downloadPDF(id);
+      const blob = new Blob([res.data || res], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const empCode = payslip?.employee?.employeeCode || 'EMP';
+      link.setAttribute('download', `payslip_${empCode}_${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('PDF downloaded successfully');
     } catch (error) {
       console.error('Download failed', error);
+      toast.error('Failed to download PDF');
     } finally {
       setDownloading(false);
     }
@@ -78,9 +94,7 @@ export default function PayslipDetailPage() {
           <ArrowLeft className="w-5 h-5 mr-2" /> Back
         </button>
         <div className="flex items-center space-x-4">
-          <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full flex items-center">
-            <CheckCircle className="w-4 h-4 mr-1" /> {payslip.status}
-          </span>
+          <StatusBadge status={payslip.status} />
           <button 
             onClick={handleDownload}
             disabled={downloading}

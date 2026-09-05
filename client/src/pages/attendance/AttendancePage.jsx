@@ -9,9 +9,10 @@ import { Clock, Calendar, CheckCircle, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function AttendancePage() {
-  const { user } = useAuth();
-  const isEmployee = user?.role === 'EMPLOYEE';
-  const isHR = user?.role?.startsWith('HR') || user?.role === 'ADMIN';
+  const { currentUser } = useAuth();
+  const employeeId = currentUser?.employeeId || currentUser?.employee?.id;
+  const isEmployee = currentUser?.role === 'EMPLOYEE';
+  const isHR = ['HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'].includes(currentUser?.role);
 
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,13 +21,13 @@ export default function AttendancePage() {
 
   // Today's status for employee punch widget
   const [todayStatus, setTodayStatus] = useState(null);
-  const [statusLoading, setStatusLoading] = useState(!!user?.employeeId);
+  const [statusLoading, setStatusLoading] = useState(!!employeeId);
 
   // Filters for HR
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [filters, setFilters] = useState({
-    employeeId: isEmployee ? user?.employeeId : '',
+    employeeId: isEmployee ? employeeId : '',
     departmentId: '',
     status: '',
     startDate: '',
@@ -51,7 +52,7 @@ export default function AttendancePage() {
   useEffect(() => {
     fetchRecords();
     fetchTodayStatus();
-  }, [page, filters, user]);
+  }, [page, filters, currentUser]);
 
   const fetchOptions = async () => {
     try {
@@ -85,7 +86,7 @@ export default function AttendancePage() {
 
   const fetchTodayStatus = async () => {
     try {
-      if (!user?.employeeId) {
+      if (!employeeId) {
         setTodayStatus(null);
         setStatusLoading(false);
         return;
