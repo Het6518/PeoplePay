@@ -247,29 +247,47 @@ export default function PayrunDetailPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 bg-white">
-              {payrun.payslips?.map((p) => (
-                <tr key={p.id} className="hover:bg-stone-50/60 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-semibold text-stone-900">{p.employeeName}</div>
-                    <div className="text-xs text-stone-400 font-mono">{p.employeeCode}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">{p.department}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-700 text-right">{formatINR(p.gross)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-rose-600 text-right">{formatINR(p.deductions)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-600 text-right">{formatINR(p.net)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <StatusBadge status={p.status || payrun.status} />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
-                    <Link
-                      to={`/payroll/payslips/${p.id}`}
-                      className="px-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-900 hover:text-white text-stone-700 transition-all inline-block font-bold"
-                    >
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {payrun.payslips?.map((p) => {
+                const empName = p.employeeName || `${p.employee?.firstName || ''} ${p.employee?.lastName || ''}`.trim() || 'Employee';
+                const empCode = p.employeeCode || p.employee?.employeeCode || '';
+                const deptName = p.department || p.employee?.department?.name || '-';
+                const grossVal = p.gross ?? p.grossSalary ?? 0;
+                const dedVal = p.deductions ?? p.totalDeductions ?? 0;
+                const netVal = p.net ?? p.netSalary ?? 0;
+                const issues = p.validationNotes?.issues || [];
+                const primaryIssue = issues.length > 0 ? issues[0].message : (p.status === 'DRAFT' ? 'No active contract for this period' : null);
+
+                return (
+                  <tr key={p.id} className="hover:bg-stone-50/60 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-semibold text-stone-900">{empName}</div>
+                      <div className="text-xs text-stone-400 font-mono">{empCode}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">{deptName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-700 text-right">{formatINR(grossVal)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-rose-600 text-right">{formatINR(dedVal)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-600 text-right">{formatINR(netVal)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        <StatusBadge status={p.status || payrun.status} />
+                        {primaryIssue && (
+                          <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full max-w-[200px] truncate" title={primaryIssue}>
+                            ⚠️ {primaryIssue}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
+                      <Link
+                        to={`/payroll/payslips/${p.id}`}
+                        className="px-3 py-1.5 rounded-full bg-stone-100 hover:bg-stone-900 hover:text-white text-stone-700 transition-all inline-block font-bold"
+                      >
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
               {(!payrun.payslips || payrun.payslips.length === 0) && (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-xs font-medium text-stone-400">

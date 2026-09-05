@@ -332,7 +332,11 @@ function RequestModal({ onClose, onSave, types, leaveBalance }) {
             onChange={e => setFormData({...formData, timeOffTypeId: e.target.value})}
           >
             <option value="">Select leave type...</option>
-            {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            {types.map(t => (
+              <option key={t.id} value={t.id}>
+                {t.name} {t.isPaid === false ? '• Unpaid' : '• Paid'}
+              </option>
+            ))}
           </select>
         </div>
         <div className="grid grid-cols-2 gap-4">

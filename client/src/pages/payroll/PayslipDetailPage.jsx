@@ -77,7 +77,7 @@ export default function PayslipDetailPage() {
   const periodStart = payslip.periodStart || payslip.payrun?.periodStart;
   const periodEnd = payslip.periodEnd || payslip.payrun?.periodEnd;
   const lines = payslip.lines || payslip.rules || [];
-  const earnings = lines.filter(r => r.category === 'BASIC' || r.category === 'ALLOWANCE' || r.category === 'GROSS');
+  const earnings = lines.filter(r => r.category === 'BASIC' || r.category === 'ALLOWANCE');
   const deductions = lines.filter(r => r.category === 'DEDUCTION');
   const grossSalary = payslip.grossSalary ?? payslip.gross ?? 0;
   const totalDeductions = payslip.totalDeductions ?? payslip.deductions ?? 0;
@@ -113,10 +113,7 @@ export default function PayslipDetailPage() {
 
     const fixedAmount = rule.salaryRule?.fixedAmount ?? rule.fixedAmount;
     if (fixedAmount !== undefined && fixedAmount !== null && fixedAmount > 0) {
-      if (totalDays > 0 && workedDays > 0 && workedDays !== totalDays) {
-        return `Monthly ${formatINR(fixedAmount)} × ${workedDays}/${totalDays} days = ${formatINR(rule.amount)}`;
-      }
-      return `Fixed: ${formatINR(fixedAmount)}`;
+      return `Fixed Amount: ${formatINR(fixedAmount)}`;
     }
 
     if (rule.category === 'GROSS') {

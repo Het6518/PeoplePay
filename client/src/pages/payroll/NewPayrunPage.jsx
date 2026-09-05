@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ChevronRight, Search, ArrowLeft, Users, Calendar } from 'lucide-react';
+import { Check, ChevronRight, Search, ArrowLeft, Users, Calendar, AlertTriangle, AlertCircle } from 'lucide-react';
 import { payrollApi, salaryApi, employeeApi } from '../../services/apiServices';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
@@ -37,21 +37,67 @@ export default function NewPayrunPage() {
     fetchStructures();
   }, []);
 
+  const checkContractInRange = (employee, pStartStr, pEndStr) => {
+    if (!pStartStr || !pEndStr) return { isValid: true, reason: null };
+    
+    const pStart = new Date(pStartStr);
+    const pEnd = new Date(pEndStr);
+    pStart.setHours(0, 0, 0, 0);
+    pEnd.setHours(23, 59, 59, 999);
+
+    const contracts = employee.contracts || [];
+    if (!contracts || contracts.length === 0) {
+      return { isValid: false, reason: 'No contract found' };
+    }
+
+    const activeContracts = contracts.filter(c => c.status === 'ACTIVE');
+    if (activeContracts.length === 0) {
+      return { isValid: false, reason: 'No active contract' };
+    }
+
+    const validContract = activeContracts.find(c => {
+      const cStart = new Date(c.startDate);
+      cStart.setHours(0, 0, 0, 0);
+      const cEnd = c.endDate ? new Date(c.endDate) : null;
+      if (cEnd) cEnd.setHours(23, 59, 59, 999);
+
+      const startsBeforePeriodEnd = cStart <= pEnd;
+      const endsAfterPeriodStart = !cEnd || cEnd >= pStart;
+
+      return startsBeforePeriodEnd && endsAfterPeriodStart;
+    });
+
+    if (validContract) {
+      return { isValid: true, contract: validContract };
+    }
+
+    return { isValid: false, reason: 'No active contract for period' };
+  };
+
   useEffect(() => {
-    if (currentStep === 2 && employees.length === 0) {
+    if (currentStep === 2) {
       const fetchEmployees = async () => {
         setLoading(true);
         try {
-          const res = await employeeApi.getAll({ status: 'ACTIVE' });
+          const res = await employeeApi.getAll({ status: 'ACTIVE', limit: 500 });
           const list = Array.isArray(res) ? res : (res?.data || []);
-          const normalized = list.map(e => ({
-            ...e,
-            name: e.name || `${e.firstName || ''} ${e.lastName || ''}`.trim(),
-            code: e.code || e.employeeCode || '',
-            department: typeof e.department === 'string' ? e.department : e.department?.name || '',
-          }));
+          const normalized = list.map(e => {
+            const contractStatus = checkContractInRange(e, periodStart, periodEnd);
+            return {
+              ...e,
+              name: e.name || `${e.firstName || ''} ${e.lastName || ''}`.trim(),
+              code: e.code || e.employeeCode || '',
+              department: typeof e.department === 'string' ? e.department : e.department?.name || '',
+              contractStatus,
+            };
+          });
           setEmployees(normalized);
-          setSelectedEmployeeIds(normalized.map(e => e.id));
+
+          // Auto-select ONLY employees with active contract in period range
+          const eligibleEmployeeIds = normalized
+            .filter(e => e.contractStatus.isValid)
+            .map(e => e.id);
+          setSelectedEmployeeIds(eligibleEmployeeIds);
         } catch (error) {
           console.error('Error fetching employees', error);
         } finally {
@@ -60,7 +106,7 @@ export default function NewPayrunPage() {
       };
       fetchEmployees();
     }
-  }, [currentStep, employees.length]);
+  }, [currentStep, periodStart, periodEnd]);
 
   const generatePayrunName = () => {
     if (!periodStart) return 'New Payrun';
@@ -98,20 +144,27 @@ export default function NewPayrunPage() {
     }
   };
 
-  const toggleAll = () => {
-    if (selectedEmployeeIds.length === filteredEmployees.length) {
-      setSelectedEmployeeIds([]);
-    } else {
-      setSelectedEmployeeIds(filteredEmployees.map(e => e.id));
-    }
-  };
-
   const filteredEmployees = employees.filter(e => {
     const matchesSearch = e.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           e.code.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDept = deptFilter ? e.department === deptFilter : true;
     return matchesSearch && matchesDept;
   });
+
+  const eligibleFilteredEmployees = filteredEmployees.filter(e => e.contractStatus?.isValid);
+
+  const toggleAllEligible = () => {
+    const allEligibleSelected = eligibleFilteredEmployees.length > 0 &&
+      eligibleFilteredEmployees.every(e => selectedEmployeeIds.includes(e.id));
+
+    if (allEligibleSelected) {
+      const eligibleIds = new Set(eligibleFilteredEmployees.map(e => e.id));
+      setSelectedEmployeeIds(selectedEmployeeIds.filter(id => !eligibleIds.has(id)));
+    } else {
+      const eligibleIds = eligibleFilteredEmployees.map(e => e.id);
+      setSelectedEmployeeIds(Array.from(new Set([...selectedEmployeeIds, ...eligibleIds])));
+    }
+  };
 
   const selectedStructure = structures.find(s => s.id === selectedStructureId);
 
@@ -219,11 +272,22 @@ export default function NewPayrunPage() {
         {/* STEP 2: SELECT EMPLOYEES */}
         {currentStep === 2 && (
           <div className="space-y-4">
-            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-              <h2 className="text-lg font-bold text-stone-900">Step 2: Select Employees</h2>
-              <span className="text-xs font-bold text-stone-900 bg-amber-100 px-3.5 py-1 rounded-full">
-                {selectedEmployeeIds.length} Selected
-              </span>
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-stone-100 pb-3">
+              <div>
+                <h2 className="text-lg font-bold text-stone-900">Step 2: Select Employees</h2>
+                <p className="text-xs text-stone-500 font-medium">Only employees with an active contract for this period are auto-selected.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-stone-900 bg-amber-100 px-3.5 py-1 rounded-full">
+                  {selectedEmployeeIds.length} Selected
+                </span>
+                {employees.filter(e => !e.contractStatus?.isValid).length > 0 && (
+                  <span className="text-xs font-bold text-red-700 bg-red-100 border border-red-200 px-3 py-1 rounded-full flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+                    {employees.filter(e => !e.contractStatus?.isValid).length} Ineligible
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
@@ -259,9 +323,10 @@ export default function NewPayrunPage() {
                       <th className="px-6 py-3.5 text-left">
                         <input 
                           type="checkbox" 
-                          checked={selectedEmployeeIds.length === filteredEmployees.length && filteredEmployees.length > 0}
-                          onChange={toggleAll}
-                          className="h-4 w-4 text-amber-500 focus:ring-amber-400 border-stone-300 rounded"
+                          checked={eligibleFilteredEmployees.length > 0 && eligibleFilteredEmployees.every(e => selectedEmployeeIds.includes(e.id))}
+                          onChange={toggleAllEligible}
+                          title="Toggle all eligible employees"
+                          className="h-4 w-4 text-amber-500 focus:ring-amber-400 border-stone-300 rounded cursor-pointer"
                         />
                       </th>
                       <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Employee</th>
@@ -270,31 +335,58 @@ export default function NewPayrunPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100 bg-white">
-                    {filteredEmployees.map(emp => (
-                      <tr key={emp.id} className="hover:bg-stone-50/60 transition-colors">
-                        <td className="px-6 py-3.5">
-                          <input 
-                            type="checkbox" 
-                            checked={selectedEmployeeIds.includes(emp.id)}
-                            onChange={() => toggleEmployeeSelection(emp.id)}
-                            className="h-4 w-4 text-amber-500 focus:ring-amber-400 border-stone-300 rounded"
-                          />
-                        </td>
-                        <td className="px-6 py-3.5 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-stone-900 text-white font-bold text-xs flex items-center justify-center">
-                              {emp.name.charAt(0)}
+                    {filteredEmployees.map(emp => {
+                      const isEligible = emp.contractStatus?.isValid;
+                      const isSelected = selectedEmployeeIds.includes(emp.id);
+
+                      return (
+                        <tr 
+                          key={emp.id} 
+                          className={`transition-colors ${
+                            !isEligible 
+                              ? 'bg-red-50/50 hover:bg-red-100/50' 
+                              : 'hover:bg-stone-50/60'
+                          }`}
+                        >
+                          <td className="px-6 py-3.5">
+                            <input 
+                              type="checkbox" 
+                              checked={isSelected}
+                              onChange={() => toggleEmployeeSelection(emp.id)}
+                              className={`h-4 w-4 rounded cursor-pointer ${
+                                !isEligible 
+                                  ? 'text-red-500 focus:ring-red-400 border-red-300' 
+                                  : 'text-amber-500 focus:ring-amber-400 border-stone-300'
+                              }`}
+                            />
+                          </td>
+                          <td className="px-6 py-3.5 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <div className={`h-8 w-8 rounded-full font-bold text-xs flex items-center justify-center ${
+                                !isEligible ? 'bg-red-200 text-red-900' : 'bg-stone-900 text-white'
+                              }`}>
+                                {emp.name.charAt(0)}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-sm font-semibold ${!isEligible ? 'text-red-950 font-bold' : 'text-stone-900'}`}>
+                                    {emp.name}
+                                  </span>
+                                  {!isEligible && (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-700 bg-red-100 border border-red-200 px-2 py-0.5 rounded-full shadow-2xs">
+                                      <AlertTriangle className="w-3 h-3 text-red-600 shrink-0" />
+                                      {emp.contractStatus?.reason || 'No active contract for period'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                            <div>
-                              <div className="text-sm font-semibold text-stone-900">{emp.name}</div>
-                              <div className="text-xs font-medium text-stone-400">{emp.code} • {emp.employeeType}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-3.5 whitespace-nowrap text-xs font-medium text-stone-600">{emp.department}</td>
-                        <td className="px-6 py-3.5 whitespace-nowrap text-xs font-medium text-stone-600">{emp.jobPosition}</td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-6 py-3.5 whitespace-nowrap text-xs font-medium text-stone-600">{emp.department}</td>
+                          <td className="px-6 py-3.5 whitespace-nowrap text-xs font-medium text-stone-600">{emp.jobPosition}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -344,6 +436,18 @@ export default function NewPayrunPage() {
                 </p>
               </div>
             </div>
+
+            {selectedEmployeeIds.some(id => {
+              const emp = employees.find(e => e.id === id);
+              return emp && !emp.contractStatus?.isValid;
+            }) && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-red-800">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">Warning:</span> One or more selected employees do not have an active contract covering the payrun period ({periodStart} to {periodEnd}). Payroll computation for these employees will fail.
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-between pt-6 border-t border-stone-100">
               <button

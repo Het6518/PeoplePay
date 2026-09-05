@@ -7,7 +7,6 @@ import { StatusBadge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { Pagination } from '../../components/ui/Pagination';
 import { WorkingDaysPolicyModal } from '../../components/payroll/WorkingDaysPolicyModal';
-import { HolidayReviewWidget } from '../../components/payroll/HolidayReviewWidget';
 
 export default function PayrunListPage() {
   const [payruns, setPayruns] = useState([]);
@@ -83,9 +82,6 @@ export default function PayrunListPage() {
           </Link>
         </div>
       </div>
-
-      {/* Festival & Public Holiday Review Widget */}
-      <HolidayReviewWidget onHolidayUpdated={fetchPayruns} />
 
       <WorkingDaysPolicyModal
         open={showPolicyModal}

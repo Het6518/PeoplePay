@@ -133,7 +133,17 @@ const createAttendance = async (req, res, next) => {
 
     const checkIn = data.checkIn ? new Date(data.checkIn) : null;
     const checkOut = data.checkOut ? new Date(data.checkOut) : null;
-    const workedHours = calculateWorkedHours(checkIn, checkOut);
+
+    const employee = await prisma.employee.findUnique({
+      where: { id: data.employeeId },
+      include: { workingSchedule: { include: { days: true } } },
+    });
+    const dayOfWeek = date.getDay();
+    const scheduleDay = employee?.workingSchedule?.days.find((d) => d.dayOfWeek === dayOfWeek);
+    const workedHours = calculateWorkedHours(checkIn, checkOut, scheduleDay?.breakMinutes || 0);
+    const status = checkIn
+      ? (checkOut ? determineStatus(workedHours, checkIn, scheduleDay) : 'MISSING_CHECKOUT')
+      : 'ABSENT';
 
     const location = await attendanceLocationService.getEmployeeAttendanceLocation(data.employeeId);
 
@@ -144,7 +154,7 @@ const createAttendance = async (req, res, next) => {
         checkIn,
         checkOut,
         workedHours,
-        status: checkIn ? (checkOut ? 'PRESENT' : 'MISSING_CHECKOUT') : 'ABSENT',
+        status,
         notes: data.notes,
         attendanceLocationId: location?.id || null,
       },
@@ -198,10 +208,25 @@ const checkIn = async (req, res, next) => {
     }
 
     const now = new Date();
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: { workingSchedule: { include: { days: true } } },
+    });
+    const dayOfWeek = now.getDay();
+    const scheduleDay = employee?.workingSchedule?.days.find((d) => d.dayOfWeek === dayOfWeek);
+
+    let initialStatus = 'PRESENT';
+    if (scheduleDay && scheduleDay.startTime) {
+      const [schedH, schedM] = scheduleDay.startTime.split(':').map(Number);
+      const scheduledStart = new Date(now);
+      scheduledStart.setHours(schedH, schedM, 0, 0);
+      const lateMinutes = (now - scheduledStart) / (1000 * 60);
+      if (lateMinutes > 10) initialStatus = 'LATE';
+    }
 
     const attendanceData = {
       checkIn: now,
-      status: 'PRESENT',
+      status: initialStatus,
       checkInLatitude: Number(latitude),
       checkInLongitude: Number(longitude),
       checkInAccuracy: Number(accuracy) || 0,

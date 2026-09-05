@@ -130,10 +130,22 @@ export default function SalaryStructurePage() {
                       <td className="px-4 py-3.5 text-xs">
                         <span className="px-2.5 py-0.5 rounded-full bg-stone-100 text-stone-800 text-[11px] font-bold">{rule.category}</span>
                       </td>
-                      <td className="px-4 py-3.5 text-xs font-medium text-stone-600">
-                        {rule.computationType === 'FIXED' ? `Fixed: ${rule.fixedAmount ?? 0}` :
-                         rule.computationType === 'PERCENTAGE' ? `${rule.percentage ?? 0}% of ${rule.percentageBase || '-'}` :
-                         'Formula'}
+                      <td className="px-4 py-3.5 text-xs font-medium text-stone-700">
+                        {rule.computationType === 'FIXED' ? (
+                          rule.category === 'BASIC' ? (
+                            <span className="font-semibold text-stone-800">Contract Wage</span>
+                          ) : (
+                            <span>Fixed: <strong className="font-mono text-stone-900">₹{rule.fixedAmount ?? 0}</strong></span>
+                          )
+                        ) : rule.computationType === 'PERCENTAGE' ? (
+                          <span className="font-mono text-[11px] font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/80">
+                            {rule.percentage ?? 0}% of {rule.percentageBase || '-'}
+                          </span>
+                        ) : (
+                          <code className="font-mono text-[11px] font-bold text-stone-900 bg-stone-100 px-2 py-0.5 rounded border border-stone-200/80">
+                            {rule.formula || 'Formula'}
+                          </code>
+                        )}
                       </td>
                       <td className="px-4 py-3.5 text-xs">
                         <span className={`font-bold ${rule.isActive ? 'text-emerald-600' : 'text-stone-400'}`}>{rule.isActive ? 'Active' : 'Inactive'}</span>

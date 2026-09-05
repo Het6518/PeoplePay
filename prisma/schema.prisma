@@ -361,6 +361,7 @@ model TimeOffType {
   description        String?
   isActive           Boolean     @default(true)
   color              String?     @default("#6366f1")
+  isPaid             Boolean     @default(true)
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 

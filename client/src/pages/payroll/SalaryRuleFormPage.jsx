@@ -29,12 +29,39 @@ export default function SalaryRuleFormPage() {
   });
 
   const [structures, setStructures] = useState([]);
+  const [loadingRule, setLoadingRule] = useState(isEdit);
 
   useEffect(() => {
-    salaryApi.getStructures().then(res => setStructures(res.data || [])).catch(console.error);
+    salaryApi.getStructures().then(res => {
+      const list = Array.isArray(res) ? res : (res.data || []);
+      setStructures(list);
+    }).catch(console.error);
 
-    if (isEdit) {
-      // fetch existing rule
+    if (isEdit && id) {
+      setLoadingRule(true);
+      salaryApi.getRule(id)
+        .then(res => {
+          const rule = res.data?.data || res.data || res;
+          if (rule) {
+            setFormData({
+              structureId: rule.salaryStructureId || rule.structureId || '',
+              name: rule.name || '',
+              code: rule.code || '',
+              category: rule.category || 'ALLOWANCE',
+              sequence: rule.sequence || 10,
+              isActive: rule.isActive ?? true,
+              computationType: rule.computationType || 'FIXED',
+              amount: rule.fixedAmount != null ? rule.fixedAmount : '',
+              percentage: rule.percentage != null ? rule.percentage : '',
+              baseRuleCode: rule.percentageBase || rule.baseRuleCode || '',
+              formula: rule.formula || '',
+            });
+          }
+        })
+        .catch(err => {
+          toast.error('Failed to load salary rule');
+        })
+        .finally(() => setLoadingRule(false));
     }
   }, [id, isEdit]);
 
@@ -53,18 +80,36 @@ export default function SalaryRuleFormPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        salaryStructureId: formData.structureId,
+        name: formData.name,
+        code: formData.code,
+        category: formData.category,
+        sequence: Number(formData.sequence),
+        isActive: Boolean(formData.isActive),
+        computationType: formData.computationType,
+        fixedAmount: formData.computationType === 'FIXED' ? (formData.amount !== '' && formData.amount != null ? Number(formData.amount) : null) : null,
+        percentage: formData.computationType === 'PERCENTAGE' ? (formData.percentage !== '' && formData.percentage != null ? Number(formData.percentage) : null) : null,
+        percentageBase: formData.computationType === 'PERCENTAGE' ? formData.baseRuleCode : null,
+        formula: formData.computationType === 'FORMULA' ? formData.formula : null,
+      };
+
       if (isEdit) {
-        await salaryApi.updateRule(id, formData);
-        toast.success('Rule updated');
+        await salaryApi.updateRule(id, payload);
+        toast.success('Salary rule updated successfully');
       } else {
-        await salaryApi.createRule(formData);
-        toast.success('Rule created');
+        await salaryApi.createRule(payload);
+        toast.success('Salary rule created successfully');
       }
       navigate('/payroll/salary-structures');
     } catch (err) {
-      toast.error('Failed to save rule');
+      toast.error(err.response?.data?.message || 'Failed to save salary rule');
     }
   };
+
+  if (loadingRule) {
+    return <div className="py-16 text-center text-stone-400 font-medium">Loading salary rule details...</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

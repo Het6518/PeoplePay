@@ -15,7 +15,19 @@ const getSalaryStructures = async (req, res, next) => {
         rules: {
           where: { isActive: true },
           orderBy: { sequence: 'asc' },
-          select: { id: true, name: true, code: true, category: true, sequence: true, computationType: true, isActive: true },
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            category: true,
+            sequence: true,
+            computationType: true,
+            fixedAmount: true,
+            percentage: true,
+            percentageBase: true,
+            formula: true,
+            isActive: true,
+          },
         },
       },
     });

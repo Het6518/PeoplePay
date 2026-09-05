@@ -123,6 +123,7 @@ const CreateTimeOffTypeSchema = z.object({
   payrollIntegration: z.boolean().optional(),
   description: z.string().optional().nullable(),
   color: z.string().optional().nullable(),
+  isPaid: z.boolean().optional(),
 });
 
 const UpdateTimeOffTypeSchema = CreateTimeOffTypeSchema.partial();

@@ -210,16 +210,15 @@ async function calculateAttendanceStats(employeeId, periodStart, periodEnd, pris
       endDate: { gte: periodStart },
     },
     include: {
-      timeOffType: { select: { name: true } },
+      timeOffType: { select: { id: true, name: true, isPaid: true } },
     },
   });
 
   let leaveDays = 0;
   for (const leave of approvedLeave) {
-    const leaveTypeName = leave.timeOffType?.name?.toLowerCase() || '';
-    // Unpaid leave / Loss of Pay is excluded from paid leave
-    const isUnpaid = leaveTypeName.includes('unpaid') || leaveTypeName.includes('loss of pay') || leaveTypeName.includes('lop');
-    if (isUnpaid) continue;
+    // Check isPaid flag on TimeOffType configuration
+    const isPaid = leave.timeOffType ? leave.timeOffType.isPaid !== false : true;
+    if (!isPaid) continue;
 
     const overlapStart = new Date(Math.max(new Date(leave.startDate).getTime(), periodStart.getTime()));
     const overlapEnd = new Date(Math.min(new Date(leave.endDate).getTime(), periodEnd.getTime()));
@@ -235,7 +234,7 @@ async function calculateAttendanceStats(employeeId, periodStart, periodEnd, pris
     leaveDays += Math.min(leave.duration, overlappingWorkingDays);
   }
 
-  // Final worked days = attendance worked days + leave days (paid leave counts)
+  // Final worked days = attendance worked days + paid leave days
   const finalWorkedDays = Math.min(workedDays + leaveDays, totalWorkingDays);
 
   return {
@@ -257,13 +256,11 @@ async function calculateAttendanceStats(employeeId, periodStart, periodEnd, pris
  * @param {Object} params
  * @param {Object} params.contract - The applicable contract (including salary structure + rules)
  * @param {Object} params.attendanceStats - Output from calculateAttendanceStats
- * @param {string} params.salaryStructureId - Payrun salary structure (may differ from contract)
- * @param {Array} params.rules - Salary rules from payrun's salary structure
+ * @param {Array} params.rules - Salary rules from employee's assigned salary structure
  * @returns {{ lines, grossSalary, totalDeductions, netSalary, context }}
  */
 function processPayrollRules({ contract, attendanceStats, rules }) {
   const { workedDays, totalWorkingDays, overtimeHours, leaveDays } = attendanceStats;
-  const payableRatio = totalWorkingDays > 0 ? workedDays / totalWorkingDays : 0;
 
   // Initial calculation context
   const context = {
@@ -295,9 +292,8 @@ function processPayrollRules({ contract, attendanceStats, rules }) {
             amount = totalWorkingDays > 0
               ? (contract.wage * workedDays) / totalWorkingDays
               : contract.wage;
-          } else if (['ALLOWANCE', 'DEDUCTION'].includes(rule.category)) {
-            amount = amount * payableRatio;
           }
+          // FIXED allowance/deduction rules (e.g. Medical Allowance) pay full flat amount decoupled from attendance
           amount = Math.round(amount * 100) / 100;
           break;
 
@@ -393,6 +389,13 @@ async function computeEmployeePayroll({
     };
   }
 
+  // Use the employee contract's assigned Salary Structure and Rules if available
+  const contractStructure = contract.salaryStructure;
+  const effectiveStructureId = contractStructure?.id || salaryStructureId;
+  const effectiveRules = (contractStructure?.rules && contractStructure.rules.length > 0)
+    ? contractStructure.rules
+    : rules;
+
   // Step 2: Calculate attendance stats
   const attendanceStats = await calculateAttendanceStats(
     employee.id,
@@ -401,13 +404,13 @@ async function computeEmployeePayroll({
     prisma
   );
 
-  // Step 3: Process salary rules
+  // Step 3: Process salary rules STRICTLY for the employee's structure
   let calculation;
   try {
     calculation = processPayrollRules({
       contract,
       attendanceStats,
-      rules,
+      rules: effectiveRules,
     });
   } catch (err) {
     return {
@@ -430,7 +433,7 @@ async function computeEmployeePayroll({
     success: true,
     employeeId: employee.id,
     contractId: contract.id,
-    salaryStructureId,
+    salaryStructureId: effectiveStructureId,
     workedDays: attendanceStats.workedDays,
     totalWorkingDays: attendanceStats.totalWorkingDays,
     leaveDays: attendanceStats.leaveDays,

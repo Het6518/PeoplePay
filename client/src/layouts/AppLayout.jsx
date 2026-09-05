@@ -13,7 +13,6 @@ const payrollSubItems = [
   { to: '/payroll/payruns', label: 'Payruns', roles: PAYROLL_ROLES },
   { to: '/payroll/payslips', label: 'Payslips', roles: PAYROLL_ROLES },
   { to: '/payroll/salary-structures', label: 'Salary Structures', roles: PAYROLL_ROLES },
-  { to: '/payroll/salary-rules', label: 'Salary Rules', roles: PAYROLL_ROLES },
 ];
 
 function NavItem({ to, label, end = false, onClick, fullWidth = false }) {
@@ -113,7 +112,7 @@ export function AppLayout({ children }) {
     { to: '/dashboard', label: 'Dashboard', show: !isEmployeeRole },
     { to: employeeProfilePath, label: isEmployeeRole ? 'My Profile' : 'People', show: true },
     { to: '/contracts', label: 'Contracts', show: isHR() },
-    { to: '/schedules', label: 'Calendar', show: isHR() },
+    { to: '/schedules', label: 'Schedule', show: isHR() },
     { to: '/attendance', label: 'Attendance', show: true },
     { to: '/time-off', label: 'Leave', show: true },
   ];

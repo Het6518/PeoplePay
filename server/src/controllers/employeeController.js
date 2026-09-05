@@ -27,6 +27,18 @@ const EMPLOYEE_SELECT = {
   manager: { select: { id: true, firstName: true, lastName: true } },
   workingSchedule: { select: { id: true, name: true, weeklyHours: true } },
   user: { select: { id: true, email: true, role: true } },
+  contracts: {
+    select: {
+      id: true,
+      status: true,
+      startDate: true,
+      endDate: true,
+      salaryStructureId: true,
+      position: true,
+      wage: true,
+    },
+    orderBy: { startDate: 'desc' },
+  },
   _count: {
     select: {
       contracts: true,
