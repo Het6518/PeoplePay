@@ -59,10 +59,10 @@ async function validatePayrun(payrunId) {
   const ruleCategories = payrun.salaryStructure?.rules.map((r) => r.category) || [];
   if (!ruleCategories.includes('NET')) {
     issues.push({
-      severity: 'ERROR',
+      severity: 'WARNING',
       type: 'MISSING_NET_RULE',
       employeeId: null,
-      message: 'Salary structure has no NET rule. Net salary cannot be calculated.',
+      message: 'Salary structure has no NET rule. Default net calculation (Gross - Deductions) will be used.',
     });
   }
 

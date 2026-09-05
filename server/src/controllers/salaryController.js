@@ -56,7 +56,38 @@ const getSalaryStructure = async (req, res, next) => {
 const createSalaryStructure = async (req, res, next) => {
   try {
     const data = CreateSalaryStructureSchema.parse(req.body);
-    const structure = await prisma.salaryStructure.create({ data });
+    const structure = await prisma.salaryStructure.create({
+      data: {
+        ...data,
+        rules: {
+          create: [
+            {
+              name: 'Basic Salary',
+              code: 'BASIC',
+              category: 'BASIC',
+              sequence: 1,
+              computationType: 'FIXED',
+              description: 'Basic salary component derived from contract wage',
+              isActive: true,
+            },
+            {
+              name: 'Net Salary',
+              code: 'NET',
+              category: 'NET',
+              sequence: 99,
+              computationType: 'FORMULA',
+              formula: 'GROSS - PF - TAX',
+              description: 'Final net salary after deductions',
+              isActive: true,
+            },
+          ],
+        },
+      },
+      include: {
+        rules: { orderBy: { sequence: 'asc' } },
+        _count: { select: { rules: true, contracts: true } },
+      },
+    });
     return sendSuccess(res, structure, 201);
   } catch (err) {
     next(err);

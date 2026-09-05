@@ -534,6 +534,12 @@ model Payslip {
   emailSent         Boolean       @default(false)
   emailSentAt       DateTime?
   emailError        String?
+  effectivePeriodStart DateTime?  @db.Date
+  effectivePeriodEnd   DateTime?  @db.Date
+  isOverride           Boolean    @default(false)
+  overrideWarning      String?
+  overrideBy           String?
+  overrideAt           DateTime?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 

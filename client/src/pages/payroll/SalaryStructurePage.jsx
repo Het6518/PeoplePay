@@ -27,8 +27,10 @@ export default function SalaryStructurePage() {
         const updated = list.find(s => s.id === selectedStructure.id);
         if (updated) setSelectedStructure(updated);
       }
+      return list;
     } catch (err) {
       toast.error('Failed to fetch salary structures');
+      return [];
     }
   };
 
@@ -178,13 +180,27 @@ export default function SalaryStructurePage() {
         <Modal open={true} onClose={() => setShowModal(false)} title="New Salary Structure" size="md">
           <form onSubmit={async (e) => {
             e.preventDefault();
-            const formData = new FormData(e.target);
+            const formData = new FormData(e.currentTarget);
+            const name = formData.get('name')?.toString().trim();
+            const description = formData.get('desc')?.toString().trim() || formData.get('description')?.toString().trim() || null;
+
+            if (!name) {
+              toast.error('Structure name is required');
+              return;
+            }
+
             try {
-              toast.success('Structure created');
+              const res = await salaryApi.createStructure({ name, description });
+              toast.success('Salary structure created successfully');
               setShowModal(false);
-              fetchStructures();
+              const list = await fetchStructures();
+              const created = res?.data || res;
+              if (created && created.id) {
+                setSelectedStructure(created);
+              }
             } catch(err) {
-              toast.error('Failed to create structure');
+              console.error('Failed to create structure', err);
+              toast.error(err.response?.data?.message || 'Failed to create structure');
             }
           }} className="space-y-4">
             <div>

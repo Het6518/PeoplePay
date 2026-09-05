@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronRight, Search, ArrowLeft, Users, Calendar, AlertTriangle, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { payrollApi, salaryApi, employeeApi } from '../../services/apiServices';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
@@ -37,8 +38,8 @@ export default function NewPayrunPage() {
     fetchStructures();
   }, []);
 
-  const checkContractInRange = (employee, pStartStr, pEndStr) => {
-    if (!pStartStr || !pEndStr) return { isValid: true, reason: null };
+  const checkContractInRange = (employee, pStartStr, pEndStr, targetStructureId) => {
+    if (!pStartStr || !pEndStr) return { isValid: true, isStructureMatch: true, reason: null };
     
     const pStart = new Date(pStartStr);
     const pEnd = new Date(pEndStr);
@@ -47,12 +48,12 @@ export default function NewPayrunPage() {
 
     const contracts = employee.contracts || [];
     if (!contracts || contracts.length === 0) {
-      return { isValid: false, reason: 'No contract found' };
+      return { isValid: false, isStructureMatch: false, reason: 'No contract found' };
     }
 
     const activeContracts = contracts.filter(c => c.status === 'ACTIVE');
     if (activeContracts.length === 0) {
-      return { isValid: false, reason: 'No active contract' };
+      return { isValid: false, isStructureMatch: false, reason: 'No active contract' };
     }
 
     const validContract = activeContracts.find(c => {
@@ -67,11 +68,23 @@ export default function NewPayrunPage() {
       return startsBeforePeriodEnd && endsAfterPeriodStart;
     });
 
-    if (validContract) {
-      return { isValid: true, contract: validContract };
+    if (!validContract) {
+      return { isValid: false, isStructureMatch: false, reason: 'No active contract for period' };
     }
 
-    return { isValid: false, reason: 'No active contract for period' };
+    const isStructureMatch = !targetStructureId || validContract.salaryStructureId === targetStructureId;
+    const assignedStructureName = validContract.salaryStructure?.name || null;
+
+    if (!isStructureMatch) {
+      return {
+        isValid: true,
+        isStructureMatch: false,
+        contract: validContract,
+        reason: assignedStructureName ? `Assigned to: ${assignedStructureName}` : 'Structure Mismatch',
+      };
+    }
+
+    return { isValid: true, isStructureMatch: true, contract: validContract, reason: null };
   };
 
   useEffect(() => {
@@ -82,7 +95,7 @@ export default function NewPayrunPage() {
           const res = await employeeApi.getAll({ status: 'ACTIVE', limit: 500 });
           const list = Array.isArray(res) ? res : (res?.data || []);
           const normalized = list.map(e => {
-            const contractStatus = checkContractInRange(e, periodStart, periodEnd);
+            const contractStatus = checkContractInRange(e, periodStart, periodEnd, selectedStructureId);
             return {
               ...e,
               name: e.name || `${e.firstName || ''} ${e.lastName || ''}`.trim(),
@@ -93,11 +106,11 @@ export default function NewPayrunPage() {
           });
           setEmployees(normalized);
 
-          // Auto-select ONLY employees with active contract in period range
-          const eligibleEmployeeIds = normalized
-            .filter(e => e.contractStatus.isValid)
+          // Auto-select ONLY employees with active contract in period range AND matching selected structure
+          const matchingEmployeeIds = normalized
+            .filter(e => e.contractStatus.isValid && e.contractStatus.isStructureMatch)
             .map(e => e.id);
-          setSelectedEmployeeIds(eligibleEmployeeIds);
+          setSelectedEmployeeIds(matchingEmployeeIds);
         } catch (error) {
           console.error('Error fetching employees', error);
         } finally {
@@ -106,7 +119,7 @@ export default function NewPayrunPage() {
       };
       fetchEmployees();
     }
-  }, [currentStep, periodStart, periodEnd]);
+  }, [currentStep, periodStart, periodEnd, selectedStructureId]);
 
   const generatePayrunName = () => {
     if (!periodStart) return 'New Payrun';
@@ -132,6 +145,7 @@ export default function NewPayrunPage() {
       }
     } catch (error) {
       console.error('Failed to create payrun', error);
+      toast.error(error.response?.data?.message || 'Failed to create payrun batch');
       setSubmitting(false);
     }
   };
@@ -151,18 +165,18 @@ export default function NewPayrunPage() {
     return matchesSearch && matchesDept;
   });
 
-  const eligibleFilteredEmployees = filteredEmployees.filter(e => e.contractStatus?.isValid);
+  const matchingFilteredEmployees = filteredEmployees.filter(e => e.contractStatus?.isValid && e.contractStatus?.isStructureMatch);
 
   const toggleAllEligible = () => {
-    const allEligibleSelected = eligibleFilteredEmployees.length > 0 &&
-      eligibleFilteredEmployees.every(e => selectedEmployeeIds.includes(e.id));
+    const allMatchingSelected = matchingFilteredEmployees.length > 0 &&
+      matchingFilteredEmployees.every(e => selectedEmployeeIds.includes(e.id));
 
-    if (allEligibleSelected) {
-      const eligibleIds = new Set(eligibleFilteredEmployees.map(e => e.id));
-      setSelectedEmployeeIds(selectedEmployeeIds.filter(id => !eligibleIds.has(id)));
+    if (allMatchingSelected) {
+      const matchingIds = new Set(matchingFilteredEmployees.map(e => e.id));
+      setSelectedEmployeeIds(selectedEmployeeIds.filter(id => !matchingIds.has(id)));
     } else {
-      const eligibleIds = eligibleFilteredEmployees.map(e => e.id);
-      setSelectedEmployeeIds(Array.from(new Set([...selectedEmployeeIds, ...eligibleIds])));
+      const matchingIds = matchingFilteredEmployees.map(e => e.id);
+      setSelectedEmployeeIds(Array.from(new Set([...selectedEmployeeIds, ...matchingIds])));
     }
   };
 
@@ -183,9 +197,9 @@ export default function NewPayrunPage() {
       {/* Step Stepper Pill Container */}
       <div className="bg-stone-200/50 p-2 rounded-full border border-stone-300/40 flex items-center justify-around max-w-xl mx-auto">
         {[
-          { num: 1, label: '1. Setup' },
-          { num: 2, label: '2. Employees' },
-          { num: 3, label: '3. Review' },
+          { num: 1, label: '1. Setup Scope' },
+          { num: 2, label: '2. Select Staff' },
+          { num: 3, label: '3. Create Batch' },
         ].map((step) => {
           const isActive = currentStep === step.num;
           const isDone = currentStep > step.num;
@@ -211,7 +225,7 @@ export default function NewPayrunPage() {
         {/* STEP 1: SETUP */}
         {currentStep === 1 && (
           <div className="space-y-6 max-w-lg mx-auto py-2">
-            <h2 className="text-lg font-bold text-stone-900 border-b border-stone-100 pb-3">Step 1: Setup Details</h2>
+            <h2 className="text-lg font-bold text-stone-900 border-b border-stone-100 pb-3">Step 1: Define Scope</h2>
             
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1.5">Salary Structure</label>
@@ -274,17 +288,16 @@ export default function NewPayrunPage() {
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-stone-100 pb-3">
               <div>
-                <h2 className="text-lg font-bold text-stone-900">Step 2: Select Employees</h2>
-                <p className="text-xs text-stone-500 font-medium">Only employees with an active contract for this period are auto-selected.</p>
+                <h2 className="text-lg font-bold text-stone-900">Step 2: Employee Selection</h2>
+                <p className="text-xs text-stone-500 font-medium">Pre-filtered to staff with active contract for this period on "{selectedStructure?.name}".</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-stone-900 bg-amber-100 px-3.5 py-1 rounded-full">
                   {selectedEmployeeIds.length} Selected
                 </span>
-                {employees.filter(e => !e.contractStatus?.isValid).length > 0 && (
-                  <span className="text-xs font-bold text-red-700 bg-red-100 border border-red-200 px-3 py-1 rounded-full flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                    {employees.filter(e => !e.contractStatus?.isValid).length} Ineligible
+                {matchingFilteredEmployees.length > 0 && (
+                  <span className="text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full">
+                    {matchingFilteredEmployees.length} Matching Structure
                   </span>
                 )}
               </div>
@@ -323,9 +336,9 @@ export default function NewPayrunPage() {
                       <th className="px-6 py-3.5 text-left">
                         <input 
                           type="checkbox" 
-                          checked={eligibleFilteredEmployees.length > 0 && eligibleFilteredEmployees.every(e => selectedEmployeeIds.includes(e.id))}
+                          checked={matchingFilteredEmployees.length > 0 && matchingFilteredEmployees.every(e => selectedEmployeeIds.includes(e.id))}
                           onChange={toggleAllEligible}
-                          title="Toggle all eligible employees"
+                          title="Toggle all matching structure employees"
                           className="h-4 w-4 text-amber-500 focus:ring-amber-400 border-stone-300 rounded cursor-pointer"
                         />
                       </th>
@@ -337,16 +350,20 @@ export default function NewPayrunPage() {
                   <tbody className="divide-y divide-stone-100 bg-white">
                     {filteredEmployees.map(emp => {
                       const isEligible = emp.contractStatus?.isValid;
+                      const isMatch = emp.contractStatus?.isStructureMatch;
                       const isSelected = selectedEmployeeIds.includes(emp.id);
+
+                      let rowBgClass = 'hover:bg-stone-50/60';
+                      if (!isEligible) {
+                        rowBgClass = 'bg-red-50/50 hover:bg-red-100/50';
+                      } else if (!isMatch) {
+                        rowBgClass = 'bg-amber-50/40 hover:bg-amber-100/40';
+                      }
 
                       return (
                         <tr 
                           key={emp.id} 
-                          className={`transition-colors ${
-                            !isEligible 
-                              ? 'bg-red-50/50 hover:bg-red-100/50' 
-                              : 'hover:bg-stone-50/60'
-                          }`}
+                          className={`transition-colors ${rowBgClass}`}
                         >
                           <td className="px-6 py-3.5">
                             <input 
@@ -356,6 +373,8 @@ export default function NewPayrunPage() {
                               className={`h-4 w-4 rounded cursor-pointer ${
                                 !isEligible 
                                   ? 'text-red-500 focus:ring-red-400 border-red-300' 
+                                  : !isMatch
+                                  ? 'text-amber-600 focus:ring-amber-400 border-amber-300'
                                   : 'text-amber-500 focus:ring-amber-400 border-stone-300'
                               }`}
                             />
@@ -363,7 +382,11 @@ export default function NewPayrunPage() {
                           <td className="px-6 py-3.5 whitespace-nowrap">
                             <div className="flex items-center gap-3">
                               <div className={`h-8 w-8 rounded-full font-bold text-xs flex items-center justify-center ${
-                                !isEligible ? 'bg-red-200 text-red-900' : 'bg-stone-900 text-white'
+                                !isEligible 
+                                  ? 'bg-red-200 text-red-900' 
+                                  : !isMatch
+                                  ? 'bg-amber-200 text-amber-900'
+                                  : 'bg-stone-900 text-white'
                               }`}>
                                 {emp.name.charAt(0)}
                               </div>
@@ -376,6 +399,12 @@ export default function NewPayrunPage() {
                                     <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-700 bg-red-100 border border-red-200 px-2 py-0.5 rounded-full shadow-2xs">
                                       <AlertTriangle className="w-3 h-3 text-red-600 shrink-0" />
                                       {emp.contractStatus?.reason || 'No active contract for period'}
+                                    </span>
+                                  )}
+                                  {isEligible && !isMatch && (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full shadow-2xs">
+                                      <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
+                                      {emp.contractStatus?.reason || 'Structure Mismatch'}
                                     </span>
                                   )}
                                 </div>
@@ -410,10 +439,10 @@ export default function NewPayrunPage() {
           </div>
         )}
 
-        {/* STEP 3: REVIEW */}
+        {/* STEP 3: REVIEW & CREATE */}
         {currentStep === 3 && (
           <div className="space-y-6 max-w-xl mx-auto py-2">
-            <h2 className="text-lg font-bold text-stone-900 border-b border-stone-100 pb-3">Step 3: Review & Create</h2>
+            <h2 className="text-lg font-bold text-stone-900 border-b border-stone-100 pb-3">Step 3: Create Payrun Batch</h2>
             
             <div className="bg-stone-50/80 p-6 rounded-[24px] border border-stone-200/80 grid grid-cols-2 gap-y-4 gap-x-6">
               <div>
@@ -421,7 +450,7 @@ export default function NewPayrunPage() {
                 <p className="font-bold text-stone-900 text-sm mt-0.5">{generatePayrunName()}</p>
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Salary Structure</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Batch Salary Structure</p>
                 <p className="font-bold text-stone-900 text-sm mt-0.5">{selectedStructure?.name}</p>
               </div>
               <div>
@@ -439,12 +468,12 @@ export default function NewPayrunPage() {
 
             {selectedEmployeeIds.some(id => {
               const emp = employees.find(e => e.id === id);
-              return emp && !emp.contractStatus?.isValid;
+              return emp && (!emp.contractStatus?.isValid || !emp.contractStatus?.isStructureMatch);
             }) && (
-              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-red-800">
-                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-amber-900">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold">Warning:</span> One or more selected employees do not have an active contract covering the payrun period ({periodStart} to {periodEnd}). Payroll computation for these employees will fail.
+                  <span className="font-bold">Validation Note:</span> One or more selected employees do not have an active contract matching "{selectedStructure?.name}" for this period. Their contract's assigned structure will be evaluated during computation.
                 </div>
               </div>
             )}
@@ -463,7 +492,7 @@ export default function NewPayrunPage() {
                 className="btn-primary rounded-full px-6 py-2.5 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm flex items-center gap-2"
               >
                 {submitting ? (
-                  <>Creating Payrun...</>
+                  <>Initializing Batch...</>
                 ) : (
                   <><Check className="w-4 h-4" /> Create Payrun Batch</>
                 )}
