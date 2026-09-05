@@ -18,15 +18,15 @@ export default function AttendancePage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Today's status for employee
+  // Today's status for employee punch widget
   const [todayStatus, setTodayStatus] = useState(null);
-  const [statusLoading, setStatusLoading] = useState(isEmployee);
+  const [statusLoading, setStatusLoading] = useState(!!user?.employeeId);
 
   // Filters for HR
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [filters, setFilters] = useState({
-    employeeId: isEmployee ? user.employeeId : '',
+    employeeId: isEmployee ? user?.employeeId : '',
     departmentId: '',
     status: '',
     startDate: '',
@@ -37,8 +37,8 @@ export default function AttendancePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [correctionData, setCorrectionData] = useState({
     id: '',
-    checkInTime: '',
-    checkOutTime: '',
+    checkIn: '',
+    checkOut: '',
     notes: ''
   });
 
@@ -50,10 +50,8 @@ export default function AttendancePage() {
 
   useEffect(() => {
     fetchRecords();
-    if (isEmployee) {
-      fetchTodayStatus();
-    }
-  }, [page, filters, isEmployee]);
+    fetchTodayStatus();
+  }, [page, filters, user]);
 
   const fetchOptions = async () => {
     try {
@@ -87,11 +85,15 @@ export default function AttendancePage() {
 
   const fetchTodayStatus = async () => {
     try {
-      // Assuming api has a way to get today's record for current user, else query by date
-      const today = new Date().toISOString().split('T')[0];
-      const res = await attendanceApi.getAll({ employeeId: user.employeeId, startDate: today, endDate: today });
-      if (res.data && res.data.length > 0) {
-        setTodayStatus(res.data[0]);
+      if (!user?.employeeId) {
+        setTodayStatus(null);
+        setStatusLoading(false);
+        return;
+      }
+      
+      const res = await attendanceApi.getToday();
+      if (res.data) {
+        setTodayStatus(res.data);
       } else {
         setTodayStatus(null);
       }
@@ -105,9 +107,10 @@ export default function AttendancePage() {
   const handleCheckIn = async () => {
     try {
       setStatusLoading(true);
-      await attendanceApi.checkIn();
+      const res = await attendanceApi.checkIn();
       toast.success('Checked in successfully');
-      fetchTodayStatus();
+      if (res.data) setTodayStatus(res.data);
+      await fetchTodayStatus();
       fetchRecords();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Check in failed');
@@ -118,9 +121,10 @@ export default function AttendancePage() {
   const handleCheckOut = async () => {
     try {
       setStatusLoading(true);
-      await attendanceApi.checkOut();
+      const res = await attendanceApi.checkOut();
       toast.success('Checked out successfully');
-      fetchTodayStatus();
+      if (res.data) setTodayStatus(res.data);
+      await fetchTodayStatus();
       fetchRecords();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Check out failed');
@@ -137,9 +141,9 @@ export default function AttendancePage() {
   const openCorrectionModal = (record) => {
     setCorrectionData({
       id: record.id,
-      checkInTime: record.checkInTime ? new Date(record.checkInTime).toISOString().slice(0,16) : '',
-      checkOutTime: record.checkOutTime ? new Date(record.checkOutTime).toISOString().slice(0,16) : '',
-      notes: record.notes || ''
+      checkIn: record.checkIn ? new Date(record.checkIn).toISOString().slice(0,16) : '',
+      checkOut: record.checkOut ? new Date(record.checkOut).toISOString().slice(0,16) : '',
+      notes: record.correctionReason || record.notes || ''
     });
     setIsModalOpen(true);
   };
@@ -153,13 +157,13 @@ export default function AttendancePage() {
       }
       
       const payload = {
-        checkInTime: correctionData.checkInTime ? new Date(correctionData.checkInTime).toISOString() : null,
-        checkOutTime: correctionData.checkOutTime ? new Date(correctionData.checkOutTime).toISOString() : null,
-        notes: correctionData.notes,
-        isManualEntry: true
+        checkIn: correctionData.checkIn ? new Date(correctionData.checkIn).toISOString() : null,
+        checkOut: correctionData.checkOut ? new Date(correctionData.checkOut).toISOString() : null,
+        correctionReason: correctionData.notes,
+        notes: correctionData.notes
       };
       
-      await attendanceApi.update(correctionData.id, payload);
+      await attendanceApi.correct(correctionData.id, payload);
       toast.success('Attendance corrected successfully');
       setIsModalOpen(false);
       fetchRecords();
@@ -172,6 +176,18 @@ export default function AttendancePage() {
     if (!isoString) return '-';
     return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
+  const getLocalDateKey = (date) => {
+    const value = new Date(date);
+    if (Number.isNaN(value.getTime())) return '';
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayRecord = records.find((record) => getLocalDateKey(record.date) === getLocalDateKey(new Date()));
+  const punchStatus = todayStatus || todayRecord || null;
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -190,66 +206,77 @@ export default function AttendancePage() {
         <h1 className="text-2xl font-bold text-gray-900">Attendance</h1>
       </div>
 
-      {/* Employee Today's Status Card */}
-      {isEmployee && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Today's Status</h2>
-          {statusLoading ? (
-            <div className="flex justify-center py-4"><LoadingSpinner /></div>
-          ) : (
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-indigo-50 rounded-full">
-                  <Clock className="h-8 w-8 text-indigo-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">{new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                  <p className="text-xl font-semibold text-gray-900">
-                    {todayStatus ? (todayStatus.checkOutTime ? 'Completed' : 'Working') : 'Not Checked In'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                {todayStatus?.checkInTime && (
-                  <div className="text-center px-4 border-r border-gray-200">
-                    <p className="text-sm text-gray-500">Check In</p>
-                    <p className="font-medium">{formatTime(todayStatus.checkInTime)}</p>
-                  </div>
-                )}
-                {todayStatus?.checkOutTime && (
-                  <div className="text-center px-4 border-r border-gray-200">
-                    <p className="text-sm text-gray-500">Check Out</p>
-                    <p className="font-medium">{formatTime(todayStatus.checkOutTime)}</p>
-                  </div>
-                )}
-                {todayStatus?.workedHours > 0 && (
-                  <div className="text-center px-4">
-                    <p className="text-sm text-gray-500">Hours</p>
-                    <p className="font-medium">{todayStatus.workedHours.toFixed(2)}h</p>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                {!todayStatus ? (
-                  <button onClick={handleCheckIn} className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-sm transition-colors text-lg flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5" /> CHECK IN
-                  </button>
-                ) : !todayStatus.checkOutTime ? (
-                  <button onClick={handleCheckOut} className="px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg shadow-sm transition-colors text-lg flex items-center gap-2">
-                    <Clock className="h-5 w-5" /> CHECK OUT
-                  </button>
-                ) : (
-                  <span className={`px-4 py-2 rounded-full font-medium ${getStatusColor(todayStatus.status)}`}>
-                    {todayStatus.status.replace('_', ' ')}
-                  </span>
-                )}
-              </div>
-            </div>
+      {/* Today's Status Check-In / Check-Out Widget */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 pb-4 mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Today's Attendance Punch</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          </div>
+          {punchStatus && (
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(punchStatus.status)}`}>
+              {punchStatus.status.replace('_', ' ')}
+            </span>
           )}
         </div>
-      )}
+
+        {statusLoading ? (
+          <div className="flex justify-center py-6"><LoadingSpinner /></div>
+        ) : (
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-indigo-50 rounded-xl">
+                  <Clock className="h-6 w-6 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Check In</p>
+                  <p className="text-base font-bold text-gray-900">{formatTime(punchStatus?.checkIn)}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-indigo-50 rounded-xl">
+                  <Clock className="h-6 w-6 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Check Out</p>
+                  <p className="text-base font-bold text-gray-900">{formatTime(punchStatus?.checkOut)}</p>
+                </div>
+              </div>
+
+              {punchStatus?.workedHours !== null && punchStatus?.workedHours !== undefined && (
+                <div className="text-center px-4 border-l border-gray-200">
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Worked</p>
+                  <p className="text-base font-bold text-emerald-600">{punchStatus.workedHours.toFixed(2)} hrs</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              {!punchStatus?.checkIn ? (
+                <button
+                  onClick={handleCheckIn}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-sm transition-all text-sm flex items-center gap-2"
+                >
+                  <CheckCircle className="h-4 w-4" /> CHECK IN NOW
+                </button>
+              ) : !punchStatus?.checkOut ? (
+                <button
+                  onClick={handleCheckOut}
+                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl shadow-sm transition-all text-sm flex items-center gap-2"
+                >
+                  <Clock className="h-4 w-4" /> CHECK OUT NOW
+                </button>
+              ) : (
+                <div className="flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl">
+                  <CheckCircle className="h-4 w-4 mr-2" /> Shift Completed Today
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* HR Filters */}
       {isHR && (
@@ -309,14 +336,14 @@ export default function AttendancePage() {
                     </td>
                   )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatTime(record.checkInTime)}
-                    {record.isManualEntry && <AlertTriangle className="inline h-3 w-3 text-amber-500 ml-1" title="Manually edited" />}
+                    {formatTime(record.checkIn)}
+                    {record.isManualCorrection && <AlertTriangle className="inline h-3 w-3 text-amber-500 ml-1" title="Manually edited" />}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatTime(record.checkOutTime)}
+                    {formatTime(record.checkOut)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                    {record.workedHours ? `${record.workedHours.toFixed(2)}h` : '-'}
+                    {record.workedHours !== null && record.workedHours !== undefined ? `${record.workedHours.toFixed(2)}h` : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold leading-5 ${getStatusColor(record.status)}`}>
@@ -354,11 +381,11 @@ export default function AttendancePage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Check In Time</label>
-                <input type="datetime-local" name="checkInTime" value={correctionData.checkInTime} onChange={e => setCorrectionData({...correctionData, checkInTime: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                <input type="datetime-local" name="checkIn" value={correctionData.checkIn} onChange={e => setCorrectionData({...correctionData, checkIn: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Check Out Time</label>
-                <input type="datetime-local" name="checkOutTime" value={correctionData.checkOutTime} onChange={e => setCorrectionData({...correctionData, checkOutTime: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                <input type="datetime-local" name="checkOut" value={correctionData.checkOut} onChange={e => setCorrectionData({...correctionData, checkOut: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
               </div>
             </div>
             <div>

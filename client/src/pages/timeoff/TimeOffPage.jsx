@@ -209,6 +209,7 @@ function RequestsTab() {
 }
 
 function RequestModal({ onClose, onSave, types }) {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     timeOffTypeId: '', startDate: '', endDate: '', reason: ''
   });
@@ -216,11 +217,22 @@ function RequestModal({ onClose, onSave, types }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await timeOffApi.createRequest(formData);
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.endDate);
+      const diffTime = Math.abs(end - start);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+      const payload = {
+        ...formData,
+        employeeId: user?.employeeId,
+        duration: diffDays
+      };
+
+      await timeOffApi.createRequest(payload);
       toast.success('Request submitted');
       onSave();
     } catch (err) {
-      toast.error('Failed to submit request');
+      toast.error(err.response?.data?.message || 'Failed to submit request');
     }
   };
 

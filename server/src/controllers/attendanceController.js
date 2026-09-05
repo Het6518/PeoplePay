@@ -3,18 +3,20 @@ const { CreateAttendanceSchema, CorrectAttendanceSchema } = require('../validato
 const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
 
 // Calculate worked hours from checkIn/checkOut and break
-function calculateWorkedHours(checkIn, checkOut, breakMinutes = 60) {
+function calculateWorkedHours(checkIn, checkOut, breakMinutes = 0) {
   if (!checkIn || !checkOut) return null;
   const diffMs = new Date(checkOut) - new Date(checkIn);
+  if (diffMs <= 0) return 0;
+
   const diffHours = diffMs / (1000 * 60 * 60);
-  const workedHours = diffHours - breakMinutes / 60;
-  return Math.max(0, Math.round(workedHours * 100) / 100);
+  const breakHours = diffHours > breakMinutes / 60 ? breakMinutes / 60 : 0;
+  return Math.round((diffHours - breakHours) * 100) / 100;
 }
 
 // Determine attendance status
 function determineStatus(workedHours, checkIn, scheduleDay) {
   if (!checkIn) return 'ABSENT';
-  if (!workedHours) return 'MISSING_CHECKOUT';
+  if (workedHours === null || workedHours === undefined) return 'MISSING_CHECKOUT';
 
   if (scheduleDay && scheduleDay.startTime) {
     const [schedH, schedM] = scheduleDay.startTime.split(':').map(Number);
@@ -106,8 +108,8 @@ const getAttendanceRecord = async (req, res, next) => {
 const createAttendance = async (req, res, next) => {
   try {
     const data = CreateAttendanceSchema.parse(req.body);
-    const date = new Date(data.date);
-    date.setHours(0, 0, 0, 0);
+    const dateStr = new Date(data.date).toISOString().split('T')[0];
+    const date = new Date(dateStr + 'T00:00:00.000Z');
 
     // Check if record already exists for that day
     const existing = await prisma.attendance.findUnique({
@@ -145,8 +147,8 @@ const checkIn = async (req, res, next) => {
     const employeeId = req.user.employeeId;
     if (!employeeId) return sendError(res, 'No employee profile linked to your account.', 400);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const nowStr = new Date().toISOString();
+    const today = new Date(nowStr.split('T')[0] + 'T00:00:00.000Z');
 
     const existing = await prisma.attendance.findUnique({
       where: { employeeId_date: { employeeId, date: today } },
@@ -187,8 +189,8 @@ const checkOut = async (req, res, next) => {
     const employeeId = req.user.employeeId;
     if (!employeeId) return sendError(res, 'No employee profile linked to your account.', 400);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const nowStr = new Date().toISOString();
+    const today = new Date(nowStr.split('T')[0] + 'T00:00:00.000Z');
 
     const record = await prisma.attendance.findUnique({
       where: { employeeId_date: { employeeId, date: today } },
@@ -199,8 +201,6 @@ const checkOut = async (req, res, next) => {
     if (!record.checkIn) return sendError(res, 'Please check in before checking out.', 400);
 
     const now = new Date();
-    const workedHours = calculateWorkedHours(record.checkIn, now);
-
     // Get employee working schedule for status determination
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
@@ -209,6 +209,7 @@ const checkOut = async (req, res, next) => {
 
     const dayOfWeek = now.getDay();
     const scheduleDay = employee?.workingSchedule?.days.find((d) => d.dayOfWeek === dayOfWeek);
+    const workedHours = calculateWorkedHours(record.checkIn, now, scheduleDay?.breakMinutes || 0);
     const status = determineStatus(workedHours, record.checkIn, scheduleDay);
 
     const updated = await prisma.attendance.update({
@@ -267,8 +268,8 @@ const getTodayAttendance = async (req, res, next) => {
     const employeeId = req.user.employeeId;
     if (!employeeId) return sendSuccess(res, null);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const nowStr = new Date().toISOString();
+    const today = new Date(nowStr.split('T')[0] + 'T00:00:00.000Z');
 
     const record = await prisma.attendance.findUnique({
       where: { employeeId_date: { employeeId, date: today } },
