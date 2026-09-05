@@ -521,8 +521,10 @@ const getPayslip = async (req, res, next) => {
         },
         payrun: { select: { id: true, name: true, status: true, periodStart: true, periodEnd: true } },
         contract: { select: { id: true, wage: true, position: true } },
-        salaryStructure: { select: { id: true, name: true } },
-        lines: { orderBy: { sequence: 'asc' } },
+        lines: {
+          orderBy: { sequence: 'asc' },
+          include: { salaryRule: true },
+        },
       },
     });
 

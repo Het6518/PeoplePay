@@ -82,6 +82,52 @@ export default function PayslipDetailPage() {
   const grossSalary = payslip.grossSalary ?? payslip.gross ?? 0;
   const totalDeductions = payslip.totalDeductions ?? payslip.deductions ?? 0;
   const netSalary = payslip.netSalary ?? payslip.net ?? 0;
+  const getCalculationBreakdown = (rule, currentPayslip, allLines) => {
+    const workedDays = currentPayslip?.workedDays ?? 0;
+    const totalDays = currentPayslip?.totalWorkingDays ?? 0;
+    const contractWage = currentPayslip?.contract?.wage;
+
+    // 1. Basic Salary
+    if (rule.code === 'BASIC' || rule.category === 'BASIC') {
+      if (contractWage) {
+        if (totalDays > 0) {
+          return `Base Wage ${formatINR(contractWage)} × ${workedDays}/${totalDays} days = ${formatINR(rule.amount)}`;
+        }
+        return `Monthly Wage: ${formatINR(contractWage)}`;
+      }
+      return totalDays > 0 ? `${workedDays}/${totalDays} days worked` : 'Standard Basic';
+    }
+
+    // 2. Percentage based rules (e.g. HRA, PF, Special Allowance)
+    const percentage = rule.salaryRule?.percentage ?? rule.percentage;
+    const percentageBase = rule.salaryRule?.percentageBase ?? rule.percentageBase;
+    if (percentage && percentageBase) {
+      const baseLine = allLines.find(l => l.code === percentageBase);
+      const baseAmount = baseLine ? formatINR(baseLine.amount) : percentageBase;
+      return `${percentage}% × ${percentageBase} (${baseAmount}) = ${formatINR(rule.amount)}`;
+    }
+
+    // 3. Formula based rules
+    const formula = rule.salaryRule?.formula ?? rule.formula;
+    if (formula) {
+      return `Formula: ${formula} = ${formatINR(rule.amount)}`;
+    }
+
+    // 4. Fixed rules with proration (e.g. Transport, PT, Medical)
+    const fixedAmount = rule.salaryRule?.fixedAmount ?? rule.fixedAmount;
+    if (fixedAmount !== undefined && fixedAmount !== null && fixedAmount > 0) {
+      if (totalDays > 0 && workedDays > 0 && workedDays !== totalDays) {
+        return `Monthly ${formatINR(fixedAmount)} × ${workedDays}/${totalDays} days = ${formatINR(rule.amount)}`;
+      }
+      return `Fixed: ${formatINR(fixedAmount)}`;
+    }
+
+    if (rule.category === 'GROSS') {
+      return `Sum of earnings = ${formatINR(rule.amount)}`;
+    }
+
+    return `Calculated: ${formatINR(rule.amount)}`;
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -151,56 +197,85 @@ export default function PayslipDetailPage() {
         </div>
 
         {/* Salary Details Table */}
-        <div className="mb-8">
+        <div className="mb-8 overflow-hidden rounded-xl border border-slate-200 shadow-sm">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-y border-gray-200">
-                <th className="py-3 px-4 font-semibold text-gray-700 w-1/2">Description</th>
-                <th className="py-3 px-4 font-semibold text-gray-700 w-1/4">Code</th>
-                <th className="py-3 px-4 font-semibold text-gray-700 text-right w-1/4">Amount</th>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="py-3.5 px-4 font-bold text-xs uppercase tracking-wider text-slate-600">Description</th>
+                <th className="py-3.5 px-4 font-bold text-xs uppercase tracking-wider text-slate-600">Code</th>
+                <th className="py-3.5 px-4 font-bold text-xs uppercase tracking-wider text-slate-600">Calculation / Formula</th>
+                <th className="py-3.5 px-4 font-bold text-xs uppercase tracking-wider text-slate-600 text-right">Amount</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {/* Earnings Section */}
-              <tr>
-                <td colSpan="3" className="py-3 px-4 text-sm font-bold text-gray-500 uppercase bg-gray-50/50">Earnings</td>
+              <tr className="bg-slate-50/75">
+                <td colSpan="4" className="py-2.5 px-4 text-xs font-bold text-indigo-950 uppercase tracking-wider">
+                  ✦ Earnings & Allowances
+                </td>
               </tr>
               {earnings.map((rule, idx) => (
-                <tr key={idx} className="border-b border-gray-100 last:border-0">
-                  <td className="py-3 px-4 text-gray-800">{rule.name}</td>
-                  <td className="py-3 px-4 text-gray-500 text-sm font-mono">{rule.code}</td>
-                  <td className="py-3 px-4 text-gray-800 text-right font-medium">{formatINR(rule.amount)}</td>
+                <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="py-3.5 px-4 text-sm font-semibold text-slate-900">{rule.name}</td>
+                  <td className="py-3.5 px-4">
+                    <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-mono font-medium">
+                      {rule.code}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-xs font-medium text-slate-500 font-mono">
+                    <span className="bg-indigo-50/60 text-indigo-700 px-2 py-1 rounded border border-indigo-100/80">
+                      {getCalculationBreakdown(rule, payslip, lines)}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-sm font-bold text-slate-900 text-right">{formatINR(rule.amount)}</td>
                 </tr>
               ))}
-              <tr className="border-y-2 border-gray-200 bg-gray-50/30">
-                <td colSpan="2" className="py-3 px-4 font-bold text-gray-900">Gross Salary</td>
-                <td className="py-3 px-4 font-bold text-gray-900 text-right">{formatINR(grossSalary)}</td>
+              <tr className="bg-emerald-50/40 border-t-2 border-slate-200">
+                <td colSpan="3" className="py-3.5 px-4 text-sm font-bold text-slate-900">Gross Salary</td>
+                <td className="py-3.5 px-4 text-base font-extrabold text-slate-900 text-right">{formatINR(grossSalary)}</td>
               </tr>
 
               {/* Deductions Section */}
-              <tr>
-                <td colSpan="3" className="py-3 px-4 text-sm font-bold text-gray-500 uppercase bg-gray-50/50 mt-4">Deductions</td>
+              <tr className="bg-slate-50/75 border-t-2 border-slate-200">
+                <td colSpan="4" className="py-2.5 px-4 text-xs font-bold text-indigo-950 uppercase tracking-wider">
+                  ✦ Deductions & Taxes
+                </td>
               </tr>
               {deductions.map((rule, idx) => (
-                <tr key={idx} className="border-b border-gray-100 last:border-0">
-                  <td className="py-3 px-4 text-gray-800">{rule.name}</td>
-                  <td className="py-3 px-4 text-gray-500 text-sm font-mono">{rule.code}</td>
-                  <td className="py-3 px-4 text-red-600 text-right font-medium">-{formatINR(rule.amount)}</td>
+                <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="py-3.5 px-4 text-sm font-semibold text-slate-900">{rule.name}</td>
+                  <td className="py-3.5 px-4">
+                    <span className="inline-block px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-mono font-medium">
+                      {rule.code}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-xs font-medium text-slate-500 font-mono">
+                    <span className="bg-red-50/60 text-red-700 px-2 py-1 rounded border border-red-100/80">
+                      {getCalculationBreakdown(rule, payslip, lines)}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-sm font-bold text-red-600 text-right">−{formatINR(rule.amount)}</td>
                 </tr>
               ))}
-              <tr className="border-y border-gray-200 bg-gray-50/30">
-                <td colSpan="2" className="py-3 px-4 font-semibold text-gray-700">Total Deductions</td>
-                <td className="py-3 px-4 font-semibold text-red-600 text-right">-{formatINR(totalDeductions)}</td>
+              <tr className="bg-red-50/40 border-t-2 border-slate-200">
+                <td colSpan="3" className="py-3.5 px-4 text-sm font-bold text-slate-900">Total Deductions</td>
+                <td className="py-3.5 px-4 text-base font-extrabold text-red-600 text-right">−{formatINR(totalDeductions)}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        {/* Net Salary Highlights */}
-        <div className="flex justify-end mt-8">
-          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-xl p-6 min-w-[300px]">
-            <p className="text-sm font-semibold text-emerald-800 uppercase tracking-wide mb-1">Net Pay</p>
-            <p className="text-4xl font-bold text-emerald-600">{formatINR(netSalary)}</p>
+        {/* Net Salary Highlights & Summary Equation */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-6 bg-gradient-to-br from-slate-950 to-indigo-950 text-white rounded-2xl shadow-lg">
+          <div className="space-y-1">
+            <p className="text-xs font-bold tracking-wider text-indigo-300 uppercase">Net Salary Formula</p>
+            <p className="text-sm text-slate-200 font-mono">
+              Gross Earnings ({formatINR(grossSalary)}) − Total Deductions ({formatINR(totalDeductions)})
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Take Home Pay</p>
+            <p className="text-3xl font-extrabold text-emerald-400">{formatINR(netSalary)}</p>
           </div>
         </div>
 

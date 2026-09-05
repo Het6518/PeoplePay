@@ -121,32 +121,61 @@ function generatePayslipPDF(payslip, payrun) {
         return yPos + 22;
       }
 
-      function drawTableRow(label, amount, yPos, isTotal = false, isNegative = false) {
+      function getPdfCalculationNote(line) {
+        const workedDays = payslip.workedDays ?? 0;
+        const totalDays = payslip.totalWorkingDays ?? 0;
+        const wage = payslip.contract?.wage;
+
+        if (line.category === 'BASIC' || line.code === 'BASIC') {
+          if (wage && totalDays > 0) {
+            return `(${formatINR(wage)} × ${workedDays}/${totalDays} days)`;
+          }
+        }
+        if (line.salaryRule?.percentage && line.salaryRule?.percentageBase) {
+          return `(${line.salaryRule.percentage}% of ${line.salaryRule.percentageBase})`;
+        }
+        if (line.salaryRule?.fixedAmount && totalDays > 0 && workedDays !== totalDays) {
+          return `(${formatINR(line.salaryRule.fixedAmount)} × ${workedDays}/${totalDays} days)`;
+        }
+        return '';
+      }
+
+      function drawTableRow(label, amount, yPos, isTotal = false, isNegative = false, note = '') {
+        const rowHeight = note ? 24 : (isTotal ? 22 : 20);
         if (isTotal) {
-          doc.rect(left - 10, yPos, pageWidth + 20, 22).fill('#ede9fe');
+          doc.rect(left - 10, yPos, pageWidth + 20, rowHeight).fill('#ede9fe');
         } else if (yPos % 40 < 20) {
-          doc.rect(left - 10, yPos, pageWidth + 20, 20).fill('#f5f3ff');
+          doc.rect(left - 10, yPos, pageWidth + 20, rowHeight).fill('#f5f3ff');
         }
 
         doc.fillColor(isTotal ? COLORS.dark : COLORS.text)
           .fontSize(isTotal ? 9 : 8.5)
           .font(isTotal ? 'Helvetica-Bold' : 'Helvetica')
-          .text(label, left, yPos + (isTotal ? 6 : 5), { width: pageWidth * 0.6 });
+          .text(label, left, yPos + (isTotal ? 6 : (note ? 3 : 5)), { width: pageWidth * 0.45 });
+
+        if (note) {
+          doc.fillColor(COLORS.muted)
+            .fontSize(7)
+            .font('Helvetica-Oblique')
+            .text(note, left + pageWidth * 0.45, yPos + 4, { width: pageWidth * 0.25, align: 'left' });
+        }
 
         doc.fillColor(isNegative ? COLORS.red : isTotal ? COLORS.dark : COLORS.text)
           .font(isTotal ? 'Helvetica-Bold' : 'Helvetica')
-          .text(formatINR(amount), left + pageWidth * 0.6, yPos + (isTotal ? 6 : 5), {
-            width: pageWidth * 0.4,
+          .fontSize(isTotal ? 9 : 8.5)
+          .text((isNegative && !isTotal ? '− ' : '') + formatINR(amount), left + pageWidth * 0.7, yPos + (isTotal ? 6 : (note ? 3 : 5)), {
+            width: pageWidth * 0.3,
             align: 'right',
           });
 
-        return yPos + (isTotal ? 22 : 20);
+        return yPos + rowHeight;
       }
 
       // Earnings section
       y = drawSectionHeader('EARNINGS', y);
       for (const line of earnings) {
-        y = drawTableRow(line.name, line.amount, y);
+        const note = getPdfCalculationNote(line);
+        y = drawTableRow(line.name, line.amount, y, false, false, note);
       }
       if (grossLine) {
         y = drawTableRow('GROSS SALARY', grossLine.amount || payslip.grossSalary, y, true);
@@ -160,7 +189,8 @@ function generatePayslipPDF(payslip, payrun) {
       if (deductions.length > 0) {
         y = drawSectionHeader('DEDUCTIONS', y);
         for (const line of deductions) {
-          y = drawTableRow(line.name, line.amount, y, false, true);
+          const note = getPdfCalculationNote(line);
+          y = drawTableRow(line.name, line.amount, y, false, true, note);
         }
         y = drawTableRow('TOTAL DEDUCTIONS', payslip.totalDeductions, y, true, true);
         y += 10;
