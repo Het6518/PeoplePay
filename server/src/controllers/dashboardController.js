@@ -23,6 +23,8 @@ const getSummary = async (req, res, next) => {
       pendingLeave,
       attendanceToday,
       employeeTypes,
+      myAttendanceHistory,
+      teamAttendanceList,
     ] = await Promise.all([
       prisma.employee.count({ where: employeeWhere }),
 
@@ -74,16 +76,124 @@ const getSummary = async (req, res, next) => {
         where: { status: 'ACTIVE' },
         _count: true,
       }),
+
+      // 28-Day Personal Attendance History for logged-in user
+      (async () => {
+        const empId = req.user?.employeeId || (await prisma.employee.findFirst({ select: { id: true } }))?.id;
+        if (!empId) return [];
+
+        const d28Ago = new Date();
+        d28Ago.setDate(d28Ago.getDate() - 27);
+        d28Ago.setHours(0, 0, 0, 0);
+
+        const pastRecords = await prisma.attendance.findMany({
+          where: {
+            employeeId: empId,
+            date: { gte: d28Ago },
+          },
+          select: { date: true, status: true, checkIn: true, checkOut: true },
+          orderBy: { date: 'asc' },
+        });
+
+        const dateMap = {};
+        for (const r of pastRecords) {
+          const dateStr = new Date(r.date).toISOString().split('T')[0];
+          dateMap[dateStr] = r.status;
+        }
+
+        const history = [];
+        for (let i = 27; i >= 0; i--) {
+          const day = new Date();
+          day.setDate(day.getDate() - i);
+          const dateStr = day.toISOString().split('T')[0];
+          const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+          const status = dateMap[dateStr] || (isWeekend ? 'WEEKEND' : 'OFF');
+
+          history.push({
+            date: dateStr,
+            dayNum: day.getDate(),
+            dayName: day.toLocaleDateString('en-US', { weekday: 'short' }),
+            status,
+          });
+        }
+        return history;
+      })(),
+
+      // Real active employees with current shift attendance status
+      (async () => {
+        const d = new Date();
+        const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+        const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+        
+        let tStart = start;
+        let tEnd = end;
+
+        const hasToday = await prisma.attendance.findFirst({
+          where: { date: { gte: start, lte: end } },
+          select: { id: true },
+        });
+
+        if (!hasToday) {
+          const latest = await prisma.attendance.findFirst({
+            orderBy: { date: 'desc' },
+            select: { date: true },
+          });
+          if (latest && latest.date) {
+            const lDate = new Date(latest.date);
+            tStart = new Date(lDate.getFullYear(), lDate.getMonth(), lDate.getDate(), 0, 0, 0, 0);
+            tEnd = new Date(lDate.getFullYear(), lDate.getMonth(), lDate.getDate(), 23, 59, 59, 999);
+          }
+        }
+
+        const emps = await prisma.employee.findMany({
+          where: { status: 'ACTIVE' },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            employeeCode: true,
+            department: { select: { name: true } },
+            attendance: {
+              where: { date: { gte: tStart, lte: tEnd } },
+              select: { status: true, checkIn: true },
+            },
+          },
+          orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+          take: 28,
+        });
+
+        return emps.map((emp) => {
+          const att = emp.attendance[0];
+          return {
+            id: emp.id,
+            name: `${emp.firstName} ${emp.lastName}`.trim(),
+            code: emp.employeeCode,
+            department: emp.department?.name || 'General',
+            status: att ? att.status : 'OFF',
+            checkIn: att?.checkIn ? new Date(att.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null,
+          };
+        });
+      })(),
     ]);
 
     const totalNetPaid = payslipAgg._sum.netSalary || 0;
     const avgSalary = payslipAgg._avg.netSalary || 0;
 
     // Attendance breakdown
-    const presentCount = attendanceToday.find((a) => ['PRESENT', 'OVERTIME', 'MANUAL_CORRECTION'].includes(a.status))?._count || 0;
-    const lateCount = attendanceToday.find((a) => a.status === 'LATE')?._count || 0;
-    const absentCount = attendanceToday.find((a) => a.status === 'ABSENT')?._count || 0;
-    const attendanceHealth = totalEmployees > 0 ? Math.round(((presentCount + lateCount) / totalEmployees) * 100) : 0;
+    const onTimeCount = attendanceToday
+      .filter((a) => ['PRESENT', 'OVERTIME', 'MANUAL_CORRECTION'].includes(a.status))
+      .reduce((sum, a) => sum + a._count, 0);
+
+    const lateCount = attendanceToday
+      .filter((a) => a.status === 'LATE')
+      .reduce((sum, a) => sum + a._count, 0);
+
+    const absentCount = attendanceToday
+      .filter((a) => a.status === 'ABSENT')
+      .reduce((sum, a) => sum + a._count, 0);
+
+    const totalPresent = onTimeCount + lateCount;
+    const attendanceHealth = totalEmployees > 0 ? Math.round((totalPresent / totalEmployees) * 100) : 0;
 
     const fullTimeCount = employeeTypes.find((e) => e.employeeType === 'FULL_TIME')?._count || 0;
     const partTimeCount = employeeTypes.find((e) => e.employeeType === 'PART_TIME')?._count || 0;
@@ -97,12 +207,15 @@ const getSummary = async (req, res, next) => {
       averageSalary: Math.round(avgSalary * 100) / 100,
       pendingLeaveRequests: pendingLeave,
       attendanceHealth,
-      presentToday: presentCount,
+      presentToday: totalPresent,
+      onTimeToday: onTimeCount,
       lateToday: lateCount,
       absentToday: absentCount,
       fullTimeCount,
       partTimeCount,
       contractCount,
+      myAttendanceHistory: myAttendanceHistory || [],
+      teamAttendanceList: teamAttendanceList || [],
     });
   } catch (err) {
     next(err);

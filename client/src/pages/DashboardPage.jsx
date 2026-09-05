@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState(null);
   const [attendanceChart, setAttendanceChart] = useState([]);
   const [pendingLeaveRequests, setPendingLeaveRequests] = useState([]);
+  const [matrixMode, setMatrixMode] = useState('team');
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -108,19 +109,20 @@ export default function DashboardPage() {
 
   // Generate 28 dots for attendance matrix dynamically calculated from real database attendance counts
   const totalEmps = summary?.totalEmployees || 15;
-  const presentCount = summary?.presentToday || 0;
+  const totalPresent = summary?.presentToday || 0;
   const lateCount = summary?.lateToday || 0;
+  const onTimeCount = summary?.onTimeToday ?? Math.max(0, totalPresent - lateCount);
   const absentCount = summary?.absentToday || 0;
 
   const totalDots = 28;
-  const presentDots = Math.round((presentCount / Math.max(1, totalEmps)) * totalDots);
+  const onTimeDots = Math.round((onTimeCount / Math.max(1, totalEmps)) * totalDots);
   const lateDots = Math.round((lateCount / Math.max(1, totalEmps)) * totalDots);
   const absentDots = Math.round((absentCount / Math.max(1, totalEmps)) * totalDots);
 
   const heatmapDots = Array.from({ length: totalDots }, (_, i) => {
-    if (i < presentDots) return 'bg-emerald-400';
-    if (i < presentDots + lateDots) return 'bg-amber-400';
-    if (i < presentDots + lateDots + absentDots) return 'bg-rose-500';
+    if (i < onTimeDots) return 'bg-emerald-400'; // Green for On-Time Present
+    if (i < onTimeDots + lateDots) return 'bg-amber-400'; // Yellow/Amber for Late Present
+    if (i < onTimeDots + lateDots + absentDots) return 'bg-rose-500'; // Red for Absent
     return 'bg-stone-700';
   });
 
@@ -295,17 +297,35 @@ export default function DashboardPage() {
         {/* ============================================================ */}
         <div className="lg:col-span-4 space-y-6">
           
-          {/* Top Card: Dark Attendance Command Card (Full HR Access) */}
-          <div
-            onClick={() => navigate('/attendance')}
-            className="bg-stone-950 text-white rounded-[28px] p-6 border border-stone-800 shadow-xl flex flex-col justify-between min-h-[280px] cursor-pointer hover:bg-stone-900 transition-colors group"
-          >
+          {/* Top Card: Dark Attendance Command Card (Dynamic Interactive Individual Heat Maps) */}
+          <div className="bg-stone-950 text-white rounded-[28px] p-6 border border-stone-800 shadow-xl flex flex-col justify-between min-h-[300px]">
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-extrabold uppercase tracking-wider text-stone-300">
                   Attendance Report
                 </h3>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="flex items-center gap-1 bg-stone-900 p-1 rounded-full border border-stone-800">
+                  <button
+                    onClick={() => setMatrixMode('team')}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold transition-all ${
+                      matrixMode === 'team'
+                        ? 'bg-amber-400 text-stone-950'
+                        : 'text-stone-400 hover:text-white'
+                    }`}
+                  >
+                    Team Shift
+                  </button>
+                  <button
+                    onClick={() => setMatrixMode('personal')}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold transition-all ${
+                      matrixMode === 'personal'
+                        ? 'bg-amber-400 text-stone-950'
+                        : 'text-stone-400 hover:text-white'
+                    }`}
+                  >
+                    My 28 Days
+                  </button>
+                </div>
               </div>
 
               {/* DYNAMIC Real Attendance Numbers (Fetched from Database) */}
@@ -319,23 +339,74 @@ export default function DashboardPage() {
                 <span className="text-xs text-stone-400 font-semibold">Late</span>
               </div>
 
-              {/* DYNAMIC Attendance Matrix Heatmap (Computed from Real Ratios) */}
+              {/* DYNAMIC Individual Attendance Matrix Heatmap */}
               <div className="my-4">
-                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">
-                  Live Shift Matrix ({summary?.presentToday || 0} Present / {summary?.totalEmployees || 0} Total)
-                </p>
-                <div className="grid grid-cols-7 gap-1.5">
-                  {heatmapDots.map((dotClass, idx) => (
-                    <div key={idx} className={`w-3.5 h-3.5 rounded-sm ${dotClass}`} />
-                  ))}
+                <div className="flex items-center justify-between text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">
+                  <span>
+                    {matrixMode === 'team'
+                      ? `Live Shift Matrix (${summary?.presentToday || 0} Present / ${summary?.totalEmployees || 0} Total)`
+                      : `My 28-Day Attendance History`}
+                  </span>
+                  <span className="text-amber-400">Hover dot for details</span>
                 </div>
+
+                {matrixMode === 'team' ? (
+                  /* TEAM SHIFT MATRIX: Each dot maps to an actual employee */
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {(summary?.teamAttendanceList || []).slice(0, 28).map((emp, idx) => {
+                      let dotColor = 'bg-stone-700'; // Default Off / Not Checked In
+                      if (['PRESENT', 'OVERTIME', 'MANUAL_CORRECTION'].includes(emp.status)) dotColor = 'bg-emerald-400';
+                      else if (emp.status === 'LATE') dotColor = 'bg-amber-400';
+                      else if (emp.status === 'ABSENT') dotColor = 'bg-rose-500';
+
+                      return (
+                        <div
+                          key={emp.id || idx}
+                          title={`${emp.name} (${emp.code}) - ${emp.status}${emp.checkIn ? ` at ${emp.checkIn}` : ''}`}
+                          onClick={() => navigate('/attendance')}
+                          className={`w-3.5 h-3.5 rounded-sm ${dotColor} hover:scale-125 transition-transform cursor-pointer shadow-xs`}
+                        />
+                      );
+                    })}
+                    {/* Fill up to 28 dots if employees count < 28 */}
+                    {Array.from({ length: Math.max(0, 28 - (summary?.teamAttendanceList?.length || 0)) }).map((_, i) => (
+                      <div key={`empty-${i}`} className="w-3.5 h-3.5 rounded-sm bg-stone-800" title="Unassigned shift slot" />
+                    ))}
+                  </div>
+                ) : (
+                  /* PERSONAL 28-DAY HEATMAP: Each dot maps to a day in the user's history */
+                  <div className="grid grid-cols-7 gap-1.5">
+                    {(summary?.myAttendanceHistory || []).map((day, idx) => {
+                      let dotColor = 'bg-stone-700';
+                      if (['PRESENT', 'OVERTIME', 'MANUAL_CORRECTION'].includes(day.status)) dotColor = 'bg-emerald-400';
+                      else if (day.status === 'LATE') dotColor = 'bg-amber-400';
+                      else if (day.status === 'ABSENT') dotColor = 'bg-rose-500';
+
+                      return (
+                        <div
+                          key={day.date || idx}
+                          title={`${day.dayName} ${day.date}: ${day.status}`}
+                          onClick={() => navigate('/attendance')}
+                          className={`w-3.5 h-3.5 rounded-sm ${dotColor} hover:scale-125 transition-transform cursor-pointer shadow-xs`}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* DYNAMIC Compliance Percentage (Calculated from Real Database) */}
-            <div className="flex items-center justify-between text-[11px] font-bold text-stone-400 pt-3 border-t border-stone-800 group-hover:text-amber-400 transition-colors">
-              <span>Shift Compliance: {summary?.attendanceHealth || 0}%</span>
-              <ArrowUpRight size={14} className="text-amber-400" />
+            {/* DYNAMIC Compliance Percentage & Legend */}
+            <div className="flex items-center justify-between text-[11px] font-bold text-stone-400 pt-3 border-t border-stone-800">
+              <div className="flex items-center gap-3 text-[10px]">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Present</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" /> Late</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-500" /> Absent</span>
+              </div>
+              <div onClick={() => navigate('/attendance')} className="flex items-center gap-1 hover:text-amber-400 transition-colors cursor-pointer">
+                <span>Compliance: {summary?.attendanceHealth || 0}%</span>
+                <ArrowUpRight size={14} className="text-amber-400" />
+              </div>
             </div>
           </div>
 
