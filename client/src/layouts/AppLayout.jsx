@@ -120,7 +120,7 @@ export function AppLayout({ children }) {
 
   const bottomNavItems = [
     { to: '/reports', label: 'Reports', show: isHR() },
-    { to: '/admin/attendance-location', label: 'Geofences', show: isHR() },
+    { to: '/admin/attendance-location', label: 'Geofences', show: isAdmin() },
     { to: '/admin/users', label: 'Admin', show: isAdmin() },
   ];
 
@@ -138,12 +138,12 @@ export function AppLayout({ children }) {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           
           {/* Logo Branding */}
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-stone-950 text-amber-400 shadow-md shadow-stone-950/10">
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-stone-950 text-amber-400 shadow-md shadow-stone-950/10">
               <Banknote size={20} className="text-amber-400" />
             </div>
-            <div className="min-w-0">
-              <h1 className="truncate text-base font-black tracking-tight text-stone-950 leading-none">PEOPLEPAY</h1>
+            <div className="shrink-0 whitespace-nowrap">
+              <h1 className="text-base font-black tracking-tight text-stone-950 leading-none">PEOPLEPAY</h1>
               <p className="mt-0.5 text-[9px] font-black uppercase tracking-widest text-amber-600">360 SUITE</p>
             </div>
           </div>

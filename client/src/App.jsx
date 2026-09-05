@@ -85,7 +85,7 @@ function AppRoutes() {
 
                 {/* Attendance */}
                 <Route path="/attendance" element={<AttendancePage />} />
-                <Route path="/admin/attendance-location" element={<ProtectedRoute roles={HR_ROLES}><AttendanceLocationPage /></ProtectedRoute>} />
+                <Route path="/admin/attendance-location" element={<ProtectedRoute roles={ADMIN_ROLES}><AttendanceLocationPage /></ProtectedRoute>} />
 
                 {/* Time Off */}
                 <Route path="/time-off" element={<TimeOffPage />} />
