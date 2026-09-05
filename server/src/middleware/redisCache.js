@@ -11,9 +11,12 @@ const { getCache, setCache } = require('../config/redis');
  * Cache Middleware Factory
  * 
  * @param {number} ttlSeconds Time-to-live in seconds (default: 300)
- * @param {function(req): string} [customKeyFn] Optional custom cache key builder
+ * @param {object|function} [options] Custom key function or options object { userSpecific: boolean, keyFn: function }
  */
-function cacheMiddleware(ttlSeconds = 300, customKeyFn = null) {
+function cacheMiddleware(ttlSeconds = 300, options = {}) {
+  const customKeyFn = typeof options === 'function' ? options : options.keyFn;
+  const isUserSpecific = typeof options === 'object' ? Boolean(options.userSpecific) : false;
+
   return async (req, res, next) => {
     // Only cache GET requests
     if (req.method !== 'GET') {
@@ -21,15 +24,22 @@ function cacheMiddleware(ttlSeconds = 300, customKeyFn = null) {
     }
 
     try {
-      // Build deterministic cache key
+      // Build clean, meaningful cache key
       let key;
       if (customKeyFn && typeof customKeyFn === 'function') {
         key = customKeyFn(req);
       } else {
-        const userRole = req.user?.role || 'ANON';
-        const userId = req.user?.id || 'GUEST';
+        const userRole = req.user?.role || 'PUBLIC';
+        const userId = req.user?.userId || req.user?.id;
         const url = req.originalUrl || req.url;
-        key = `cache:${userRole}:${userId}:${url}`;
+
+        // If user-specific data (e.g. self profile/payslips), scope by userId.
+        // For shared org-wide / role-wide data (dashboards, master configs), scope by role.
+        if (isUserSpecific && userId) {
+          key = `cache:${userRole}:user_${userId}:${url}`;
+        } else {
+          key = `cache:${userRole}:${url}`;
+        }
       }
 
       // Check Redis
@@ -61,3 +71,4 @@ function cacheMiddleware(ttlSeconds = 300, customKeyFn = null) {
 }
 
 module.exports = { cacheMiddleware };
+

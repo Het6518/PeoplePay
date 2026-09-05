@@ -76,7 +76,7 @@ function generatePayslipPDF(payslip, payrun) {
       let y = 115;
 
       // ── EMPLOYEE & PAYRUN INFO ───────────────────────────────────────────────
-      const infoBoxH = 90;
+      const infoBoxH = 100;
       doc.rect(left - 10, y, pageWidth + 20, infoBoxH).fill(COLORS.light);
       doc.rect(left - 10, y, pageWidth + 20, infoBoxH).stroke(COLORS.border);
 
@@ -97,14 +97,21 @@ function generatePayslipPDF(payslip, payrun) {
       doc.font('Helvetica').fontSize(8).fillColor(COLORS.muted)
         .text(`Code: ${payslip.employee.employeeCode}`, col1, y + 36)
         .text(`Department: ${payslip.employee.department?.name || '-'}`, col1, y + 48)
-        .text(`Position: ${payslip.contract?.position || '-'}`, col1, y + 60);
+        .text(`Position: ${payslip.contract?.position || '-'}`, col1, y + 60)
+        .text(`Structure: ${payslip.salaryStructure?.name || payslip.contract?.salaryStructure?.name || '-'}`, col1, y + 72);
+
+      const attSummary = payslip.attendanceSummary || {};
+      const presentDays = attSummary.present ?? payslip.workedDays ?? 0;
+      const lateDays = attSummary.late ?? 0;
+      const absentDays = attSummary.absent ?? 0;
 
       doc.fillColor(COLORS.text).fontSize(8).font('Helvetica')
         .text(`Payrun: ${payrun.name}`, col2, y + 22)
         .text(`Period: ${formatDate(payrun.periodStart)} – ${formatDate(payrun.periodEnd)}`, col2, y + 34)
-        .text(`Worked Days: ${payslip.workedDays} / ${payslip.totalWorkingDays}`, col2, y + 46)
-        .text(`Leave Days: ${payslip.leaveDays || 0}  •  OT: ${payslip.overtimeHours || 0} hrs`, col2, y + 58)
-        .text(`Status: ${payslip.status}`, col2, y + 70);
+        .text(`Worked Days: ${payslip.workedDays} / ${payslip.totalWorkingDays} days`, col2, y + 46)
+        .text(`Attendance: Present: ${presentDays}  •  Late: ${lateDays}  •  Absent: ${absentDays}`, col2, y + 58)
+        .text(`Leaves: ${payslip.leaveDays || 0} days  •  Overtime: ${payslip.overtimeHours || 0} hrs`, col2, y + 70)
+        .text(`Status: ${payslip.status}`, col2, y + 82);
 
       y += infoBoxH + 15;
 

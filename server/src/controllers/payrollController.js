@@ -628,8 +628,19 @@ const getPayslip = async (req, res, next) => {
             workingSchedule: { select: { name: true } },
           },
         },
-        payrun: { select: { id: true, name: true, status: true, periodStart: true, periodEnd: true } },
-        contract: { select: { id: true, wage: true, position: true } },
+        payrun: { 
+          select: { 
+            id: true, name: true, status: true, periodStart: true, periodEnd: true,
+            salaryStructure: { select: { id: true, name: true } },
+          } 
+        },
+        contract: { 
+          select: { 
+            id: true, wage: true, position: true,
+            salaryStructure: { select: { id: true, name: true } },
+          } 
+        },
+        salaryStructure: { select: { id: true, name: true } },
         lines: {
           orderBy: { sequence: 'asc' },
           include: { salaryRule: true },
@@ -644,7 +655,45 @@ const getPayslip = async (req, res, next) => {
       return sendError(res, 'Access denied.', 403);
     }
 
-    return sendSuccess(res, payslip);
+    const pStart = payslip.effectivePeriodStart ? new Date(payslip.effectivePeriodStart) : new Date(payslip.periodStart);
+    const pEnd = payslip.effectivePeriodEnd ? new Date(payslip.effectivePeriodEnd) : new Date(payslip.periodEnd);
+
+    const attendances = await prisma.attendance.findMany({
+      where: {
+        employeeId: payslip.employeeId,
+        date: { gte: pStart, lte: pEnd },
+      },
+      select: { status: true, workedHours: true },
+    });
+
+    const attendanceSummary = {
+      present: 0,
+      late: 0,
+      absent: 0,
+      overtime: 0,
+      missingCheckout: 0,
+      manualCorrection: 0,
+      leaveDays: payslip.leaveDays || 0,
+      totalLoggedHours: 0,
+    };
+
+    for (const a of attendances) {
+      if (a.workedHours) attendanceSummary.totalLoggedHours += a.workedHours;
+      switch (a.status) {
+        case 'PRESENT': attendanceSummary.present++; break;
+        case 'LATE': attendanceSummary.late++; break;
+        case 'ABSENT': attendanceSummary.absent++; break;
+        case 'OVERTIME': attendanceSummary.overtime++; break;
+        case 'MISSING_CHECKOUT': attendanceSummary.missingCheckout++; break;
+        case 'MANUAL_CORRECTION': attendanceSummary.manualCorrection++; break;
+      }
+    }
+    attendanceSummary.totalLoggedHours = Math.round(attendanceSummary.totalLoggedHours * 100) / 100;
+
+    return sendSuccess(res, {
+      ...payslip,
+      attendanceSummary,
+    });
   } catch (err) {
     next(err);
   }
@@ -674,6 +723,41 @@ const downloadPayslipPDF = async (req, res, next) => {
     if (req.user.role === 'EMPLOYEE' && payslip.employeeId !== req.user.employeeId) {
       return sendError(res, 'Access denied.', 403);
     }
+
+    const pStart = payslip.effectivePeriodStart ? new Date(payslip.effectivePeriodStart) : new Date(payslip.periodStart);
+    const pEnd = payslip.effectivePeriodEnd ? new Date(payslip.effectivePeriodEnd) : new Date(payslip.periodEnd);
+
+    const attendances = await prisma.attendance.findMany({
+      where: {
+        employeeId: payslip.employeeId,
+        date: { gte: pStart, lte: pEnd },
+      },
+      select: { status: true, workedHours: true },
+    });
+
+    const attendanceSummary = {
+      present: 0,
+      late: 0,
+      absent: 0,
+      overtime: 0,
+      missingCheckout: 0,
+      manualCorrection: 0,
+      leaveDays: payslip.leaveDays || 0,
+      totalLoggedHours: 0,
+    };
+
+    for (const a of attendances) {
+      if (a.workedHours) attendanceSummary.totalLoggedHours += a.workedHours;
+      switch (a.status) {
+        case 'PRESENT': attendanceSummary.present++; break;
+        case 'LATE': attendanceSummary.late++; break;
+        case 'ABSENT': attendanceSummary.absent++; break;
+        case 'OVERTIME': attendanceSummary.overtime++; break;
+        case 'MISSING_CHECKOUT': attendanceSummary.missingCheckout++; break;
+        case 'MANUAL_CORRECTION': attendanceSummary.manualCorrection++; break;
+      }
+    }
+    payslip.attendanceSummary = attendanceSummary;
 
     const pdfBuffer = await pdfService.generatePayslipPDF(payslip, payslip.payrun);
 

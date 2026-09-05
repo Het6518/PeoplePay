@@ -73,7 +73,7 @@ export default function PayslipDetailPage() {
   const department = payslip.employee?.department?.name || payslip.department || '-';
   const jobPosition = payslip.contract?.position || payslip.employee?.jobPosition || payslip.jobPosition || '-';
   const payrunName = payslip.payrun?.name || payslip.payrunName || 'Payslip';
-  const structureName = payslip.salaryStructure?.name || payslip.structureName || '-';
+  const structureName = payslip.salaryStructure?.name || payslip.contract?.salaryStructure?.name || payslip.payrun?.salaryStructure?.name || payslip.structureName || 'Standard Structure';
   const periodStart = payslip.periodStart || payslip.payrun?.periodStart;
   const periodEnd = payslip.periodEnd || payslip.payrun?.periodEnd;
   const lines = payslip.lines || payslip.rules || [];
@@ -223,6 +223,81 @@ export default function PayslipDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Detailed Attendance Breakdown Banner */}
+        {(() => {
+          const summary = payslip.attendanceSummary || {};
+          const present = summary.present ?? payslip.workedDays ?? 0;
+          const late = summary.late ?? 0;
+          const absent = summary.absent ?? 0;
+          const overtime = summary.overtime ?? (payslip.overtimeHours > 0 ? 1 : 0);
+          const leave = summary.leaveDays ?? payslip.leaveDays ?? 0;
+          const missing = summary.missingCheckout ?? 0;
+          const manual = summary.manualCorrection ?? 0;
+
+          return (
+            <div className="p-4 rounded-2xl bg-stone-50/90 border border-stone-200/70 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-stone-600">
+                  Attendance & Schedule Breakdown
+                </span>
+                {summary.totalLoggedHours > 0 && (
+                  <span className="text-xs font-semibold text-stone-500 font-mono">
+                    Total Logged Hours: <span className="font-bold text-stone-800">{summary.totalLoggedHours} hrs</span>
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-bold border border-emerald-200 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  Present Days: {present}
+                </span>
+
+                <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
+                  late > 0 ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-stone-100 text-stone-500 border-stone-200'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${late > 0 ? 'bg-amber-500' : 'bg-stone-300'}`} />
+                  Late Days: {late}
+                </span>
+
+                <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
+                  absent > 0 ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-stone-100 text-stone-500 border-stone-200'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${absent > 0 ? 'bg-rose-500' : 'bg-stone-300'}`} />
+                  Absent Days: {absent}
+                </span>
+
+                {leave > 0 && (
+                  <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold border border-blue-200 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    Paid Leaves: {leave} days
+                  </span>
+                )}
+
+                {overtime > 0 && (
+                  <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-bold border border-purple-200 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-purple-500" />
+                    Overtime: {overtime} days ({payslip.overtimeHours || 0} hrs)
+                  </span>
+                )}
+
+                {missing > 0 && (
+                  <span className="px-3 py-1 rounded-full bg-orange-100 text-orange-900 text-xs font-bold border border-orange-200 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-orange-500" />
+                    Missing Checkout: {missing}
+                  </span>
+                )}
+
+                {manual > 0 && (
+                  <span className="px-3 py-1 rounded-full bg-stone-200 text-stone-800 text-xs font-bold border border-stone-300 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-stone-400" />
+                    Manual Corrections: {manual}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Breakdown Tables */}
         <div className="space-y-6">
