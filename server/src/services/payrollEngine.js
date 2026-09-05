@@ -366,12 +366,17 @@ function processPayrollRules({ contract, attendanceStats, rules }) {
 async function computeEmployeePayroll({
   employee,
   payrun,
+  payslip,
   salaryStructureId,
   rules,
   prisma,
 }) {
-  const periodStart = new Date(payrun.periodStart);
-  const periodEnd = new Date(payrun.periodEnd);
+  const periodStart = (payslip && payslip.effectivePeriodStart)
+    ? new Date(payslip.effectivePeriodStart)
+    : new Date(payrun.periodStart);
+  const periodEnd = (payslip && payslip.effectivePeriodEnd)
+    ? new Date(payslip.effectivePeriodEnd)
+    : new Date(payrun.periodEnd);
 
   // Step 1: Find applicable contract
   const { contract, error: contractError } = await getApplicableContract(

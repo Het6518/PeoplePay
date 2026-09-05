@@ -112,6 +112,7 @@ export const payrollApi = {
   getPayruns: (params) => api.get('/payruns', { params }),
   getPayrun: (id) => api.get(`/payruns/${id}`),
   createPayrun: (data) => api.post('/payruns', data),
+  checkOverlaps: (data) => api.post('/payruns/check-overlaps', data),
   compute: (id) => api.post(`/payruns/${id}/compute`),
   computePayrun: (id) => api.post(`/payruns/${id}/compute`),
   validate: (id) => api.post(`/payruns/${id}/validate`),

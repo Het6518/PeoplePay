@@ -8,6 +8,7 @@ router.use(authenticate);
 // Payruns
 router.get('/payruns', authorize(...PAYROLL_ROLES), ctrl.getPayruns);
 router.post('/payruns', authorize(...PAYROLL_ROLES), ctrl.createPayrun);
+router.post('/payruns/check-overlaps', authorize(...PAYROLL_ROLES), ctrl.checkOverlaps);
 router.get('/payruns/:id', authorize(...PAYROLL_ROLES), ctrl.getPayrun);
 router.post('/payruns/:id/compute', authorize(...PAYROLL_ROLES), ctrl.computePayrun);
 router.post('/payruns/:id/validate', authorize(...PAYROLL_ROLES), ctrl.validatePayrunAction);

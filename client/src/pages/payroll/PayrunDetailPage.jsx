@@ -270,7 +270,17 @@ export default function PayrunDetailPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="flex flex-col items-center gap-1">
                         <StatusBadge status={p.status || payrun.status} />
-                        {primaryIssue && (
+                        {p.isOverride && (
+                          <span className="text-[10px] font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full" title={p.overrideWarning || "Duplicate period override"}>
+                            ⚠️ Duplicate Override
+                          </span>
+                        )}
+                        {p.effectivePeriodStart && p.effectivePeriodEnd && (
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">
+                            Period Adjusted
+                          </span>
+                        )}
+                        {primaryIssue && !p.isOverride && (
                           <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full max-w-[200px] truncate" title={primaryIssue}>
                             ⚠️ {primaryIssue}
                           </span>

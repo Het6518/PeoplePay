@@ -73,10 +73,160 @@ const getPayrun = async (req, res, next) => {
   }
 };
 
+const formatShortDate = (dateObj) => {
+  if (!dateObj) return '';
+  const d = new Date(dateObj);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const formatDateISO = (dateObj) => {
+  if (!dateObj) return '';
+  const d = new Date(dateObj);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const calculateOverlapsForEmployees = async (periodStartStr, periodEndStr, employeeIds) => {
+  const newStart = new Date(periodStartStr);
+  newStart.setHours(0, 0, 0, 0);
+  const newEnd = new Date(periodEndStr);
+  newEnd.setHours(23, 59, 59, 999);
+
+  const where = {
+    status: { in: ['PAID', 'VALIDATED'] },
+  };
+  if (employeeIds && Array.isArray(employeeIds) && employeeIds.length > 0) {
+    where.employeeId = { in: employeeIds };
+  }
+
+  const existingPayslips = await prisma.payslip.findMany({
+    where,
+    include: {
+      employee: { select: { id: true, firstName: true, lastName: true, employeeCode: true } },
+      payrun: { select: { id: true, name: true, periodStart: true, periodEnd: true } },
+    },
+  });
+
+  const results = {};
+
+  for (const payslip of existingPayslips) {
+    const empId = payslip.employeeId;
+    const pStart = payslip.effectivePeriodStart ? new Date(payslip.effectivePeriodStart) : new Date(payslip.periodStart);
+    pStart.setHours(0, 0, 0, 0);
+    const pEnd = payslip.effectivePeriodEnd ? new Date(payslip.effectivePeriodEnd) : new Date(payslip.periodEnd);
+    pEnd.setHours(23, 59, 59, 999);
+
+    if (pStart <= newEnd && pEnd >= newStart) {
+      if (!results[empId]) {
+        const empName = payslip.employee ? `${payslip.employee.firstName || ''} ${payslip.employee.lastName || ''}`.trim() : 'Employee';
+        results[empId] = {
+          employeeId: empId,
+          employeeName: empName,
+          hasOverlap: true,
+          overlappingPayslips: [],
+          existingRanges: [],
+        };
+      }
+      results[empId].overlappingPayslips.push({
+        payslipId: payslip.id,
+        payrunName: payslip.payrun?.name || 'Payrun',
+        periodStart: pStart,
+        periodEnd: pEnd,
+        formattedRange: `${formatShortDate(pStart)} – ${formatShortDate(pEnd)}`,
+      });
+      results[empId].existingRanges.push({ start: pStart, end: pEnd });
+    }
+  }
+
+  for (const empId of Object.keys(results)) {
+    const empData = results[empId];
+    const existingRanges = empData.existingRanges;
+
+    const cur = new Date(newStart);
+    const freeDays = [];
+
+    while (cur <= newEnd) {
+      const curTime = cur.getTime();
+      const isCovered = existingRanges.some(r => curTime >= r.start.getTime() && curTime <= r.end.getTime());
+      if (!isCovered) {
+        freeDays.push(new Date(cur));
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+
+    const remainders = [];
+    if (freeDays.length > 0) {
+      let rStart = freeDays[0];
+      let rPrev = freeDays[0];
+
+      for (let i = 1; i < freeDays.length; i++) {
+        const d = freeDays[i];
+        const diffMs = d.getTime() - rPrev.getTime();
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 1) {
+          rPrev = d;
+        } else {
+          remainders.push({
+            startDate: formatDateISO(rStart),
+            endDate: formatDateISO(rPrev),
+            formatted: `${formatShortDate(rStart)} – ${formatShortDate(rPrev)}`,
+          });
+          rStart = d;
+          rPrev = d;
+        }
+      }
+      remainders.push({
+        startDate: formatDateISO(rStart),
+        endDate: formatDateISO(rPrev),
+        formatted: `${formatShortDate(rStart)} – ${formatShortDate(rPrev)}`,
+      });
+    }
+
+    empData.remainders = remainders;
+    const firstPayslip = empData.overlappingPayslips[0];
+    empData.summaryMessage = `Already paid ${firstPayslip ? firstPayslip.formattedRange : ''} for this period range.`;
+  }
+
+  return results;
+};
+
+const checkOverlaps = async (req, res, next) => {
+  try {
+    const { periodStart, periodEnd, employeeIds } = req.body;
+    if (!periodStart || !periodEnd) {
+      return sendError(res, 'periodStart and periodEnd are required.', 400);
+    }
+
+    const overlaps = await calculateOverlapsForEmployees(periodStart, periodEnd, employeeIds);
+    return sendSuccess(res, { overlaps });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // POST /api/payruns — Create payrun with selected employees
 const createPayrun = async (req, res, next) => {
   try {
-    const { name, periodStart, periodEnd, salaryStructureId, employeeIds, notes } = CreatePayrunSchema.parse(req.body);
+    const parsed = CreatePayrunSchema.parse(req.body);
+    const { name, periodStart, periodEnd, salaryStructureId, notes } = parsed;
+
+    let employeeSelections = [];
+    if (parsed.employeeSelections && parsed.employeeSelections.length > 0) {
+      employeeSelections = parsed.employeeSelections;
+    } else if (parsed.employeeIds && parsed.employeeIds.length > 0) {
+      employeeSelections = parsed.employeeIds.map(id => ({
+        employeeId: id,
+        effectivePeriodStart: null,
+        effectivePeriodEnd: null,
+        isOverride: false,
+        overrideWarning: null,
+        overrideBy: null,
+        overrideAt: null,
+      }));
+    }
 
     // Validate period
     const start = new Date(periodStart);
@@ -103,10 +253,12 @@ const createPayrun = async (req, res, next) => {
       );
     }
 
-    // Get creator employee
+    // Get creator employee / user
     const creatorEmployee = req.user.employeeId
       ? await prisma.employee.findUnique({ where: { id: req.user.employeeId } })
       : null;
+
+    const creatorName = req.user.email || (creatorEmployee ? `${creatorEmployee.firstName} ${creatorEmployee.lastName}` : 'HR Manager');
 
     // Create payrun + draft payslips in a single transaction
     const payrun = await prisma.$transaction(async (tx) => {
@@ -123,14 +275,20 @@ const createPayrun = async (req, res, next) => {
       });
 
       // Create placeholder DRAFT payslips for selected employees
-      for (const employeeId of employeeIds) {
+      for (const sel of employeeSelections) {
         await tx.payslip.create({
           data: {
             payrunId: createdPayrun.id,
-            employeeId,
+            employeeId: sel.employeeId,
             salaryStructureId,
             periodStart: new Date(periodStart),
             periodEnd: new Date(periodEnd),
+            effectivePeriodStart: sel.effectivePeriodStart ? new Date(sel.effectivePeriodStart) : null,
+            effectivePeriodEnd: sel.effectivePeriodEnd ? new Date(sel.effectivePeriodEnd) : null,
+            isOverride: sel.isOverride || false,
+            overrideWarning: sel.overrideWarning || null,
+            overrideBy: sel.isOverride ? (sel.overrideBy || creatorName) : null,
+            overrideAt: sel.isOverride ? (sel.overrideAt ? new Date(sel.overrideAt) : new Date()) : null,
             status: 'DRAFT',
           },
         });
@@ -189,6 +347,7 @@ const computePayrun = async (req, res, next) => {
         const result = await computeEmployeePayroll({
           employee: payslip.employee,
           payrun,
+          payslip,
           salaryStructureId: payrun.salaryStructureId,
           rules: payrun.salaryStructure.rules,
           prisma: tx,
@@ -584,6 +743,7 @@ module.exports = {
   getPayruns,
   getPayrun,
   createPayrun,
+  checkOverlaps,
   computePayrun,
   validatePayrunAction,
   markPayrunPaid,

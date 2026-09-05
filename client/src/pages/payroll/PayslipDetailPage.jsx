@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, FileText, User, Building, Briefcase, Calendar, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Download, FileText, User, Building, Briefcase, Calendar, CheckCircle, AlertTriangle } from 'lucide-react';
 import { payrollApi } from '../../services/apiServices';
 import { formatINR, formatDate } from '../../utils/formatters';
 import { StatusBadge } from '../../components/ui/Badge';
@@ -148,6 +148,34 @@ export default function PayslipDetailPage() {
 
       {/* Main Payslip Card */}
       <div className="bg-white rounded-[28px] border border-stone-200/80 shadow-soft p-8 space-y-6">
+        
+        {/* Permanent Audit Warning Banner for Override */}
+        {payslip.isOverride && (
+          <div className="p-4 rounded-2xl bg-red-50 border border-red-200 flex items-start gap-3 text-sm text-red-900 shadow-sm">
+            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-extrabold text-red-950">Duplicate Period Audit Warning</div>
+              <div className="text-xs text-red-800 leading-relaxed mt-1">
+                {payslip.overrideWarning || (
+                  `Duplicate period warning: this employee was already paid for an overlapping range. Included anyway per manual override${
+                    payslip.overrideAt ? ` on ${formatDate(payslip.overrideAt)}` : ''
+                  }${payslip.overrideBy ? ` by ${payslip.overrideBy}` : ''}.`
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Effective Calculation Period Notice */}
+        {payslip.effectivePeriodStart && payslip.effectivePeriodEnd && (
+          <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-3 text-xs text-emerald-900">
+            <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+            <div>
+              <span className="font-bold">Adjusted Calculation Period:</span> {formatDate(payslip.effectivePeriodStart)} – {formatDate(payslip.effectivePeriodEnd)} (Individual batch override applied)
+            </div>
+          </div>
+        )}
+
         {/* Document Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pb-6 border-b border-stone-200/60 gap-4">
           <div>

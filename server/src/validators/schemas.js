@@ -197,13 +197,27 @@ const UpdateSalaryRuleSchema = CreateSalaryRuleSchema.partial();
 // PAYRUN
 // ============================================================
 
+const EmployeeSelectionItemSchema = z.object({
+  employeeId: z.string().min(1),
+  effectivePeriodStart: z.string().optional().nullable(),
+  effectivePeriodEnd: z.string().optional().nullable(),
+  isOverride: z.boolean().optional().default(false),
+  overrideWarning: z.string().optional().nullable(),
+  overrideBy: z.string().optional().nullable(),
+  overrideAt: z.string().optional().nullable(),
+});
+
 const CreatePayrunSchema = z.object({
   name: z.string().min(1, 'Payrun name is required'),
   periodStart: z.string().min(1, 'Period start is required'),
   periodEnd: z.string().min(1, 'Period end is required'),
   salaryStructureId: z.string().min(1, 'Salary structure is required'),
-  employeeIds: z.array(z.string()).min(1, 'At least one employee must be selected'),
+  employeeIds: z.array(z.string()).optional(),
+  employeeSelections: z.array(EmployeeSelectionItemSchema).optional(),
   notes: z.string().optional().nullable(),
+}).refine(data => (data.employeeIds && data.employeeIds.length > 0) || (data.employeeSelections && data.employeeSelections.length > 0), {
+  message: 'At least one employee must be selected',
+  path: ['employeeIds'],
 });
 
 const SelectEmployeesSchema = z.object({
