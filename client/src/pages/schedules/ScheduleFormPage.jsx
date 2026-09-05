@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, ArrowLeft } from 'lucide-react';
+import { Save, ArrowLeft, Clock, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { scheduleApi } from '../../services/apiServices';
 
@@ -32,8 +32,7 @@ export default function ScheduleFormPage() {
 
   useEffect(() => {
     if (isEdit) {
-      // fetch existing schedule details
-      // scheduleApi.getById(id).then(...)
+      // fetch existing schedule details if applicable
     }
   }, [id, isEdit]);
 
@@ -50,7 +49,7 @@ export default function ScheduleFormPage() {
     const [endH, endM] = day.endTime.split(':').map(Number);
     
     let totalMinutes = (endH * 60 + endM) - (startH * 60 + startM);
-    if (totalMinutes < 0) totalMinutes += 24 * 60; // handle overnight
+    if (totalMinutes < 0) totalMinutes += 24 * 60;
     
     const netMinutes = totalMinutes - (Number(day.breakMinutes) || 0);
     return netMinutes > 0 ? (netMinutes / 60).toFixed(2) : 0;
@@ -63,7 +62,7 @@ export default function ScheduleFormPage() {
     try {
       const payload = {
         name,
-        type: 'FIXED', // Adding default type as required by backend if not handled
+        type: 'FIXED',
         days: days.filter(d => d.isWorkday).map(d => ({
           dayOfWeek: parseInt(d.id, 10) % 7,
           startTime: d.startTime,
@@ -87,101 +86,104 @@ export default function ScheduleFormPage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center mb-6">
-        <button onClick={() => navigate('/schedules')} className="mr-4 text-gray-500 hover:text-gray-700">
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center gap-3">
+        <button onClick={() => navigate('/schedules')} className="p-2 rounded-full bg-stone-200/60 hover:bg-stone-300 text-stone-700 transition-all">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">{isEdit ? 'Edit Schedule' : 'New Schedule'}</h1>
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-stone-900">{isEdit ? 'Edit Schedule' : 'New Schedule'}</h1>
+          <p className="text-sm font-medium text-stone-500 mt-0.5">Define weekly work hours, shift times, and break durations</p>
+        </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
-        <form onSubmit={handleSubmit}>
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Schedule Name</label>
+      <div className="bg-white rounded-[28px] border border-stone-200/80 shadow-soft p-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1.5">Schedule Name</label>
             <input 
               type="text" 
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Standard 40h Week"
-              className="w-full max-w-md border border-gray-300 rounded-md px-3 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="e.g., Standard 40h Work Week"
+              className="w-full max-w-md rounded-2xl border border-stone-200 px-4 py-2.5 text-sm bg-stone-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium"
             />
           </div>
 
-          <div className="overflow-x-auto mb-6">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white">
+            <table className="min-w-full divide-y divide-stone-200/60">
+              <thead className="bg-stone-50/80">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Day</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Workday</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Start Time</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">End Time</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Break (min)</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Daily Hours</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Day</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Workday</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Start Time</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">End Time</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Break (min)</th>
+                  <th className="px-4 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-stone-500">Daily Hours</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-stone-100 bg-white">
                 {days.map((day, idx) => (
-                  <tr key={day.id} className={day.isWorkday ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{day.name}</td>
-                    <td className="px-4 py-3">
+                  <tr key={day.id} className={day.isWorkday ? 'bg-white' : 'bg-stone-50/40'}>
+                    <td className="px-4 py-3.5 text-sm font-semibold text-stone-900">{day.name}</td>
+                    <td className="px-4 py-3.5">
                       <input 
                         type="checkbox" 
                         checked={day.isWorkday}
                         onChange={(e) => handleDayChange(idx, 'isWorkday', e.target.checked)}
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        className="h-4 w-4 rounded text-amber-500 focus:ring-amber-400 border-stone-300"
                       />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       <input 
                         type="time" 
                         disabled={!day.isWorkday}
                         value={day.startTime}
                         onChange={(e) => handleDayChange(idx, 'startTime', e.target.value)}
-                        className="border border-gray-300 rounded-md px-2 py-1 text-sm disabled:opacity-50"
+                        className="rounded-xl border border-stone-200 px-3 py-1.5 text-xs bg-stone-50/50 disabled:opacity-40 focus:bg-white focus:outline-none"
                       />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       <input 
                         type="time" 
                         disabled={!day.isWorkday}
                         value={day.endTime}
                         onChange={(e) => handleDayChange(idx, 'endTime', e.target.value)}
-                        className="border border-gray-300 rounded-md px-2 py-1 text-sm disabled:opacity-50"
+                        className="rounded-xl border border-stone-200 px-3 py-1.5 text-xs bg-stone-50/50 disabled:opacity-40 focus:bg-white focus:outline-none"
                       />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       <input 
                         type="number" 
                         min="0"
                         disabled={!day.isWorkday}
                         value={day.breakMinutes}
                         onChange={(e) => handleDayChange(idx, 'breakMinutes', e.target.value)}
-                        className="w-20 border border-gray-300 rounded-md px-2 py-1 text-sm disabled:opacity-50"
+                        className="w-20 rounded-xl border border-stone-200 px-3 py-1.5 text-xs bg-stone-50/50 disabled:opacity-40 focus:bg-white focus:outline-none"
                       />
                     </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-700">
+                    <td className="px-4 py-3.5 text-right text-xs font-bold text-stone-800">
                       {calculateDailyHours(day)}h
                     </td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-gray-50">
+              <tfoot className="bg-stone-900 text-white">
                 <tr>
-                  <td colSpan="5" className="px-4 py-4 text-right font-medium text-gray-700">Total Weekly Hours:</td>
-                  <td className="px-4 py-4 font-bold text-lg text-indigo-600">{totalWeeklyHours}h</td>
+                  <td colSpan="5" className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-stone-300">Total Weekly Hours:</td>
+                  <td className="px-6 py-4 text-right font-black text-lg text-amber-400">{totalWeeklyHours}h</td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end pt-2">
             <button 
               type="submit"
-              className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700 flex items-center"
+              className="btn-primary rounded-full px-6 py-2.5 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm flex items-center gap-2"
             >
-              <Save className="w-4 h-4 mr-2" /> Save Schedule
+              <Save className="w-4 h-4" /> Save Schedule
             </button>
           </div>
         </form>

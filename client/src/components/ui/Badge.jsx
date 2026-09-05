@@ -33,14 +33,14 @@ const STATUS_COLOR_MAP = {
 };
 
 const COLOR_CLASSES = {
-  green:  'bg-emerald-100 text-emerald-700 ring-emerald-200',
-  yellow: 'bg-yellow-100 text-yellow-700 ring-yellow-200',
-  red:    'bg-red-100 text-red-700 ring-red-200',
-  blue:   'bg-blue-100 text-blue-700 ring-blue-200',
-  indigo: 'bg-indigo-100 text-indigo-700 ring-indigo-200',
-  purple: 'bg-purple-100 text-purple-700 ring-purple-200',
-  amber:  'bg-amber-100 text-amber-700 ring-amber-200',
-  slate:  'bg-slate-100 text-slate-600 ring-slate-200',
+  green:  'bg-emerald-50 text-emerald-700 border border-emerald-200/80',
+  yellow: 'bg-amber-50 text-amber-800 border border-amber-200/80',
+  red:    'bg-rose-50 text-rose-700 border border-rose-200/80',
+  blue:   'bg-sky-50 text-sky-700 border border-sky-200/80',
+  indigo: 'bg-indigo-50 text-indigo-700 border border-indigo-200/80',
+  purple: 'bg-purple-50 text-purple-700 border border-purple-200/80',
+  amber:  'bg-amber-50 text-amber-800 border border-amber-200/80',
+  slate:  'bg-stone-100 text-stone-700 border border-stone-200/80',
 };
 
 function resolveColor(status) {

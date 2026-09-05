@@ -202,22 +202,23 @@ export default function AttendancePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7 pb-10">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Attendance</h1>
+        <div>
+          <h1 className="text-2xl font-extrabold text-stone-900 tracking-tight">Attendance & Time Tracking</h1>
+          <p className="text-sm font-medium text-stone-500 mt-0.5">Track daily shift check-ins, check-outs, and worked hours.</p>
+        </div>
       </div>
 
       {/* Today's Status Check-In / Check-Out Widget */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 pb-4 mb-4">
+      <div className="bg-white rounded-[28px] border border-stone-200/80 shadow-sm p-7">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-stone-100 pb-5 mb-6">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Today's Attendance Punch</h2>
-            <p className="text-xs text-gray-500 mt-0.5">{new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <h2 className="text-base font-extrabold text-stone-900 uppercase tracking-wider">Today's Shift Punch</h2>
+            <p className="text-xs font-medium text-stone-400 mt-0.5">{new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
           {punchStatus && (
-            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(punchStatus.status)}`}>
-              {punchStatus.status.replace('_', ' ')}
-            </span>
+            <StatusBadge status={punchStatus.status} />
           )}
         </div>
 
@@ -225,31 +226,31 @@ export default function AttendancePage() {
           <div className="flex justify-center py-6"><LoadingSpinner /></div>
         ) : (
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-indigo-50 rounded-xl">
-                  <Clock className="h-6 w-6 text-indigo-600" />
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex items-center gap-3 bg-stone-50/80 p-3.5 rounded-2xl border border-stone-100">
+                <div className="p-2.5 bg-amber-400/20 text-amber-700 rounded-full">
+                  <Clock className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold">Check In</p>
-                  <p className="text-base font-bold text-gray-900">{formatTime(punchStatus?.checkIn)}</p>
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Check In</p>
+                  <p className="text-sm font-extrabold text-stone-900 font-mono">{formatTime(punchStatus?.checkIn)}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-indigo-50 rounded-xl">
-                  <Clock className="h-6 w-6 text-indigo-600" />
+              <div className="flex items-center gap-3 bg-stone-50/80 p-3.5 rounded-2xl border border-stone-100">
+                <div className="p-2.5 bg-stone-900 text-amber-400 rounded-full">
+                  <Clock className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 uppercase font-semibold">Check Out</p>
-                  <p className="text-base font-bold text-gray-900">{formatTime(punchStatus?.checkOut)}</p>
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Check Out</p>
+                  <p className="text-sm font-extrabold text-stone-900 font-mono">{formatTime(punchStatus?.checkOut)}</p>
                 </div>
               </div>
 
               {punchStatus?.workedHours !== null && punchStatus?.workedHours !== undefined && (
-                <div className="text-center px-4 border-l border-gray-200">
-                  <p className="text-xs text-gray-500 uppercase font-semibold">Worked</p>
-                  <p className="text-base font-bold text-emerald-600">{punchStatus.workedHours.toFixed(2)} hrs</p>
+                <div className="text-center px-4 border-l border-stone-200">
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Worked Today</p>
+                  <p className="text-base font-extrabold text-emerald-700 font-mono">{punchStatus.workedHours.toFixed(2)} hrs</p>
                 </div>
               )}
             </div>
@@ -258,20 +259,20 @@ export default function AttendancePage() {
               {!punchStatus?.checkIn ? (
                 <button
                   onClick={handleCheckIn}
-                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-sm transition-all text-sm flex items-center gap-2"
+                  className="btn-primary py-3 px-6 text-xs tracking-wider uppercase font-bold"
                 >
-                  <CheckCircle className="h-4 w-4" /> CHECK IN NOW
+                  <CheckCircle className="h-4 w-4 mr-1.5" /> CHECK IN NOW
                 </button>
               ) : !punchStatus?.checkOut ? (
                 <button
                   onClick={handleCheckOut}
-                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl shadow-sm transition-all text-sm flex items-center gap-2"
+                  className="btn bg-stone-900 hover:bg-stone-800 text-amber-400 font-bold py-3 px-6 text-xs tracking-wider uppercase shadow-md"
                 >
-                  <Clock className="h-4 w-4" /> CHECK OUT NOW
+                  <Clock className="h-4 w-4 mr-1.5" /> CHECK OUT NOW
                 </button>
               ) : (
-                <div className="flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-xl">
-                  <CheckCircle className="h-4 w-4 mr-2" /> Shift Completed Today
+                <div className="flex items-center text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-4 py-2.5 rounded-full">
+                  <CheckCircle className="h-4 w-4 mr-2 text-emerald-600" /> Shift Completed Today
                 </div>
               )}
             </div>
@@ -281,16 +282,16 @@ export default function AttendancePage() {
 
       {/* HR Filters */}
       {isHR && (
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-wrap gap-4 items-center">
-          <select name="employeeId" value={filters.employeeId} onChange={handleFilterChange} className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+        <div className="bg-white p-4 rounded-[24px] border border-stone-200/70 shadow-sm flex flex-wrap gap-3 items-center">
+          <select name="employeeId" value={filters.employeeId} onChange={handleFilterChange} className="input md:w-56 text-xs font-medium">
             <option value="">All Employees</option>
             {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>)}
           </select>
-          <select name="departmentId" value={filters.departmentId} onChange={handleFilterChange} className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+          <select name="departmentId" value={filters.departmentId} onChange={handleFilterChange} className="input md:w-48 text-xs font-medium">
             <option value="">All Departments</option>
             {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
-          <select name="status" value={filters.status} onChange={handleFilterChange} className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+          <select name="status" value={filters.status} onChange={handleFilterChange} className="input md:w-40 text-xs font-medium">
             <option value="">All Status</option>
             <option value="PRESENT">Present</option>
             <option value="ABSENT">Absent</option>
@@ -298,9 +299,9 @@ export default function AttendancePage() {
             <option value="MISSING_CHECKOUT">Missing Checkout</option>
           </select>
           <div className="flex items-center gap-2">
-            <input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-            <span className="text-gray-500">to</span>
-            <input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+            <input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} className="input text-xs font-medium" />
+            <span className="text-stone-400 text-xs font-bold">to</span>
+            <input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} className="input text-xs font-medium" />
           </div>
         </div>
       )}
@@ -309,51 +310,49 @@ export default function AttendancePage() {
       {loading ? (
         <LoadingSpinner />
       ) : (
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="table-container">
+          <table className="table">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                {isHR && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                {isHR && <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
+                <th>Date</th>
+                {isHR && <th>Employee</th>}
+                <th>Check In</th>
+                <th>Check Out</th>
+                <th>Hours</th>
+                <th>Status</th>
+                {isHR && <th className="text-right">Actions</th>}
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody>
               {records.map((record) => (
-                <tr key={record.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-gray-400" />
+                <tr key={record.id}>
+                  <td>
+                    <div className="flex items-center gap-2 text-xs font-bold text-stone-900">
+                      <Calendar className="h-3.5 w-3.5 text-stone-400" />
                       {formatDate(record.date)}
                     </div>
                   </td>
                   {isHR && (
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                    <td className="text-xs font-extrabold text-stone-900">
                       {record.employee ? `${record.employee.firstName || ''} ${record.employee.lastName || ''}`.trim() : '-'}
                     </td>
                   )}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="text-xs font-semibold text-stone-600 font-mono">
                     {formatTime(record.checkIn)}
                     {record.isManualCorrection && <AlertTriangle className="inline h-3 w-3 text-amber-500 ml-1" title="Manually edited" />}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="text-xs font-semibold text-stone-600 font-mono">
                     {formatTime(record.checkOut)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                  <td className="text-xs font-extrabold text-stone-900 font-mono">
                     {record.workedHours !== null && record.workedHours !== undefined ? `${record.workedHours.toFixed(2)}h` : '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold leading-5 ${getStatusColor(record.status)}`}>
-                      {record.status.replace('_', ' ')}
-                    </span>
+                  <td>
+                    <StatusBadge status={record.status} />
                   </td>
                   {isHR && (
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button onClick={() => openCorrectionModal(record)} className="text-indigo-600 hover:text-indigo-900">
+                    <td className="text-right">
+                      <button onClick={() => openCorrectionModal(record)} className="text-xs font-bold text-stone-700 hover:text-stone-950 bg-stone-100 hover:bg-stone-200/80 px-3 py-1 rounded-full border border-stone-200/60 transition-colors">
                         Correct
                       </button>
                     </td>
@@ -362,7 +361,7 @@ export default function AttendancePage() {
               ))}
               {records.length === 0 && (
                 <tr>
-                  <td colSpan={isHR ? 7 : 6} className="px-6 py-8 text-center text-gray-500 text-sm">
+                  <td colSpan={isHR ? 7 : 6} className="px-6 py-12 text-center text-stone-400 text-xs font-medium">
                     No attendance records found
                   </td>
                 </tr>
@@ -370,32 +369,34 @@ export default function AttendancePage() {
             </tbody>
           </table>
           {totalPages > 1 && (
-            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+            <div className="p-4 border-t border-stone-100">
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+            </div>
           )}
         </div>
       )}
 
       {/* HR Correction Modal */}
       {isHR && (
-        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Correct Attendance">
+        <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title="Correct Attendance Record">
           <form onSubmit={handleCorrectionSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Check In Time</label>
-                <input type="datetime-local" name="checkIn" value={correctionData.checkIn} onChange={e => setCorrectionData({...correctionData, checkIn: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                <label className="label">Check In Time</label>
+                <input type="datetime-local" name="checkIn" value={correctionData.checkIn} onChange={e => setCorrectionData({...correctionData, checkIn: e.target.value})} className="input" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Check Out Time</label>
-                <input type="datetime-local" name="checkOut" value={correctionData.checkOut} onChange={e => setCorrectionData({...correctionData, checkOut: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                <label className="label">Check Out Time</label>
+                <input type="datetime-local" name="checkOut" value={correctionData.checkOut} onChange={e => setCorrectionData({...correctionData, checkOut: e.target.value})} className="input" />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Reason for Correction *</label>
-              <textarea required rows={3} value={correctionData.notes} onChange={e => setCorrectionData({...correctionData, notes: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Explain why manual correction is needed..."></textarea>
+              <label className="label">Reason for Correction *</label>
+              <textarea required rows={3} value={correctionData.notes} onChange={e => setCorrectionData({...correctionData, notes: e.target.value})} className="input" placeholder="Explain why manual correction is needed..."></textarea>
             </div>
-            <div className="mt-6 flex justify-end space-x-3">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Cancel</button>
-              <button type="submit" className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Save Correction</button>
+            <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-stone-100">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">Cancel</button>
+              <button type="submit" className="btn-primary min-w-[120px]">Save Correction</button>
             </div>
           </form>
         </Modal>

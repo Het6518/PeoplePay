@@ -39,55 +39,60 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-950 via-primary-900 to-primary-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl flex rounded-2xl shadow-2xl overflow-hidden">
-        {/* Left panel */}
-        <div className="hidden md:flex flex-col justify-between w-1/2 bg-gradient-to-br from-primary-800/50 to-primary-900/50 p-10 text-white">
+    <div className="relative min-h-screen bg-[#FAF9F5] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+      {/* Top Ambient Glow */}
+      <div className="pointer-events-none absolute left-1/2 top-0 -z-10 h-96 w-full max-w-7xl -translate-x-1/2 rounded-full bg-gradient-to-b from-amber-200/30 via-amber-100/10 to-transparent blur-3xl" />
+
+      <div className="w-full max-w-4xl flex rounded-[32px] border border-stone-200/80 shadow-2xl overflow-hidden bg-white">
+        {/* Left panel - Matte Dark Charcoal */}
+        <div className="hidden md:flex flex-col justify-between w-1/2 bg-stone-900 p-10 text-white relative">
+          <div className="absolute right-0 top-0 w-64 h-64 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+          
           <div>
-            <div className="flex items-center gap-3 mb-10">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
-                <Banknote size={22} className="text-primary-600" />
+            <div className="flex items-center gap-3 mb-12">
+              <div className="w-10 h-10 bg-amber-400 rounded-full flex items-center justify-center text-stone-950 shadow-md">
+                <Banknote size={20} />
               </div>
               <div>
-                <h1 className="text-xl font-bold">PeoplePay360</h1>
-                <p className="text-primary-300 text-xs">Integrated HR & Payroll</p>
+                <h1 className="text-lg font-extrabold tracking-tight">PeoplePay360</h1>
+                <p className="text-amber-400/90 text-xs font-bold uppercase tracking-wider">Integrated HR Suite</p>
               </div>
             </div>
-            <h2 className="text-3xl font-bold leading-tight mb-4">
-              Manage your entire<br />HR & Payroll<br />in one place
+            <h2 className="text-3xl font-extrabold leading-tight mb-4 tracking-tight">
+              Manage your entire<br />HR & Payroll<br />effortlessly
             </h2>
-            <p className="text-primary-200 text-sm leading-relaxed">
-              From employee onboarding to payslip generation — streamline every HR workflow with PeoplePay360.
+            <p className="text-stone-300 text-sm leading-relaxed font-medium">
+              From employee records to precision payslip calculations — streamline every workflow with PeoplePay360.
             </p>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3 pt-8 border-t border-stone-800">
             {[
-              '✓ Real-time salary rule engine',
-              '✓ Period-based contract detection',
+              '✓ Real-time salary rule calculation',
+              '✓ Period-based contract handling',
               '✓ Automated payroll validation',
-              '✓ PDF payslips & bulk email',
+              '✓ PDF payslip generation',
             ].map((f) => (
-              <p key={f} className="text-primary-200 text-sm">{f}</p>
+              <p key={f} className="text-stone-300 text-xs font-semibold">{f}</p>
             ))}
           </div>
         </div>
 
         {/* Right panel */}
-        <div className="flex-1 bg-white p-8 md:p-10">
+        <div className="flex-1 bg-white p-8 md:p-12 flex flex-col justify-center">
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900">Welcome back</h2>
-            <p className="text-slate-500 text-sm mt-1">Sign in to your PeoplePay360 account</p>
+            <h2 className="text-2xl font-extrabold text-stone-900 tracking-tight">Welcome back</h2>
+            <p className="text-stone-500 text-sm font-medium mt-1">Sign in to your PeoplePay360 account</p>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2 text-sm text-red-700">
+            <div className="mb-5 p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-start gap-2.5 text-xs font-bold text-rose-800">
               <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div className="form-group">
               <label className="label">Email address</label>
               <input
@@ -116,7 +121,7 @@ export default function LoginPage() {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -127,30 +132,31 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full py-2.5"
+              className="btn-primary w-full py-3 text-sm tracking-wide mt-2"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-stone-950/30 border-t-stone-950 rounded-full animate-spin" />
                   Signing in...
                 </span>
               ) : (
-                'Sign in'
+                'Sign In'
               )}
             </button>
           </form>
 
           {/* Demo credentials */}
-          <div className="mt-8">
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-3">
-              Demo accounts — click to fill
+          <div className="mt-8 pt-6 border-t border-stone-100">
+            <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-3">
+              Demo Accounts (Click to Fill)
             </p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {DEMO_USERS.map((u) => (
                 <button
                   key={u.email}
+                  type="button"
                   onClick={() => fillDemo(u)}
-                  className={`px-3 py-2 rounded-lg text-xs font-medium text-left hover:opacity-80 transition-opacity ${u.color}`}
+                  className="px-3 py-2 rounded-full border border-stone-200/80 bg-stone-50/80 text-[11px] font-bold text-stone-800 text-left hover:bg-amber-400 hover:text-stone-950 hover:border-amber-400 transition-all truncate"
                 >
                   {u.label}
                 </button>

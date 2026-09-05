@@ -169,29 +169,29 @@ export default function ContractListPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7 pb-10">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Contracts</h1>
-          <p className="text-sm text-gray-500">Manage employee employment contracts.</p>
+          <h1 className="text-2xl font-extrabold text-stone-900 tracking-tight">Employment Contracts</h1>
+          <p className="text-sm font-medium text-stone-500 mt-0.5">Manage employee compensation, positions, and validity periods.</p>
         </div>
         <button
           onClick={openNewModal}
-          className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+          className="btn-primary inline-flex items-center"
         >
           <Plus className="h-4 w-4 mr-2" />
           New Contract
         </button>
       </div>
 
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-4 items-center">
+      <div className="bg-white p-4 rounded-[24px] border border-stone-200/70 shadow-sm flex flex-col sm:flex-row gap-4 items-center">
         <div className="w-full sm:w-64">
           <label className="sr-only">Filter by Employee</label>
           <select
             name="employeeId"
             value={filters.employeeId}
             onChange={handleFilterChange}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="input text-xs font-medium"
           >
             <option value="">All Employees</option>
             {employees.map(emp => (
@@ -205,7 +205,7 @@ export default function ContractListPage() {
             name="status"
             value={filters.status}
             onChange={handleFilterChange}
-            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            className="input text-xs font-medium"
           >
             <option value="">All Statuses</option>
             <option value="DRAFT">Draft</option>
@@ -223,48 +223,48 @@ export default function ContractListPage() {
           title="No contracts found" 
           description="Try adjusting your filters or create a new contract."
           icon={FileText}
-          action={{ label: 'New Contract', onClick: openNewModal }}
+          action={<button onClick={openNewModal} className="btn-primary"><Plus size={16} className="mr-1"/> New Contract</button>}
         />
       ) : (
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="table-container">
+          <table className="table">
+            <thead>
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wage</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Date</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">End Date</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
+                <th>Employee</th>
+                <th>Position</th>
+                <th>Wage (Monthly)</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Status</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody>
               {contracts.map((contract) => (
-                <tr key={contract.id} className={`hover:bg-gray-50 ${contract.status === 'ACTIVE' ? 'border-l-4 border-l-green-400' : ''}`}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
+                <tr key={contract.id} className={`${contract.status === 'ACTIVE' ? 'bg-amber-50/20 border-l-4 border-l-amber-400' : ''}`}>
+                  <td>
+                    <div className="text-sm font-extrabold text-stone-900">
                       {contract.employee?.firstName} {contract.employee?.lastName}
                     </div>
-                    <div className="text-sm text-gray-500">{contract.employee?.employeeCode}</div>
+                    <div className="text-xs font-medium text-stone-400">{contract.employee?.employeeCode}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="text-xs font-semibold text-stone-600">
                     {contract.position || contract.jobPosition || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="text-sm font-extrabold text-stone-900 font-mono">
                     {formatINR(contract.wage)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="text-xs font-semibold text-stone-600">
                     {formatDate(contract.startDate)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="text-xs font-semibold text-stone-600">
                     {contract.endDate ? formatDate(contract.endDate) : 'Ongoing'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td>
                     <StatusBadge status={contract.status} />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onClick={() => openEditModal(contract)} className="text-indigo-600 hover:text-indigo-900">
+                  <td className="text-right">
+                    <button onClick={() => openEditModal(contract)} className="text-xs font-bold text-stone-700 hover:text-stone-950 bg-stone-100 hover:bg-stone-200/80 px-3 py-1 rounded-full border border-stone-200/60 transition-colors">
                       Edit
                     </button>
                   </td>
@@ -273,17 +273,19 @@ export default function ContractListPage() {
             </tbody>
           </table>
           {totalPages > 1 && (
-            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+            <div className="p-4 border-t border-stone-100">
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+            </div>
           )}
         </div>
       )}
 
       {/* Contract Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => !isSubmitting && setIsModalOpen(false)} title={editingId ? 'Edit Contract' : 'New Contract'}>
+      <Modal open={isModalOpen} onClose={() => !isSubmitting && setIsModalOpen(false)} title={editingId ? 'Edit Contract' : 'New Contract'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Employee *</label>
-            <select required name="employeeId" value={formData.employeeId} onChange={handleFormChange} disabled={editingId} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm disabled:bg-gray-100">
+            <label className="label">Employee *</label>
+            <select required name="employeeId" value={formData.employeeId} onChange={handleFormChange} disabled={editingId} className="input">
               <option value="">Select Employee</option>
               {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>)}
             </select>
@@ -291,26 +293,26 @@ export default function ContractListPage() {
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Department</label>
-              <select name="departmentId" value={formData.departmentId} onChange={handleFormChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+              <label className="label">Department</label>
+              <select name="departmentId" value={formData.departmentId} onChange={handleFormChange} className="input">
                 <option value="">Select Department</option>
                 {departments.map(dept => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Job Position</label>
-              <input type="text" name="position" value={formData.position} onChange={handleFormChange} placeholder="e.g. Senior Software Engineer" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+              <label className="label">Job Position</label>
+              <input type="text" name="position" value={formData.position} onChange={handleFormChange} placeholder="e.g. Senior Developer" className="input" />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Wage (Monthly) *</label>
-              <input type="number" required min="0" step="0.01" name="wage" value={formData.wage} onChange={handleFormChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+              <label className="label">Wage (Monthly) *</label>
+              <input type="number" required min="0" step="0.01" name="wage" value={formData.wage} onChange={handleFormChange} className="input font-mono" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Salary Structure</label>
-              <select name="salaryStructureId" value={formData.salaryStructureId} onChange={handleFormChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+              <label className="label">Salary Structure</label>
+              <select name="salaryStructureId" value={formData.salaryStructureId} onChange={handleFormChange} className="input">
                 <option value="">Select Structure</option>
                 {salaryStructures.map(struct => <option key={struct.id} value={struct.id}>{struct.name}</option>)}
               </select>
@@ -319,16 +321,16 @@ export default function ContractListPage() {
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Start Date *</label>
-              <input type="date" required name="startDate" value={formData.startDate} onChange={handleFormChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+              <label className="label">Start Date *</label>
+              <input type="date" required name="startDate" value={formData.startDate} onChange={handleFormChange} className="input" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">End Date</label>
-              <input type="date" name="endDate" value={formData.endDate} onChange={handleFormChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+              <label className="label">End Date</label>
+              <input type="date" name="endDate" value={formData.endDate} onChange={handleFormChange} className="input" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Status</label>
-              <select name="status" value={formData.status} onChange={handleFormChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+              <label className="label">Status</label>
+              <select name="status" value={formData.status} onChange={handleFormChange} className="input">
                 <option value="DRAFT">Draft</option>
                 <option value="ACTIVE">Active</option>
                 <option value="EXPIRED">Expired</option>
@@ -337,11 +339,11 @@ export default function ContractListPage() {
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end space-x-3">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+          <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-stone-100">
+            <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">
               Cancel
             </button>
-            <button type="submit" disabled={isSubmitting} className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50">
+            <button type="submit" disabled={isSubmitting} className="btn-primary min-w-[120px]">
               {isSubmitting ? 'Saving...' : 'Save Contract'}
             </button>
           </div>

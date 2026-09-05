@@ -57,10 +57,10 @@ export function Pagination({ page, totalPages, onPageChange }) {
   const pages = buildPageWindow(page, totalPages);
 
   const buttonBase =
-    'inline-flex items-center justify-center min-w-[2rem] h-8 px-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500';
-  const activeClass = 'bg-primary-600 text-white shadow-sm';
-  const inactiveClass = 'text-slate-600 hover:bg-slate-100';
-  const disabledClass = 'text-slate-300 cursor-not-allowed';
+    'inline-flex items-center justify-center min-w-[2.25rem] h-9 px-3 rounded-full text-xs font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50';
+  const activeClass = 'bg-stone-900 text-white shadow-sm';
+  const inactiveClass = 'text-stone-600 hover:bg-stone-100 hover:text-stone-900';
+  const disabledClass = 'text-stone-300 cursor-not-allowed';
 
   return (
     <nav

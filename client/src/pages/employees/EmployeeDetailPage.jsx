@@ -42,34 +42,32 @@ export default function EmployeeDetailPage() {
   const counts = employee._count || { contracts: 0, attendance: 0, timeOffRequests: 0, payslips: 0 };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-7 max-w-5xl mx-auto pb-10">
       <div className="flex items-center justify-end">
         {canEdit && (
           <Link
             to={`/employees/${id}/edit`}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            className="btn-secondary inline-flex items-center"
           >
-            <Edit className="h-4 w-4 mr-2" /> Edit Employee
+            <Edit className="h-4 w-4 mr-2 text-stone-600" /> Edit Profile
           </Link>
         )}
       </div>
 
-      {/* Header Profile Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col md:flex-row items-center md:items-start gap-6">
-        <span className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-indigo-100 flex-shrink-0">
-          <span className="text-3xl font-medium leading-none text-indigo-700">
-            {getInitials(employee.firstName, employee.lastName)}
-          </span>
+      {/* Header Profile Card */}
+      <div className="bg-white rounded-[24px] border border-stone-200/70 shadow-sm p-7 flex flex-col md:flex-row items-center md:items-start gap-6">
+        <span className="inline-flex h-24 w-24 items-center justify-center rounded-full bg-stone-900 text-amber-400 font-extrabold text-2xl shadow-md flex-shrink-0">
+          {getInitials(employee.firstName, employee.lastName)}
         </span>
         <div className="flex-1 text-center md:text-left space-y-2">
-          <h1 className="text-3xl font-bold text-gray-900">{employee.firstName} {employee.lastName}</h1>
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-            <span className="text-sm text-gray-500 font-medium">{employee.employeeCode}</span>
-            <span className="text-gray-300">•</span>
-            <span className="text-sm text-gray-700">{employee.jobPosition || 'No Position'}</span>
-            <span className="text-gray-300">•</span>
-            <span className="text-sm text-gray-700">{employee.department?.name || 'No Department'}</span>
-            <span className="text-gray-300">•</span>
+          <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight">{employee.firstName} {employee.lastName}</h1>
+          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-1">
+            <span className="text-xs font-bold text-stone-400 bg-stone-100 px-3 py-1 rounded-full">{employee.employeeCode}</span>
+            <span className="text-stone-300">•</span>
+            <span className="text-xs font-semibold text-stone-700">{employee.jobPosition || 'No Position'}</span>
+            <span className="text-stone-300">•</span>
+            <span className="text-xs font-semibold text-stone-700">{employee.department?.name || 'No Department'}</span>
+            <span className="text-stone-300">•</span>
             <StatusBadge status={employee.status} />
           </div>
         </div>
@@ -78,30 +76,38 @@ export default function EmployeeDetailPage() {
       {/* Smart Hub Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {canViewContracts && (
-          <Link to={`/contracts?employeeId=${id}`} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-indigo-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
-            <FileText className="h-8 w-8 text-indigo-500 mb-2 group-hover:scale-110 transition-transform" />
-            <span className="text-2xl font-bold text-gray-900">{counts.contracts}</span>
-            <span className="text-sm font-medium text-gray-500">Contracts</span>
+          <Link to={`/contracts?employeeId=${id}`} className="bg-white p-5 rounded-[24px] border border-stone-200/70 shadow-sm hover:border-amber-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
+            <div className="p-3 rounded-full bg-amber-50 text-amber-600 mb-2 group-hover:scale-110 transition-transform">
+              <FileText className="h-6 w-6" />
+            </div>
+            <span className="text-2xl font-extrabold text-stone-900 tracking-tight">{counts.contracts}</span>
+            <span className="text-xs font-bold text-stone-500 uppercase tracking-wider mt-0.5">Contracts</span>
           </Link>
         )}
         
-        <Link to={`/attendance?employeeId=${id}`} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-green-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
-          <Clock className="h-8 w-8 text-green-500 mb-2 group-hover:scale-110 transition-transform" />
-          <span className="text-2xl font-bold text-gray-900">{counts.attendance}</span>
-          <span className="text-sm font-medium text-gray-500">Attendance</span>
+        <Link to={`/attendance?employeeId=${id}`} className="bg-white p-5 rounded-[24px] border border-stone-200/70 shadow-sm hover:border-emerald-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
+          <div className="p-3 rounded-full bg-emerald-50 text-emerald-600 mb-2 group-hover:scale-110 transition-transform">
+            <Clock className="h-6 w-6" />
+          </div>
+          <span className="text-2xl font-extrabold text-stone-900 tracking-tight">{counts.attendance}</span>
+          <span className="text-xs font-bold text-stone-500 uppercase tracking-wider mt-0.5">Attendance</span>
         </Link>
 
-        <Link to={`/time-off/requests?employeeId=${id}`} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-amber-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
-          <Calendar className="h-8 w-8 text-amber-500 mb-2 group-hover:scale-110 transition-transform" />
-          <span className="text-2xl font-bold text-gray-900">{counts.timeOffRequests}</span>
-          <span className="text-sm font-medium text-gray-500">Time Off</span>
+        <Link to={`/time-off/requests?employeeId=${id}`} className="bg-white p-5 rounded-[24px] border border-stone-200/70 shadow-sm hover:border-amber-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
+          <div className="p-3 rounded-full bg-amber-50 text-amber-700 mb-2 group-hover:scale-110 transition-transform">
+            <Calendar className="h-6 w-6" />
+          </div>
+          <span className="text-2xl font-extrabold text-stone-900 tracking-tight">{counts.timeOffRequests}</span>
+          <span className="text-xs font-bold text-stone-500 uppercase tracking-wider mt-0.5">Time Off</span>
         </Link>
 
         {canViewPayroll && (
-          <Link to={`/payroll/payslips?employeeId=${id}`} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-purple-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
-            <DollarSign className="h-8 w-8 text-purple-500 mb-2 group-hover:scale-110 transition-transform" />
-            <span className="text-2xl font-bold text-gray-900">{counts.payslips}</span>
-            <span className="text-sm font-medium text-gray-500">Payslips</span>
+          <Link to={`/payroll/payslips?employeeId=${id}`} className="bg-white p-5 rounded-[24px] border border-stone-200/70 shadow-sm hover:border-purple-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
+            <div className="p-3 rounded-full bg-purple-50 text-purple-700 mb-2 group-hover:scale-110 transition-transform">
+              <DollarSign className="h-6 w-6" />
+            </div>
+            <span className="text-2xl font-extrabold text-stone-900 tracking-tight">{counts.payslips}</span>
+            <span className="text-xs font-bold text-stone-500 uppercase tracking-wider mt-0.5">Payslips</span>
           </Link>
         )}
       </div>
@@ -109,88 +115,87 @@ export default function EmployeeDetailPage() {
       {/* Info Sections Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Personal Info */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-lg font-medium text-gray-900">Personal Information</h3>
+        <div className="bg-white rounded-[24px] border border-stone-200/70 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-stone-100 bg-stone-50/70">
+            <h3 className="text-sm font-extrabold text-stone-900 uppercase tracking-wider">Personal Information</h3>
           </div>
           <div className="p-6">
-            <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Email address</dt>
-                <dd className="mt-1 text-sm text-gray-900">{employee.email}</dd>
+                <dt className="text-xs font-bold text-stone-400 uppercase tracking-wider">Email Address</dt>
+                <dd className="mt-1 text-xs font-semibold text-stone-900">{employee.email}</dd>
               </div>
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Phone number</dt>
-                <dd className="mt-1 text-sm text-gray-900">{employee.phone || '-'}</dd>
+                <dt className="text-xs font-bold text-stone-400 uppercase tracking-wider">Phone Number</dt>
+                <dd className="mt-1 text-xs font-semibold text-stone-900">{employee.phone || '-'}</dd>
               </div>
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Date of Birth</dt>
-                <dd className="mt-1 text-sm text-gray-900">{employee.dateOfBirth ? formatDate(employee.dateOfBirth) : '-'}</dd>
+                <dt className="text-xs font-bold text-stone-400 uppercase tracking-wider">Date of Birth</dt>
+                <dd className="mt-1 text-xs font-semibold text-stone-900">{employee.dateOfBirth ? formatDate(employee.dateOfBirth) : '-'}</dd>
               </div>
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">PAN Number</dt>
-                <dd className="mt-1 text-sm text-gray-900 font-mono uppercase">{employee.panNumber || '-'}</dd>
+                <dt className="text-xs font-bold text-stone-400 uppercase tracking-wider">PAN Number</dt>
+                <dd className="mt-1 text-xs font-extrabold text-stone-900 font-mono uppercase">{employee.panNumber || '-'}</dd>
               </div>
             </dl>
           </div>
         </div>
 
         {/* Employment Info */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-lg font-medium text-gray-900">Employment Details</h3>
+        <div className="bg-white rounded-[24px] border border-stone-200/70 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-stone-100 bg-stone-50/70">
+            <h3 className="text-sm font-extrabold text-stone-900 uppercase tracking-wider">Employment Details</h3>
           </div>
           <div className="p-6">
-            <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Employee Type</dt>
-                <dd className="mt-1 text-sm text-gray-900 capitalize">{employee.employeeType?.replace('_', ' ')}</dd>
+                <dt className="text-xs font-bold text-stone-400 uppercase tracking-wider">Employee Type</dt>
+                <dd className="mt-1 text-xs font-semibold text-stone-900 capitalize">{employee.employeeType?.replace('_', ' ')}</dd>
               </div>
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Joining Date</dt>
-                <dd className="mt-1 text-sm text-gray-900">{employee.joiningDate ? formatDate(employee.joiningDate) : '-'}</dd>
+                <dt className="text-xs font-bold text-stone-400 uppercase tracking-wider">Joining Date</dt>
+                <dd className="mt-1 text-xs font-semibold text-stone-900">{employee.joiningDate ? formatDate(employee.joiningDate) : '-'}</dd>
               </div>
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Manager</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <dt className="text-xs font-bold text-stone-400 uppercase tracking-wider">Manager</dt>
+                <dd className="mt-1 text-xs font-semibold text-stone-900">
                   {employee.manager ? (
-                    <Link to={`/employees/${employee.manager.id}`} className="text-indigo-600 hover:underline">
+                    <Link to={`/employees/${employee.manager.id}`} className="text-amber-700 font-bold hover:underline">
                       {employee.manager.firstName} {employee.manager.lastName}
                     </Link>
                   ) : '-'}
                 </dd>
               </div>
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Working Schedule</dt>
-                <dd className="mt-1 text-sm text-gray-900">{employee.workingSchedule?.name || '-'}</dd>
+                <dt className="text-xs font-bold text-stone-400 uppercase tracking-wider">Working Schedule</dt>
+                <dd className="mt-1 text-xs font-semibold text-stone-900">{employee.workingSchedule?.name || '-'}</dd>
               </div>
             </dl>
           </div>
         </div>
 
         {/* Bank Info */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden md:col-span-2">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-lg font-medium text-gray-900">Bank Information</h3>
+        <div className="bg-white rounded-[24px] border border-stone-200/70 shadow-sm overflow-hidden md:col-span-2">
+          <div className="px-6 py-4 border-b border-stone-100 bg-stone-50/70">
+            <h3 className="text-sm font-extrabold text-stone-900 uppercase tracking-wider">Bank Information</h3>
           </div>
           <div className="p-6">
-            <dl className="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-3">
+            <dl className="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-3">
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Bank Name</dt>
-                <dd className="mt-1 text-sm text-gray-900">{employee.bankName || '-'}</dd>
+                <dt className="text-xs font-bold text-stone-400 uppercase tracking-wider">Bank Name</dt>
+                <dd className="mt-1 text-xs font-semibold text-stone-900">{employee.bankName || '-'}</dd>
               </div>
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Account Name</dt>
-                <dd className="mt-1 text-sm text-gray-900">{employee.bankAccountName || '-'}</dd>
+                <dt className="text-xs font-bold text-stone-400 uppercase tracking-wider">Account Name</dt>
+                <dd className="mt-1 text-xs font-semibold text-stone-900">{employee.bankAccountName || '-'}</dd>
               </div>
               <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Account Number</dt>
-                <dd className="mt-1 text-sm text-gray-900">{employee.bankAccountNumber || '-'}</dd>
+                <dt className="text-xs font-bold text-stone-400 uppercase tracking-wider">Account Number</dt>
+                <dd className="mt-1 text-xs font-extrabold text-stone-900 font-mono">{employee.bankAccountNumber || '-'}</dd>
               </div>
             </dl>
           </div>
         </div>
-
       </div>
     </div>
   );

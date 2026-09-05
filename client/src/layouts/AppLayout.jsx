@@ -23,10 +23,10 @@ function NavItem({ to, label, end = false, onClick }) {
       end={end}
       onClick={onClick}
       className={({ isActive }) =>
-        `inline-flex h-12 items-center rounded-full px-6 text-sm font-semibold transition-all ${
+        `inline-flex h-10 items-center rounded-full px-5 text-xs lg:text-sm font-semibold transition-all ${
           isActive
-            ? 'bg-slate-950 text-white shadow-sm'
-            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900'
+            ? 'bg-stone-900 text-white shadow-sm'
+            : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
         }`
       }
     >
@@ -51,8 +51,8 @@ function PayrollMenu({ currentUser, isPayroll, mobile = false, onNavigate }) {
         onClick={() => setOpen(!open)}
         className={
           mobile
-            ? 'flex h-12 w-full items-center justify-between rounded-full px-6 text-left text-sm font-semibold text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900'
-            : 'inline-flex h-12 items-center gap-2 rounded-full px-6 text-sm font-semibold text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900'
+            ? 'flex h-10 w-full items-center justify-between rounded-full px-5 text-left text-xs lg:text-sm font-semibold text-stone-600 transition-all hover:bg-stone-100 hover:text-stone-900'
+            : 'inline-flex h-10 items-center gap-1.5 rounded-full px-5 text-xs lg:text-sm font-semibold text-stone-600 transition-all hover:bg-stone-100 hover:text-stone-900'
         }
       >
         <span>Payroll</span>
@@ -62,20 +62,23 @@ function PayrollMenu({ currentUser, isPayroll, mobile = false, onNavigate }) {
         <div
           className={
             mobile
-              ? 'mt-1 space-y-1 rounded-3xl bg-slate-50 p-2'
-              : 'absolute left-0 top-14 z-20 w-56 rounded-3xl border border-slate-200 bg-white p-2 shadow-lg'
+              ? 'mt-1 space-y-1 rounded-2xl bg-stone-50 p-2 border border-stone-200/60'
+              : 'absolute left-0 top-12 z-50 w-56 rounded-3xl border border-stone-200/80 bg-white p-2 shadow-xl animate-fadeIn'
           }
         >
           {allowedSubItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              onClick={onNavigate}
+              onClick={() => {
+                setOpen(false);
+                if (onNavigate) onNavigate();
+              }}
               className={({ isActive }) =>
-                `block rounded-full px-4 py-2.5 text-sm font-semibold transition-all ${
+                `block rounded-full px-4 py-2 text-xs lg:text-sm font-semibold transition-all ${
                   isActive
-                    ? 'bg-slate-950 text-white'
-                    : 'text-slate-500 hover:bg-white hover:text-slate-900'
+                    ? 'bg-stone-900 text-white'
+                    : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
                 }`
               }
             >
@@ -123,21 +126,27 @@ export function AppLayout({ children }) {
   const userInitial = (currentUser?.employee?.firstName?.[0] || currentUser?.email?.[0] || 'U').toUpperCase();
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-slate-50">
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 px-4 py-4 shadow-sm backdrop-blur">
+    <div className="relative flex min-h-screen flex-col overflow-x-hidden bg-[#FAF9F5] text-stone-900">
+      {/* Top Ambient Warm Glow */}
+      <div className="pointer-events-none absolute left-1/2 top-0 -z-10 h-72 w-full max-w-7xl -translate-x-1/2 rounded-full bg-gradient-to-b from-amber-200/25 via-amber-100/10 to-transparent blur-3xl" />
+
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-stone-200/70 bg-white/80 px-4 py-3 backdrop-blur-md shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center gap-4">
+          {/* Logo */}
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white">
-              <Banknote size={20} />
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-stone-900 text-amber-400 shadow-sm">
+              <Banknote size={19} />
             </div>
             <div className="hidden min-w-0 sm:block">
-              <h1 className="truncate text-base font-bold leading-none text-slate-950">PeoplePay</h1>
-              <p className="mt-1 text-xs font-semibold text-slate-500">360</p>
+              <h1 className="truncate text-base font-extrabold leading-none tracking-tight text-stone-900">PeoplePay</h1>
+              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600">360 Suite</p>
             </div>
           </div>
 
+          {/* Navigation Pill Container */}
           <nav className="hidden flex-1 items-center justify-center lg:flex">
-            <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+            <div className="flex items-center gap-1 rounded-full border border-stone-200/80 bg-white p-1 shadow-sm">
               {visibleNavItems.map((item) => (
                 <NavItem key={item.to} {...item} end={item.to === '/dashboard'} />
               ))}
@@ -148,38 +157,41 @@ export function AppLayout({ children }) {
             </div>
           </nav>
 
+          {/* Right Action Bar */}
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500 sm:inline-flex">
+            <span className="hidden rounded-full border border-amber-200/80 bg-amber-50 px-3.5 py-1 text-xs font-bold text-amber-900 sm:inline-flex">
               {currentUser?.role?.replace(/_/g, ' ')}
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-600 text-sm font-bold text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-stone-900 text-xs font-extrabold text-amber-400 shadow-sm">
               {userInitial}
             </div>
             <button
               onClick={handleLogout}
-              className="hidden h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-950 sm:inline-flex"
+              className="hidden h-9 w-9 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900 sm:inline-flex"
               title="Logout"
             >
-              <LogOut size={17} />
+              <LogOut size={16} />
             </button>
           </div>
 
+          {/* Mobile Menu Button */}
           <button
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm lg:hidden"
-            onClick={() => setMobileOpen(true)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-200/80 bg-white text-stone-700 shadow-sm lg:hidden"
+            onClick={() => setMobileOpen(!mobileOpen)}
           >
-            <Menu size={20} />
+            <Menu size={18} />
           </button>
         </div>
 
+        {/* Mobile Navigation Panel */}
         {mobileOpen && (
           <>
             <button
-              className="fixed inset-0 z-[-1] cursor-default bg-transparent lg:hidden"
+              className="fixed inset-0 z-[-1] cursor-default bg-black/20 backdrop-blur-xs lg:hidden"
               onClick={() => setMobileOpen(false)}
               aria-label="Close navigation"
             />
-            <div className="absolute left-4 right-4 top-[72px] rounded-[2rem] border border-slate-200 bg-white p-3 shadow-xl lg:hidden">
+            <div className="absolute left-4 right-4 top-[68px] rounded-[24px] border border-stone-200/80 bg-white p-3 shadow-2xl lg:hidden animate-fadeIn">
               <div className="grid gap-1">
                 {visibleNavItems.map((item) => (
                   <NavItem
@@ -200,7 +212,7 @@ export function AppLayout({ children }) {
                 ))}
                 <button
                   onClick={handleLogout}
-                  className="inline-flex h-12 items-center rounded-full px-6 text-sm font-semibold text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-900"
+                  className="inline-flex h-10 items-center rounded-full px-5 text-xs font-semibold text-rose-600 transition-all hover:bg-rose-50"
                 >
                   Logout
                 </button>
@@ -210,8 +222,9 @@ export function AppLayout({ children }) {
         )}
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 lg:p-8">
-        <div className="mx-auto max-w-7xl">
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto max-w-7xl animate-fadeIn">
           {children}
         </div>
       </main>

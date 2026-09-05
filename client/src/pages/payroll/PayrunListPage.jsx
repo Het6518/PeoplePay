@@ -3,23 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Eye, Search, FileText } from 'lucide-react';
 import { payrollApi } from '../../services/apiServices';
 import { formatINR, formatDate } from '../../utils/formatters';
-
-const StatusBadge = ({ status }) => {
-  const styles = {
-    DRAFT: 'bg-yellow-100 text-yellow-800',
-    COMPUTED: 'bg-blue-100 text-blue-800',
-    VALIDATED: 'bg-indigo-100 text-indigo-800',
-    PAID: 'bg-green-100 text-green-800',
-  };
-
-  const currentStyle = styles[status] || 'bg-gray-100 text-gray-800';
-
-  return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${currentStyle}`}>
-      {status}
-    </span>
-  );
-};
+import { StatusBadge } from '../../components/ui/Badge';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export default function PayrunListPage() {
   const [payruns, setPayruns] = useState([]);
@@ -49,123 +34,121 @@ export default function PayrunListPage() {
     : payruns.filter(p => p.status === filter);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Payruns</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage and process employee payroll</p>
+          <h1 className="text-3xl font-black tracking-tight text-stone-900">Payruns</h1>
+          <p className="text-sm font-medium text-stone-500 mt-1">Batch process employee payrolls and generate payslips</p>
         </div>
         
         <Link 
           to="/payroll/payruns/new" 
-          className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+          className="btn-primary rounded-full px-5 py-2.5 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm flex items-center gap-2"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4" />
           New Payrun
         </Link>
       </div>
 
-      <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-          <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-gray-700">Filter Status:</span>
+      <div className="bg-white rounded-[28px] border border-stone-200/80 shadow-soft overflow-hidden">
+        <div className="p-4 border-b border-stone-200/60 flex justify-between items-center bg-stone-50/50">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-stone-500">Status Filter:</span>
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+              className="rounded-2xl border border-stone-200 bg-white px-4 py-1.5 text-xs font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
             >
               <option value="ALL">All Statuses</option>
               <option value="DRAFT">Draft</option>
               <option value="COMPUTED">Computed</option>
               <option value="VALIDATED">Validated</option>
-              <option value="PAID">Paid</option>
+              <option value="PAID">Paid / Final</option>
             </select>
           </div>
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center p-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          </div>
+          <div className="py-12 flex justify-center"><LoadingSpinner /></div>
         ) : filteredPayruns.length === 0 ? (
           <div className="text-center p-12">
-            <FileText className="mx-auto h-12 w-12 text-gray-300" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No payruns</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Get started by creating a new payrun.
+            <FileText className="mx-auto h-12 w-12 text-stone-300 mb-3" />
+            <h3 className="text-base font-bold text-stone-800">No payruns found</h3>
+            <p className="text-xs font-medium text-stone-500 mt-1">
+              Click "New Payrun" to compute a new payroll batch.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-stone-200/60">
+              <thead className="bg-stone-50/80">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-stone-500">
                     Name / Period
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-stone-500">
                     Structure
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-stone-500">
                     Employees
                   </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-stone-500">
                     Gross
                   </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-stone-500">
                     Deductions
                   </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Net
+                  <th scope="col" className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-stone-500">
+                    Net Total
                   </th>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-4 text-center text-xs font-bold uppercase tracking-wider text-stone-500">
                     Status
                   </th>
-                  <th scope="col" className="relative px-6 py-3">
-                    <span className="sr-only">Actions</span>
+                  <th scope="col" className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-stone-500">
+                    Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-stone-100 bg-white">
                 {filteredPayruns.map((payrun) => (
                   <tr 
                     key={payrun.id} 
-                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    className="hover:bg-stone-50/60 cursor-pointer transition-colors"
                     onClick={() => navigate(`/payroll/payruns/${payrun.id}`)}
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{payrun.name}</div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm font-semibold text-stone-900">{payrun.name}</div>
+                      <div className="text-xs font-medium text-stone-500">
                         {formatDate(payrun.periodStart)} - {formatDate(payrun.periodEnd)}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">
                       {payrun.structureName}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-stone-800">
                       {payrun.employeeCount}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-right">
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-700 text-right">
                       {formatINR(payrun.totalGross)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-500 text-right">
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-rose-600 text-right">
                       {formatINR(payrun.totalDeductions)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-emerald-600 text-right">
                       {formatINR(payrun.totalNet)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <StatusBadge status={payrun.status} />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/payroll/payruns/${payrun.id}`);
                         }}
-                        className="text-primary-600 hover:text-primary-900 flex items-center justify-end"
+                        className="p-1.5 rounded-full bg-stone-100 text-stone-700 hover:bg-stone-900 hover:text-white transition-all inline-flex items-center gap-1 px-3"
                       >
-                        <Eye className="w-4 h-4 mr-1" /> View
+                        <Eye className="w-3.5 h-3.5" /> View
                       </button>
                     </td>
                   </tr>

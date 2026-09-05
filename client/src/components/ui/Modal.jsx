@@ -62,24 +62,24 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
 
       {/* Panel */}
       <div
-        className={`relative bg-white rounded-2xl shadow-2xl w-full ${sizeClass} max-h-[90vh] flex flex-col animate-fadeIn`}
+        className={`relative bg-white rounded-[28px] border border-stone-200/80 shadow-2xl w-full ${sizeClass} max-h-[90vh] flex flex-col animate-fadeIn`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 flex-shrink-0">
-          <h2 id="modal-title" className="text-lg font-semibold text-slate-900">
+        <div className="flex items-center justify-between px-7 py-5 border-b border-stone-100 flex-shrink-0">
+          <h2 id="modal-title" className="text-lg font-extrabold text-stone-900 tracking-tight">
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"
+            className="p-2 rounded-full hover:bg-stone-100 text-stone-500 hover:text-stone-900 transition-colors"
             aria-label="Close dialog"
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1 px-6 py-4">{children}</div>
+        <div className="overflow-y-auto flex-1 px-7 py-6">{children}</div>
       </div>
     </div>
   );

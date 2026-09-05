@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ChevronRight, Search, ArrowLeft, Users } from 'lucide-react';
+import { Check, ChevronRight, Search, ArrowLeft, Users, Calendar } from 'lucide-react';
 import { payrollApi, salaryApi, employeeApi } from '../../services/apiServices';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export default function NewPayrunPage() {
   const navigate = useNavigate();
@@ -23,7 +24,6 @@ export default function NewPayrunPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Fetch Structures on mount
     const fetchStructures = async () => {
       try {
         const res = await salaryApi.getStructures();
@@ -38,7 +38,6 @@ export default function NewPayrunPage() {
   }, []);
 
   useEffect(() => {
-    // Fetch Employees when entering step 2
     if (currentStep === 2 && employees.length === 0) {
       const fetchEmployees = async () => {
         setLoading(true);
@@ -52,7 +51,6 @@ export default function NewPayrunPage() {
             department: typeof e.department === 'string' ? e.department : e.department?.name || '',
           }));
           setEmployees(normalized);
-          // Auto select all by default
           setSelectedEmployeeIds(normalized.map(e => e.id));
         } catch (error) {
           console.error('Error fetching employees', error);
@@ -118,40 +116,56 @@ export default function NewPayrunPage() {
   const selectedStructure = structures.find(s => s.id === selectedStructureId);
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Create New Payrun</h1>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center gap-3">
+        <button onClick={() => navigate('/payroll/payruns')} className="p-2 rounded-full bg-stone-200/60 hover:bg-stone-300 text-stone-700 transition-all">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-stone-900">Create New Payrun</h1>
+          <p className="text-sm font-medium text-stone-500 mt-0.5">Select salary structure, period, and included employees</p>
+        </div>
       </div>
 
-      {/* Step Indicator */}
-      <div className="flex items-center justify-center space-x-4 mb-8">
-        {[1, 2, 3].map((step) => (
-          <div key={step} className="flex items-center">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-              currentStep === step ? 'bg-primary-600 text-white' : 
-              currentStep > step ? 'bg-primary-100 text-primary-600' : 'bg-gray-200 text-gray-500'
-            }`}>
-              {currentStep > step ? <Check className="w-5 h-5" /> : step}
+      {/* Step Stepper Pill Container */}
+      <div className="bg-stone-200/50 p-2 rounded-full border border-stone-300/40 flex items-center justify-around max-w-xl mx-auto">
+        {[
+          { num: 1, label: '1. Setup' },
+          { num: 2, label: '2. Employees' },
+          { num: 3, label: '3. Review' },
+        ].map((step) => {
+          const isActive = currentStep === step.num;
+          const isDone = currentStep > step.num;
+          return (
+            <div
+              key={step.num}
+              className={`px-5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2 ${
+                isActive
+                  ? 'bg-stone-900 text-white shadow-sm'
+                  : isDone
+                  ? 'bg-amber-100 text-amber-900'
+                  : 'text-stone-500'
+              }`}
+            >
+              {isDone ? <Check className="w-4 h-4 text-amber-600" /> : <span>{step.num}</span>}
+              <span>{step.label}</span>
             </div>
-            {step < 3 && (
-              <div className={`w-16 h-1 mx-2 ${currentStep > step ? 'bg-primary-200' : 'bg-gray-200'}`} />
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <div className="bg-white shadow rounded-lg p-6 border border-gray-200">
+      <div className="bg-white rounded-[28px] border border-stone-200/80 shadow-soft p-6">
         {/* STEP 1: SETUP */}
         {currentStep === 1 && (
-          <div className="space-y-6 max-w-lg mx-auto">
-            <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">1. Setup Details</h2>
+          <div className="space-y-6 max-w-lg mx-auto py-2">
+            <h2 className="text-lg font-bold text-stone-900 border-b border-stone-100 pb-3">Step 1: Setup Details</h2>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Salary Structure</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1.5">Salary Structure</label>
               <select
                 value={selectedStructureId}
                 onChange={(e) => setSelectedStructureId(e.target.value)}
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 py-2 px-3 border"
+                className="w-full rounded-2xl border border-stone-200 px-4 py-2.5 text-sm bg-stone-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium"
               >
                 {structures.map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
@@ -161,42 +175,42 @@ export default function NewPayrunPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Period Start</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1.5">Period Start</label>
                 <input 
                   type="date" 
                   value={periodStart}
                   onChange={(e) => setPeriodStart(e.target.value)}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 py-2 px-3 border"
+                  className="w-full rounded-2xl border border-stone-200 px-4 py-2.5 text-sm bg-stone-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Period End</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1.5">Period End</label>
                 <input 
                   type="date" 
                   value={periodEnd}
                   onChange={(e) => setPeriodEnd(e.target.value)}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 py-2 px-3 border"
+                  className="w-full rounded-2xl border border-stone-200 px-4 py-2.5 text-sm bg-stone-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 font-medium"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Generated Name</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1.5">Generated Payrun Name</label>
               <input 
                 type="text" 
                 disabled 
                 value={generatePayrunName()}
-                className="w-full border-gray-200 bg-gray-50 rounded-md shadow-sm py-2 px-3 border text-gray-500"
+                className="w-full rounded-2xl border border-stone-200 px-4 py-2.5 text-sm bg-stone-100/60 font-bold text-stone-700"
               />
             </div>
 
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-end pt-4 border-t border-stone-100">
               <button
                 disabled={!periodStart || !periodEnd || !selectedStructureId}
                 onClick={() => setCurrentStep(2)}
-                className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 font-medium disabled:opacity-50 flex items-center"
+                className="btn-primary rounded-full px-6 py-2.5 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm disabled:opacity-50 flex items-center gap-2"
               >
-                Continue <ChevronRight className="w-4 h-4 ml-2" />
+                Continue <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -205,30 +219,28 @@ export default function NewPayrunPage() {
         {/* STEP 2: SELECT EMPLOYEES */}
         {currentStep === 2 && (
           <div className="space-y-4">
-            <div className="flex justify-between items-end border-b pb-2 mb-4">
-              <h2 className="text-xl font-semibold text-gray-800">2. Select Employees</h2>
-              <span className="text-sm font-medium text-primary-600 bg-primary-50 px-3 py-1 rounded-full">
+            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+              <h2 className="text-lg font-bold text-stone-900">Step 2: Select Employees</h2>
+              <span className="text-xs font-bold text-stone-900 bg-amber-100 px-3.5 py-1 rounded-full">
                 {selectedEmployeeIds.length} Selected
               </span>
             </div>
 
-            <div className="flex gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
-                </div>
+                <Search className="h-4 w-4 text-stone-400 absolute left-3.5 top-3" />
                 <input
                   type="text"
                   placeholder="Search employees..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="w-full pl-10 pr-4 py-2 rounded-2xl border border-stone-200 bg-stone-50/50 text-xs font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                 />
               </div>
               <select
                 value={deptFilter}
                 onChange={(e) => setDeptFilter(e.target.value)}
-                className="border-gray-300 rounded-md shadow-sm py-2 px-3 border text-sm"
+                className="rounded-2xl border border-stone-200 bg-stone-50/50 px-4 py-2 text-xs font-semibold text-stone-700 focus:bg-white focus:outline-none"
               >
                 <option value="">All Departments</option>
                 {[...new Set(employees.map(e => e.department))].map(d => (
@@ -238,49 +250,49 @@ export default function NewPayrunPage() {
             </div>
 
             {loading ? (
-              <div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div></div>
+              <div className="py-12 flex justify-center"><LoadingSpinner /></div>
             ) : (
-              <div className="border rounded-md max-h-96 overflow-y-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 sticky top-0 z-10">
+              <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white max-h-96 overflow-y-auto">
+                <table className="min-w-full divide-y divide-stone-200/60">
+                  <thead className="bg-stone-50/80 sticky top-0 z-10">
                     <tr>
-                      <th className="px-6 py-3 text-left">
+                      <th className="px-6 py-3.5 text-left">
                         <input 
                           type="checkbox" 
                           checked={selectedEmployeeIds.length === filteredEmployees.length && filteredEmployees.length > 0}
                           onChange={toggleAll}
-                          className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-amber-500 focus:ring-amber-400 border-stone-300 rounded"
                         />
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
+                      <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Employee</th>
+                      <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Department</th>
+                      <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Position</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-stone-100 bg-white">
                     {filteredEmployees.map(emp => (
-                      <tr key={emp.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
+                      <tr key={emp.id} className="hover:bg-stone-50/60 transition-colors">
+                        <td className="px-6 py-3.5">
                           <input 
                             type="checkbox" 
                             checked={selectedEmployeeIds.includes(emp.id)}
                             onChange={() => toggleEmployeeSelection(emp.id)}
-                            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                            className="h-4 w-4 text-amber-500 focus:ring-amber-400 border-stone-300 rounded"
                           />
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold mr-3">
+                        <td className="px-6 py-3.5 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-stone-900 text-white font-bold text-xs flex items-center justify-center">
                               {emp.name.charAt(0)}
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-gray-900">{emp.name}</div>
-                              <div className="text-sm text-gray-500">{emp.code} • {emp.employeeType}</div>
+                              <div className="text-sm font-semibold text-stone-900">{emp.name}</div>
+                              <div className="text-xs font-medium text-stone-400">{emp.code} • {emp.employeeType}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{emp.department}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{emp.jobPosition}</td>
+                        <td className="px-6 py-3.5 whitespace-nowrap text-xs font-medium text-stone-600">{emp.department}</td>
+                        <td className="px-6 py-3.5 whitespace-nowrap text-xs font-medium text-stone-600">{emp.jobPosition}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -288,19 +300,19 @@ export default function NewPayrunPage() {
               </div>
             )}
 
-            <div className="flex justify-between pt-4">
+            <div className="flex justify-between pt-4 border-t border-stone-100">
               <button
                 onClick={() => setCurrentStep(1)}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium flex items-center"
+                className="px-5 py-2 rounded-full border border-stone-200 text-xs font-bold text-stone-600 hover:bg-stone-50 flex items-center gap-2"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                <ArrowLeft className="w-4 h-4" /> Back
               </button>
               <button
                 disabled={selectedEmployeeIds.length === 0}
                 onClick={() => setCurrentStep(3)}
-                className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 font-medium disabled:opacity-50 flex items-center"
+                className="btn-primary rounded-full px-6 py-2 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm disabled:opacity-50 flex items-center gap-2"
               >
-                Continue <ChevronRight className="w-4 h-4 ml-2" />
+                Continue <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -308,48 +320,48 @@ export default function NewPayrunPage() {
 
         {/* STEP 3: REVIEW */}
         {currentStep === 3 && (
-          <div className="space-y-6 max-w-2xl mx-auto">
-            <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">3. Review & Create</h2>
+          <div className="space-y-6 max-w-xl mx-auto py-2">
+            <h2 className="text-lg font-bold text-stone-900 border-b border-stone-100 pb-3">Step 3: Review & Create</h2>
             
-            <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 grid grid-cols-2 gap-y-4 gap-x-8">
+            <div className="bg-stone-50/80 p-6 rounded-[24px] border border-stone-200/80 grid grid-cols-2 gap-y-4 gap-x-6">
               <div>
-                <p className="text-sm text-gray-500">Payrun Name</p>
-                <p className="font-medium text-gray-900">{generatePayrunName()}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Payrun Name</p>
+                <p className="font-bold text-stone-900 text-sm mt-0.5">{generatePayrunName()}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Salary Structure</p>
-                <p className="font-medium text-gray-900">{selectedStructure?.name}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Salary Structure</p>
+                <p className="font-bold text-stone-900 text-sm mt-0.5">{selectedStructure?.name}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Period</p>
-                <p className="font-medium text-gray-900">{periodStart} to {periodEnd}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Period</p>
+                <p className="font-semibold text-stone-700 text-xs mt-0.5">{periodStart} to {periodEnd}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Selected Employees</p>
-                <p className="font-medium text-gray-900 flex items-center">
-                  <Users className="w-4 h-4 mr-1 text-primary-500" />
-                  {selectedEmployeeIds.length}
+                <p className="text-xs font-bold uppercase tracking-wider text-stone-400">Selected Employees</p>
+                <p className="font-bold text-stone-900 text-sm mt-0.5 flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-amber-600" />
+                  {selectedEmployeeIds.length} Employees
                 </p>
               </div>
             </div>
 
-            <div className="flex justify-between pt-8">
+            <div className="flex justify-between pt-6 border-t border-stone-100">
               <button
                 onClick={() => setCurrentStep(2)}
                 disabled={submitting}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium flex items-center"
+                className="px-5 py-2.5 rounded-full border border-stone-200 text-xs font-bold text-stone-600 hover:bg-stone-50 flex items-center gap-2"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                <ArrowLeft className="w-4 h-4" /> Back
               </button>
               <button
                 onClick={handleCreate}
                 disabled={submitting}
-                className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 font-medium shadow-sm flex items-center"
+                className="btn-primary rounded-full px-6 py-2.5 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm flex items-center gap-2"
               >
                 {submitting ? (
-                  <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div> Creating...</>
+                  <>Creating Payrun...</>
                 ) : (
-                  <><Check className="w-4 h-4 mr-2" /> CREATE PAYRUN</>
+                  <><Check className="w-4 h-4" /> Create Payrun Batch</>
                 )}
               </button>
             </div>

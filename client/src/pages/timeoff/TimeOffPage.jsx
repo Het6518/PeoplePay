@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, Plus, Calendar, Clock, Edit2, AlertCircle } from 'lucide-react';
+import { Check, X, Plus, Calendar, Clock, Edit2, AlertCircle, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { timeOffApi } from '../../services/apiServices';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDate } from '../../utils/formatters';
+import { StatusBadge } from '../../components/ui/Badge';
+import { Modal } from '../../components/ui/Modal';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 export default function TimeOffPage({ initialTab = 'requests' }) {
   const { currentUser } = useAuth();
@@ -18,36 +21,39 @@ export default function TimeOffPage({ initialTab = 'requests' }) {
   }, [activeTab, visibleTabs]);
   
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Time Off Management</h1>
-      </div>
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header & Tabs */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-stone-900">Time Off Management</h1>
+          <p className="text-sm font-medium text-stone-500 mt-1">Manage leave requests, balances, and policies</p>
+        </div>
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8 px-6">
-            {visibleTabs.map((tab) => (
+        <div className="bg-stone-200/60 p-1.5 rounded-full inline-flex border border-stone-300/50 shadow-inner">
+          {visibleTabs.map((tab) => {
+            const isActive = activeTab === tab;
+            const label = tab === 'requests' ? 'Requests' : tab === 'allocations' ? 'Allocations' : 'Leave Types';
+            return (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`
-                  whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
-                  ${activeTab === tab 
-                    ? 'border-indigo-500 text-indigo-600' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
-                `}
+                className={`px-5 py-2 rounded-full text-xs font-bold transition-all ${
+                  isActive
+                    ? 'bg-stone-900 text-white shadow-md'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-300/50'
+                }`}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {label}
               </button>
-            ))}
-          </nav>
+            );
+          })}
         </div>
+      </div>
 
-        <div className="p-6">
-          {activeTab === 'requests' && <RequestsTab />}
-          {activeTab === 'allocations' && <AllocationsTab />}
-          {activeTab === 'types' && <LeaveTypesTab />}
-        </div>
+      <div className="bg-white rounded-[28px] border border-stone-200/80 shadow-soft p-6">
+        {activeTab === 'requests' && <RequestsTab />}
+        {activeTab === 'allocations' && <AllocationsTab />}
+        {activeTab === 'types' && <LeaveTypesTab />}
       </div>
     </div>
   );
@@ -119,96 +125,107 @@ function RequestsTab() {
   const hasPendingItems = isHR && requests.some(r => r.status === 'PENDING');
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-wrap gap-3">
           <select 
-            className="border rounded-md px-3 py-2 text-sm"
+            className="rounded-2xl border border-stone-200 bg-stone-50/50 px-4 py-2 text-xs font-semibold text-stone-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
           >
-            <option value="All">All Status</option>
+            <option value="All">All Statuses</option>
             <option value="PENDING">Pending</option>
             <option value="APPROVED">Approved</option>
             <option value="REJECTED">Rejected</option>
             <option value="CANCELLED">Cancelled</option>
           </select>
+
           <select 
-            className="border rounded-md px-3 py-2 text-sm"
+            className="rounded-2xl border border-stone-200 bg-stone-50/50 px-4 py-2 text-xs font-semibold text-stone-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value)}
           >
-            <option value="">All Types</option>
+            <option value="">All Leave Types</option>
             {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
+
         <button 
           onClick={() => setShowModal(true)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center text-sm font-medium"
+          className="btn-primary rounded-full px-5 py-2.5 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm flex items-center gap-2"
         >
-          <Plus className="w-4 h-4 mr-2" /> Request Leave
+          <Plus className="w-4 h-4" /> Request Leave
         </button>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              {hasPendingItems && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {requests.map(req => {
-              const empName = req.employee
-                ? `${req.employee.firstName || ''} ${req.employee.lastName || ''}`.trim() || req.employee.name
-                : 'Employee';
-              const typeName = req.timeOffType?.name || req.leaveType?.name || 'Leave';
+      {loading ? (
+        <div className="py-12 flex justify-center"><LoadingSpinner /></div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white">
+          <table className="min-w-full divide-y divide-stone-200/60">
+            <thead className="bg-stone-50/80">
+              <tr>
+                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Employee</th>
+                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Type</th>
+                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Dates</th>
+                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Duration</th>
+                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Status</th>
+                {hasPendingItems && <th className="px-6 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-stone-500">Actions</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100 bg-white">
+              {requests.map(req => {
+                const empName = req.employee
+                  ? `${req.employee.firstName || ''} ${req.employee.lastName || ''}`.trim() || req.employee.name
+                  : 'Employee';
+                const typeName = req.timeOffType?.name || req.leaveType?.name || 'Leave';
 
-              return (
-                <tr key={req.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{empName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
-                      style={{ backgroundColor: `${req.timeOffType?.color || '#3b82f6'}20`, color: req.timeOffType?.color || '#3b82f6' }}
-                    >
-                      {typeName}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(req.startDate)} to {formatDate(req.endDate)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{req.duration} days</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
-                      ${req.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 
-                        req.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 
-                        req.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 
-                        'bg-gray-100 text-gray-800'}`}>
-                      {req.status}
-                    </span>
-                  </td>
-                  {hasPendingItems && (
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {req.status === 'PENDING' && (
-                        <div className="flex space-x-2">
-                          <button onClick={() => handleApprove(req.id)} className="text-green-600 hover:text-green-900"><Check className="w-5 h-5"/></button>
-                          <button onClick={() => handleReject(req.id)} className="text-red-600 hover:text-red-900"><X className="w-5 h-5"/></button>
-                        </div>
-                      )}
+                return (
+                  <tr key={req.id} className="hover:bg-stone-50/60 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-stone-900">{empName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full"
+                        style={{ backgroundColor: `${req.timeOffType?.color || '#3b82f6'}18`, color: req.timeOffType?.color || '#2563eb' }}
+                      >
+                        {typeName}
+                      </span>
                     </td>
-                  )}
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">
+                      {formatDate(req.startDate)} to {formatDate(req.endDate)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-stone-700">{req.duration} days</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <StatusBadge status={req.status} />
+                    </td>
+                    {hasPendingItems && (
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
+                        {req.status === 'PENDING' && (
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => handleApprove(req.id)} className="p-1.5 rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-all" title="Approve">
+                              <Check className="w-4 h-4"/>
+                            </button>
+                            <button onClick={() => handleReject(req.id)} className="p-1.5 rounded-full bg-rose-100 text-rose-700 hover:bg-rose-200 transition-all" title="Reject">
+                              <X className="w-4 h-4"/>
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+              {requests.length === 0 && (
+                <tr>
+                  <td colSpan={hasPendingItems ? 6 : 5} className="px-6 py-12 text-center text-xs font-medium text-stone-400">
+                    No leave requests found matching filters.
+                  </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
       
       {showModal && (
         <RequestModal onClose={() => setShowModal(false)} onSave={() => { setShowModal(false); fetchRequests(); }} types={types} />
@@ -252,43 +269,40 @@ function RequestModal({ onClose, onSave, types }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
-        <h2 className="text-xl font-bold mb-4">Request Leave</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal open={true} onClose={onClose} title="Request Leave" size="md">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Leave Type</label>
+          <select 
+            required
+            className="w-full rounded-2xl border border-stone-200 px-4 py-2.5 text-sm bg-stone-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            value={formData.timeOffTypeId}
+            onChange={e => setFormData({...formData, timeOffTypeId: e.target.value})}
+          >
+            <option value="">Select leave type...</option>
+            {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Leave Type</label>
-            <select 
-              required
-              className="mt-1 block w-full border rounded-md px-3 py-2"
-              value={formData.timeOffTypeId}
-              onChange={e => setFormData({...formData, timeOffTypeId: e.target.value})}
-            >
-              <option value="">Select type...</option>
-              {types.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Start Date</label>
-              <input type="date" required className="mt-1 block w-full border rounded-md px-3 py-2" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">End Date</label>
-              <input type="date" required className="mt-1 block w-full border rounded-md px-3 py-2" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} />
-            </div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Start Date</label>
+            <input type="date" required className="w-full rounded-2xl border border-stone-200 px-4 py-2.5 text-sm bg-stone-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Reason</label>
-            <textarea className="mt-1 block w-full border rounded-md px-3 py-2" rows="3" value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})}></textarea>
+            <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">End Date</label>
+            <input type="date" required className="w-full rounded-2xl border border-stone-200 px-4 py-2.5 text-sm bg-stone-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} />
           </div>
-          <div className="flex justify-end gap-3 mt-6">
-            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Submit</button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </div>
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Reason</label>
+          <textarea className="w-full rounded-2xl border border-stone-200 px-4 py-2.5 text-sm bg-stone-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20" rows="3" value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} placeholder="Reason for time off..."></textarea>
+        </div>
+        <div className="flex justify-end gap-3 pt-4 border-t border-stone-100">
+          <button type="button" onClick={onClose} className="px-5 py-2 rounded-full border border-stone-200 text-xs font-bold text-stone-600 hover:bg-stone-50">Cancel</button>
+          <button type="submit" className="px-6 py-2 rounded-full bg-amber-400 text-stone-950 text-xs font-bold hover:bg-amber-300 shadow-sm">Submit Request</button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -313,46 +327,58 @@ function AllocationsTab() {
   };
 
   const getRemainingColor = (remaining) => {
-    if (remaining > 5) return 'text-green-600 font-bold';
-    if (remaining > 0) return 'text-amber-500 font-bold';
-    return 'text-red-600 font-bold';
+    if (remaining > 5) return 'text-emerald-600 font-bold';
+    if (remaining > 0) return 'text-amber-600 font-bold';
+    return 'text-rose-600 font-bold';
   };
 
   return (
-    <div>
-      <div className="flex justify-end mb-4">
-        <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center">
-          <Plus className="w-4 h-4 mr-2" /> New Allocation
+    <div className="space-y-6">
+      <div className="flex justify-end">
+        <button className="btn-primary rounded-full px-5 py-2.5 text-xs font-bold bg-stone-900 text-white hover:bg-stone-800 shadow-sm flex items-center gap-2">
+          <Plus className="w-4 h-4" /> New Allocation
         </button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Leave Type</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Allocated</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Taken</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remaining</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valid Period</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {allocations.map(a => (
-              <tr key={a.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{a.employee?.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{a.leaveType?.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{a.amount}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{a.taken || 0}</td>
-                <td className={`px-6 py-4 whitespace-nowrap text-sm ${getRemainingColor(a.amount - (a.taken || 0))}`}>
-                  {a.amount - (a.taken || 0)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{a.validFrom} - {a.validTo}</td>
+
+      {loading ? (
+        <div className="py-12 flex justify-center"><LoadingSpinner /></div>
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white">
+          <table className="min-w-full divide-y divide-stone-200/60">
+            <thead className="bg-stone-50/80">
+              <tr>
+                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Employee</th>
+                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Leave Type</th>
+                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Allocated</th>
+                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Taken</th>
+                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Remaining</th>
+                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Valid Period</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-stone-100 bg-white">
+              {allocations.map(a => (
+                <tr key={a.id} className="hover:bg-stone-50/60 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-stone-900">{a.employee?.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-700">{a.leaveType?.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">{a.amount} days</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">{a.taken || 0} days</td>
+                  <td className={`px-6 py-4 whitespace-nowrap text-xs ${getRemainingColor(a.amount - (a.taken || 0))}`}>
+                    {a.amount - (a.taken || 0)} days
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-500">{a.validFrom} - {a.validTo}</td>
+                </tr>
+              ))}
+              {allocations.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-xs font-medium text-stone-400">
+                    No leave allocations found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -373,27 +399,30 @@ function LeaveTypesTab() {
   }, []);
 
   return (
-    <div>
-      <div className="flex justify-end mb-4">
-        <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center">
-          <Plus className="w-4 h-4 mr-2" /> New Type
+    <div className="space-y-6">
+      <div className="flex justify-end">
+        <button className="btn-primary rounded-full px-5 py-2.5 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm flex items-center gap-2">
+          <Plus className="w-4 h-4" /> New Type
         </button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {types.map(t => (
-          <div key={t.id} className="border rounded-lg p-6 shadow-sm hover:shadow-md transition">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <div className="w-4 h-4 rounded-full mr-3" style={{ backgroundColor: t.color || '#3b82f6' }}></div>
-                <h3 className="text-lg font-medium">{t.name}</h3>
+          <div key={t.id} className="rounded-[24px] border border-stone-200/80 bg-stone-50/50 p-5 hover:bg-white hover:border-amber-400/80 transition-all shadow-sm group">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded-full shadow-sm" style={{ backgroundColor: t.color || '#f59e0b' }}></div>
+                <h3 className="text-base font-bold text-stone-900">{t.name}</h3>
               </div>
-              <button className="text-gray-400 hover:text-indigo-600"><Edit2 className="w-4 h-4" /></button>
+              <button className="p-1.5 rounded-full text-stone-400 hover:text-stone-900 hover:bg-stone-200/60 transition-all">
+                <Edit2 className="w-4 h-4" />
+              </button>
             </div>
-            <p className="text-sm text-gray-500 mb-2">{t.description}</p>
-            <div className="flex flex-wrap gap-2 mt-4">
-              <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">Unit: {t.unit}</span>
-              {t.requiresAllocation && <span className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded">Requires Allocation</span>}
-              {t.requiresApproval && <span className="bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded">Requires Approval</span>}
+            <p className="text-xs font-medium text-stone-500 mb-4 min-h-[36px]">{t.description || 'Standard leave policy'}</p>
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-stone-200/60">
+              <span className="bg-stone-200/70 text-stone-800 text-[11px] font-bold px-2.5 py-1 rounded-full">Unit: {t.unit}</span>
+              {t.requiresAllocation && <span className="bg-amber-100/70 text-amber-900 text-[11px] font-bold px-2.5 py-1 rounded-full">Requires Allocation</span>}
+              {t.requiresApproval && <span className="bg-indigo-100/70 text-indigo-900 text-[11px] font-bold px-2.5 py-1 rounded-full">Requires Approval</span>}
             </div>
           </div>
         ))}
