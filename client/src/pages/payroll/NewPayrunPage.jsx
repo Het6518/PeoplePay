@@ -694,7 +694,7 @@ export default function NewPayrunPage() {
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-xs text-amber-900">
                 <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold">Validation Note:</span> One or more selected employees do not have an active contract matching "{selectedStructure?.name}" for this period. Their contract's assigned structure will be evaluated during computation.
+                  <span className="font-bold">Note:</span> One or more selected employees have a different original salary structure. Their salary for this payrun will be computed according to "{selectedStructure?.name}".
                 </div>
               </div>
             )}

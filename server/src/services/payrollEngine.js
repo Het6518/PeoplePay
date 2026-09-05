@@ -394,12 +394,9 @@ async function computeEmployeePayroll({
     };
   }
 
-  // Use the employee contract's assigned Salary Structure and Rules if available
-  const contractStructure = contract.salaryStructure;
-  const effectiveStructureId = contractStructure?.id || salaryStructureId;
-  const effectiveRules = (contractStructure?.rules && contractStructure.rules.length > 0)
-    ? contractStructure.rules
-    : rules;
+  // Compute salary according to the Payrun's Salary Structure and rules
+  const effectiveStructureId = salaryStructureId;
+  const effectiveRules = rules;
 
   // Step 2: Calculate attendance stats
   const attendanceStats = await calculateAttendanceStats(
