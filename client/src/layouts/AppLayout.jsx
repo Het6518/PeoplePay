@@ -163,10 +163,6 @@ export function AppLayout({ children }) {
 
           {/* Right Top Actions */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            <button className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-white/80 border border-stone-200/80 text-stone-600 shadow-sm hover:bg-stone-100 hover:text-stone-900 transition-all">
-              <Search size={16} />
-            </button>
-
             <button className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-white/80 border border-stone-200/80 text-stone-600 shadow-sm hover:bg-stone-100 hover:text-stone-900 transition-all relative">
               <Bell size={16} />
               <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-500" />

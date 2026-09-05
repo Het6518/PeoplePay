@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "client/src/layouts/AppLayout.jsx": {
-    "mtime": 1788623244.0083766,
-    "seen": 1788623306.544251,
-    "ast_hash": "b2bcf062a78967c0b1c3a4aeebac7262",
+    "mtime": 1788623840.5540426,
+    "seen": 1788623876.6055083,
+    "ast_hash": "f6cc345da352d771a23517b8b004d845",
     "semantic_hash": ""
   },
   "client/src/main.jsx": {
@@ -96,9 +96,9 @@
     "semantic_hash": ""
   },
   "client/src/pages/DashboardPage.jsx": {
-    "mtime": 1788623252.6727703,
-    "seen": 1788623306.5452516,
-    "ast_hash": "c720b6a273ccfdf20de3bc2f946d3252",
+    "mtime": 1788623862.7118256,
+    "seen": 1788623876.6055083,
+    "ast_hash": "5dd0efbd0f6c471b3960210b9de00951",
     "semantic_hash": ""
   },
   "client/src/pages/LoginPage.jsx": {
@@ -312,9 +312,9 @@
     "semantic_hash": ""
   },
   "server/src/controllers/dashboardController.js": {
-    "mtime": 1788600728.6126332,
-    "seen": 1788607875.0265436,
-    "ast_hash": "1c00e0855253d4c5abedde885e75666c",
+    "mtime": 1788623852.3882108,
+    "seen": 1788623876.6174295,
+    "ast_hash": "714e63dca1937559cdb4ed308fd457b0",
     "semantic_hash": ""
   },
   "server/src/controllers/employeeController.js": {

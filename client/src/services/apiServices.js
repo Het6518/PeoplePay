@@ -112,7 +112,9 @@ export const payrollApi = {
   getPayrun: (id) => api.get(`/payruns/${id}`),
   createPayrun: (data) => api.post('/payruns', data),
   compute: (id) => api.post(`/payruns/${id}/compute`),
+  computePayrun: (id) => api.post(`/payruns/${id}/compute`),
   validate: (id) => api.post(`/payruns/${id}/validate`),
+  validatePayrun: (id) => api.post(`/payruns/${id}/validate`),
   markPaid: (id) => api.post(`/payruns/${id}/mark-paid`),
   sendPayslips: (id) => api.post(`/payruns/${id}/send-payslips`),
 

@@ -301,7 +301,7 @@
       "file_type": "code",
       "norm_label": "dashboardpage()",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L35"
+      "source_location": "L34"
     },
     {
       "id": "client_src_pages_employees_employeedetailpage_employeedetailpage",
@@ -1861,7 +1861,7 @@
       "file_type": "code",
       "norm_label": "getalerts()",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L287"
+      "source_location": "L289"
     },
     {
       "id": "server_src_controllers_dashboardcontroller_getattendancereport",
@@ -1873,7 +1873,7 @@
       "file_type": "code",
       "norm_label": "getattendancereport()",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L425"
+      "source_location": "L427"
     },
     {
       "id": "server_src_controllers_dashboardcontroller_getattendancesummary",
@@ -1885,7 +1885,7 @@
       "file_type": "code",
       "norm_label": "getattendancesummary()",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L185"
+      "source_location": "L187"
     },
     {
       "id": "server_src_controllers_dashboardcontroller_getpayrollreport",
@@ -1897,7 +1897,7 @@
       "file_type": "code",
       "norm_label": "getpayrollreport()",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L372"
+      "source_location": "L374"
     },
     {
       "id": "server_src_controllers_dashboardcontroller_getpayrolltrend",
@@ -1909,7 +1909,7 @@
       "file_type": "code",
       "norm_label": "getpayrolltrend()",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L78"
+      "source_location": "L80"
     },
     {
       "id": "server_src_controllers_dashboardcontroller_getsalarybydepartment",
@@ -1921,7 +1921,7 @@
       "file_type": "code",
       "norm_label": "getsalarybydepartment()",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L130"
+      "source_location": "L132"
     },
     {
       "id": "server_src_controllers_dashboardcontroller_getsummary",
@@ -1945,7 +1945,7 @@
       "file_type": "code",
       "norm_label": "gettimeoffreport()",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L479"
+      "source_location": "L481"
     },
     {
       "id": "server_src_controllers_dashboardcontroller_gettimeoffsummary",
@@ -1957,7 +1957,7 @@
       "file_type": "code",
       "norm_label": "gettimeoffsummary()",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L223"
+      "source_location": "L225"
     },
     {
       "id": "server_src_server_main",
@@ -7155,19 +7155,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L280",
-      "weight": 1.0
-    },
-    {
-      "source": "client_src_pages_dashboardpage_dashboardpage",
-      "target": "client_src_utils_formatters_formatinr",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L342",
+      "source_location": "L307",
       "weight": 1.0
     },
     {
@@ -7180,6 +7168,18 @@
       "context": "call",
       "source_file": "client/src/pages/DashboardPage.jsx",
       "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_dashboardpage_dashboardpage",
+      "target": "client_src_utils_formatters_formatinr",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "client/src/pages/DashboardPage.jsx",
+      "source_location": "L407",
       "weight": 1.0
     },
     {
@@ -8259,7 +8259,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L355",
+      "source_location": "L357",
       "weight": 1.0
     },
     {
@@ -8271,7 +8271,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L365",
+      "source_location": "L367",
       "weight": 1.0
     },
     {
@@ -8283,7 +8283,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L469",
+      "source_location": "L471",
       "weight": 1.0
     },
     {
@@ -8295,7 +8295,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L216",
+      "source_location": "L218",
       "weight": 1.0
     },
     {
@@ -8307,7 +8307,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L410",
+      "source_location": "L412",
       "weight": 1.0
     },
     {
@@ -8319,7 +8319,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L123",
+      "source_location": "L125",
       "weight": 1.0
     },
     {
@@ -8331,7 +8331,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L178",
+      "source_location": "L180",
       "weight": 1.0
     },
     {
@@ -8343,7 +8343,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L61",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
@@ -8355,7 +8355,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L510",
+      "source_location": "L512",
       "weight": 1.0
     },
     {
@@ -8367,7 +8367,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L275",
+      "source_location": "L277",
       "weight": 1.0
     },
     {
@@ -10635,7 +10635,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L29",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -10647,7 +10647,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L29",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -10659,7 +10659,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L29",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -10671,7 +10671,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L30",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -10683,7 +10683,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L30",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -10695,7 +10695,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L30",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -10707,7 +10707,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L31",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
@@ -10719,7 +10719,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L32",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -10731,7 +10731,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L33",
+      "source_location": "L32",
       "weight": 1.0
     },
     {
@@ -13863,7 +13863,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L29",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -13875,7 +13875,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L30",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -13887,7 +13887,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L31",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
@@ -13899,7 +13899,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L32",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -13911,7 +13911,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L33",
+      "source_location": "L32",
       "weight": 1.0
     },
     {
@@ -16791,7 +16791,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L35",
+      "source_location": "L34",
       "weight": 1.0
     },
     {
@@ -20256,7 +20256,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L517",
+      "source_location": "L519",
       "weight": 1.0
     },
     {
@@ -20268,7 +20268,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L518",
+      "source_location": "L520",
       "weight": 1.0
     },
     {
@@ -20280,7 +20280,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L519",
+      "source_location": "L521",
       "weight": 1.0
     },
     {
@@ -20292,7 +20292,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L520",
+      "source_location": "L522",
       "weight": 1.0
     },
     {
@@ -20304,7 +20304,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L521",
+      "source_location": "L523",
       "weight": 1.0
     },
     {
@@ -20316,7 +20316,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L522",
+      "source_location": "L524",
       "weight": 1.0
     },
     {
@@ -20328,7 +20328,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L523",
+      "source_location": "L525",
       "weight": 1.0
     },
     {
@@ -20340,7 +20340,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L524",
+      "source_location": "L526",
       "weight": 1.0
     },
     {
@@ -20352,7 +20352,7 @@
       "confidence_score": 0.85,
       "context": "collection",
       "source_file": "server/src/controllers/dashboardController.js",
-      "source_location": "L525",
+      "source_location": "L527",
       "weight": 1.0
     },
     {
@@ -21317,5 +21317,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "7eca5e8f1de68e46a78a90e327072d5cb7115807"
+  "built_at_commit": "8101b620c0c439af6ca11b940d6c3f460b65b325"
 }

@@ -1,7 +1,7 @@
 # Graph Report - peoplepay360  (2026-09-05)
 
 ## Corpus Check
-- 90 files · ~53,882 words
+- 90 files · ~54,174 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7eca5e8f`
+- Built from commit: `8101b620`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

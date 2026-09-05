@@ -53,10 +53,11 @@ const getSummary = async (req, res, next) => {
     const totalNetPaid = payslipAgg._sum.netSalary || 0;
     const avgSalary = payslipAgg._avg.netSalary || 0;
 
-    // Attendance health
-    const presentCount = attendanceToday.find((a) => ['PRESENT', 'LATE', 'OVERTIME', 'MANUAL_CORRECTION'].includes(a.status))?._count || 0;
+    // Attendance breakdown
+    const presentCount = attendanceToday.find((a) => ['PRESENT', 'OVERTIME', 'MANUAL_CORRECTION'].includes(a.status))?._count || 0;
+    const lateCount = attendanceToday.find((a) => a.status === 'LATE')?._count || 0;
     const absentCount = attendanceToday.find((a) => a.status === 'ABSENT')?._count || 0;
-    const attendanceHealth = totalEmployees > 0 ? Math.round((presentCount / totalEmployees) * 100) : 0;
+    const attendanceHealth = totalEmployees > 0 ? Math.round(((presentCount + lateCount) / totalEmployees) * 100) : 0;
 
     return sendSuccess(res, {
       totalEmployees,
@@ -67,6 +68,7 @@ const getSummary = async (req, res, next) => {
       pendingLeaveRequests: pendingLeave,
       attendanceHealth,
       presentToday: presentCount,
+      lateToday: lateCount,
       absentToday: absentCount,
     });
   } catch (err) {
