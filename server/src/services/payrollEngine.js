@@ -184,11 +184,29 @@ async function calculateAttendanceStats(employeeId, periodStart, periodEnd, pris
       startDate: { lte: periodEnd },
       endDate: { gte: periodStart },
     },
+    include: {
+      timeOffType: { select: { name: true } },
+    },
   });
 
   let leaveDays = 0;
   for (const leave of approvedLeave) {
-    leaveDays += leave.duration;
+    const leaveTypeName = leave.timeOffType?.name?.toLowerCase() || '';
+    const isPaidLeave = leaveTypeName.includes('paid') || leaveTypeName.includes('maternity');
+    if (!isPaidLeave) continue;
+
+    const overlapStart = new Date(Math.max(new Date(leave.startDate).getTime(), periodStart.getTime()));
+    const overlapEnd = new Date(Math.min(new Date(leave.endDate).getTime(), periodEnd.getTime()));
+    let overlappingWorkingDays = 0;
+    const cursor = new Date(overlapStart);
+
+    while (cursor <= overlapEnd) {
+      const dayOfWeek = cursor.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) overlappingWorkingDays++;
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    leaveDays += Math.min(leave.duration, overlappingWorkingDays);
   }
 
   // Final worked days = attendance worked days + leave days (paid leave counts)
@@ -219,6 +237,7 @@ async function calculateAttendanceStats(employeeId, periodStart, periodEnd, pris
  */
 function processPayrollRules({ contract, attendanceStats, rules }) {
   const { workedDays, totalWorkingDays, overtimeHours, leaveDays } = attendanceStats;
+  const payableRatio = totalWorkingDays > 0 ? workedDays / totalWorkingDays : 0;
 
   // Initial calculation context
   const context = {
@@ -246,14 +265,14 @@ function processPayrollRules({ contract, attendanceStats, rules }) {
         case 'FIXED':
           amount = rule.fixedAmount || 0;
 
-          // Special: BASIC rule = prorated from contract wage
           if (rule.category === 'BASIC') {
-            // Full month if no attendance required, otherwise prorate
             amount = totalWorkingDays > 0
               ? (contract.wage * workedDays) / totalWorkingDays
               : contract.wage;
-            amount = Math.round(amount * 100) / 100;
+          } else if (['ALLOWANCE', 'DEDUCTION'].includes(rule.category)) {
+            amount = amount * payableRatio;
           }
+          amount = Math.round(amount * 100) / 100;
           break;
 
         case 'PERCENTAGE':

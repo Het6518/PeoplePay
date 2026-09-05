@@ -100,9 +100,19 @@ export default function EmployeeFormPage() {
       if (!payload.departmentId) delete payload.departmentId;
       if (!payload.managerId) delete payload.managerId;
       if (!payload.workingScheduleId) delete payload.workingScheduleId;
-      if (!payload.dateOfBirth) delete payload.dateOfBirth;
       if (!payload.phone) delete payload.phone;
       if (!payload.createUserAccount) delete payload.password;
+      
+      // Format dates to full ISO for backend validation
+      if (payload.dateOfBirth) {
+        payload.dateOfBirth = new Date(payload.dateOfBirth).toISOString();
+      } else {
+        delete payload.dateOfBirth;
+      }
+      
+      if (payload.joiningDate) {
+        payload.joiningDate = new Date(payload.joiningDate).toISOString();
+      }
 
       if (isEdit) {
         delete payload.createUserAccount;

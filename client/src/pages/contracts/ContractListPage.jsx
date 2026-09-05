@@ -136,7 +136,14 @@ export default function ContractListPage() {
         ...formData,
         wage: Number(formData.wage)
       };
-      if (!payload.endDate) delete payload.endDate;
+      if (!payload.endDate) {
+        delete payload.endDate;
+      } else {
+        payload.endDate = new Date(payload.endDate).toISOString();
+      }
+      if (payload.startDate) {
+        payload.startDate = new Date(payload.startDate).toISOString();
+      }
       if (!payload.departmentId) delete payload.departmentId;
       if (!payload.salaryStructureId) delete payload.salaryStructureId;
 

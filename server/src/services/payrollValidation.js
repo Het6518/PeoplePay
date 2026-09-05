@@ -140,8 +140,8 @@ async function validatePayrun(payrunId) {
       });
     }
 
-    // 8. Invalid/zero/negative net salary
-    if (payslip.netSalary <= 0) {
+    // 8. Invalid/negative net salary
+    if (payslip.netSalary < 0) {
       issues.push({
         severity: 'ERROR',
         type: 'INVALID_NET_SALARY',
@@ -194,7 +194,7 @@ async function validatePayrun(payrunId) {
         type: 'ZERO_WORKED_DAYS',
         employeeId: employee.id,
         employeeName: empName,
-        message: `${empName}: Has 0 worked days for this period. Is this expected?`,
+        message: `${empName}: Has 0 payable days for this period. Salary will be zero unless approved paid leave or maternity leave exists.`,
       });
     }
 

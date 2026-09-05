@@ -6,7 +6,16 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatDate } from '../../utils/formatters';
 
 export default function TimeOffPage() {
+  const { currentUser } = useAuth();
+  const canManageTimeOff = ['HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'].includes(currentUser?.role);
+  const visibleTabs = canManageTimeOff ? ['requests', 'allocations', 'types'] : ['requests'];
   const [activeTab, setActiveTab] = useState('requests');
+
+  useEffect(() => {
+    if (!visibleTabs.includes(activeTab)) {
+      setActiveTab('requests');
+    }
+  }, [activeTab, visibleTabs]);
   
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -17,7 +26,7 @@ export default function TimeOffPage() {
       <div className="bg-white rounded-lg shadow">
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8 px-6">
-            {['requests', 'allocations', 'types'].map((tab) => (
+            {visibleTabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -45,8 +54,8 @@ export default function TimeOffPage() {
 }
 
 function RequestsTab() {
-  const { user } = useAuth();
-  const isHR = user?.role === 'HR' || user?.role === 'HR_MANAGER' || user?.role === 'ADMIN';
+  const { currentUser } = useAuth();
+  const isHR = ['HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'].includes(currentUser?.role);
 
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -209,7 +218,7 @@ function RequestsTab() {
 }
 
 function RequestModal({ onClose, onSave, types }) {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     timeOffTypeId: '', startDate: '', endDate: '', reason: ''
   });
@@ -221,10 +230,16 @@ function RequestModal({ onClose, onSave, types }) {
       const end = new Date(formData.endDate);
       const diffTime = Math.abs(end - start);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      const employeeId = currentUser?.employeeId || currentUser?.employee?.id;
+
+      if (!employeeId) {
+        toast.error('No employee profile is linked to this account');
+        return;
+      }
 
       const payload = {
         ...formData,
-        employeeId: user?.employeeId,
+        employeeId,
         duration: diffDays
       };
 

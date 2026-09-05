@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 export default function AttendancePage() {
   const { user } = useAuth();
   const isEmployee = user?.role === 'EMPLOYEE';
-  const isHR = user?.role === 'HR' || user?.role === 'ADMIN';
+  const isHR = user?.role?.startsWith('HR') || user?.role === 'ADMIN';
 
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);

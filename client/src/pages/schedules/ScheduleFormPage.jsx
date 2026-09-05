@@ -63,8 +63,14 @@ export default function ScheduleFormPage() {
     try {
       const payload = {
         name,
-        weeklyHours: parseFloat(totalWeeklyHours),
-        days: days.filter(d => d.isWorkday)
+        type: 'FIXED', // Adding default type as required by backend if not handled
+        days: days.filter(d => d.isWorkday).map(d => ({
+          dayOfWeek: parseInt(d.id, 10) % 7,
+          startTime: d.startTime,
+          endTime: d.endTime,
+          breakMinutes: Number(d.breakMinutes),
+          isWorkday: d.isWorkday
+        }))
       };
 
       if (isEdit) {

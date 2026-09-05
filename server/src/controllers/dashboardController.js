@@ -40,8 +40,8 @@ const getSummary = async (req, res, next) => {
 
       // Today's attendance
       (async () => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const nowStr = new Date().toISOString();
+        const today = new Date(nowStr.split('T')[0] + 'T00:00:00.000Z');
         return prisma.attendance.groupBy({
           by: ['status'],
           where: { date: today },

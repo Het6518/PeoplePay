@@ -237,9 +237,14 @@ const getTimeOffRequest = async (req, res, next) => {
 const createTimeOffRequest = async (req, res, next) => {
   try {
     const data = CreateTimeOffRequestSchema.parse(req.body);
+    const employeeId = data.employeeId || req.user.employeeId;
+
+    if (!employeeId) {
+      return sendError(res, 'No employee profile linked to your account.', 400);
+    }
 
     // Employees can only create for themselves
-    if (req.user.role === 'EMPLOYEE' && data.employeeId !== req.user.employeeId) {
+    if (req.user.role === 'EMPLOYEE' && employeeId !== req.user.employeeId) {
       return sendError(res, 'You can only create leave requests for yourself.', 403);
     }
 
@@ -258,7 +263,7 @@ const createTimeOffRequest = async (req, res, next) => {
       // Check approved allocation with sufficient balance
       const allocation = await prisma.timeOffAllocation.findFirst({
         where: {
-          employeeId: data.employeeId,
+          employeeId,
           timeOffTypeId: data.timeOffTypeId,
           status: 'APPROVED',
           validFrom: { lte: startDate },
@@ -282,6 +287,7 @@ const createTimeOffRequest = async (req, res, next) => {
     const request = await prisma.timeOffRequest.create({
       data: {
         ...data,
+        employeeId,
         startDate,
         endDate,
         status: timeOffType.requiresApproval ? 'PENDING' : 'APPROVED',
