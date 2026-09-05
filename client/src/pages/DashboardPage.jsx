@@ -40,12 +40,17 @@ export default function DashboardPage() {
           dashboardApi.getAlerts()
         ]);
 
-        const summaryData = summaryRes.data || null;
-        const trendData = trendRes.data || [];
-        const deptSalaryData = deptSalaryRes.data || [];
-        const attendanceData = attendanceRes.data || null;
-        const timeOffData = timeOffRes.data || null;
-        const alertsData = alertsRes.data || [];
+        const summaryData = summaryRes.data || summaryRes || null;
+        const trendData = (trendRes.data || trendRes || []).map(t => ({ ...t, netSalary: t.netSalary ?? t.net ?? 0 }));
+        const deptSalaryData = (deptSalaryRes.data || deptSalaryRes || []).map(d => ({ ...d, department: d.department || d.departmentName || '', totalNet: d.totalNet ?? 0 }));
+        const attendanceData = attendanceRes.data || attendanceRes || null;
+        const timeOffData = timeOffRes.data || timeOffRes || null;
+        const rawAlerts = alertsRes.data || alertsRes || [];
+        const alertsData = Array.isArray(rawAlerts) ? rawAlerts : [];
+
+        if (summaryData) {
+          summaryData.netSalaryPaid = summaryData.netSalaryPaid ?? summaryData.totalNetPaid ?? 0;
+        }
 
         setSummary(summaryData);
         setTrend(trendData);
@@ -205,23 +210,23 @@ export default function DashboardPage() {
             {alerts.length === 0 ? (
               <p className="text-gray-500 text-center mt-8">No active alerts</p>
             ) : (
-              alerts.map(alert => (
-                <div key={alert.id} className="p-3 border rounded-md flex items-start space-x-3 hover:bg-gray-50 transition-colors">
+              alerts.map((alert, idx) => (
+                <div key={alert.id || alert.type || idx} className="p-3 border rounded-md flex items-start space-x-3 hover:bg-gray-50 transition-colors">
                   <div className="flex-shrink-0 mt-0.5">
-                    {alert.type === 'ERROR' && <AlertTriangle className="w-5 h-5 text-red-500" />}
-                    {alert.type === 'WARNING' && <AlertTriangle className="w-5 h-5 text-amber-500" />}
-                    {alert.type === 'INFO' && <Info className="w-5 h-5 text-blue-500" />}
-                    {alert.type === 'SUCCESS' && <CheckCircle className="w-5 h-5 text-emerald-500" />}
+                    {alert.severity === 'ERROR' || alert.type === 'ERROR' ? <AlertTriangle className="w-5 h-5 text-red-500" /> : null}
+                    {alert.severity === 'WARNING' || alert.type === 'WARNING' ? <AlertTriangle className="w-5 h-5 text-amber-500" /> : null}
+                    {alert.severity === 'INFO' || alert.type === 'INFO' ? <Info className="w-5 h-5 text-blue-500" /> : null}
+                    {alert.severity === 'SUCCESS' || alert.type === 'SUCCESS' ? <CheckCircle className="w-5 h-5 text-emerald-500" /> : null}
                   </div>
                   <div>
                     <p className={`text-sm font-medium ${
-                      alert.type === 'ERROR' ? 'text-red-800' :
-                      alert.type === 'WARNING' ? 'text-amber-800' :
-                      alert.type === 'SUCCESS' ? 'text-emerald-800' : 'text-blue-800'
+                      alert.severity === 'ERROR' || alert.type === 'ERROR' ? 'text-red-800' :
+                      alert.severity === 'WARNING' || alert.type === 'WARNING' ? 'text-amber-800' :
+                      alert.severity === 'SUCCESS' || alert.type === 'SUCCESS' ? 'text-emerald-800' : 'text-blue-800'
                     }`}>
                       {alert.message}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">{formatDate(alert.date)}</p>
+                    {alert.date && <p className="text-xs text-gray-500 mt-1">{formatDate(alert.date)}</p>}
                   </div>
                 </div>
               ))
