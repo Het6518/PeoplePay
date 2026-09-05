@@ -38,6 +38,7 @@ export default function ContractListPage() {
     position: '',
     wage: '',
     salaryStructureId: '',
+    annualLeaveQuota: 24,
     startDate: '',
     endDate: '',
     status: 'ACTIVE'
@@ -125,6 +126,7 @@ export default function ContractListPage() {
       position: '',
       wage: '',
       salaryStructureId: salaryStructures[0]?.id || '',
+      annualLeaveQuota: 24,
       startDate: new Date().toISOString().split('T')[0],
       endDate: '',
       status: 'ACTIVE'
@@ -140,6 +142,7 @@ export default function ContractListPage() {
       position: contract.position || '',
       wage: contract.wage,
       salaryStructureId: contract.salaryStructureId || '',
+      annualLeaveQuota: contract.annualLeaveQuota ?? 24,
       startDate: contract.startDate ? contract.startDate.split('T')[0] : '',
       endDate: contract.endDate ? contract.endDate.split('T')[0] : '',
       status: contract.status
@@ -160,6 +163,7 @@ export default function ContractListPage() {
         employeeId: formData.employeeId,
         position: formData.position || undefined,
         wage: Number(formData.wage),
+        annualLeaveQuota: Number(formData.annualLeaveQuota || 24),
         status: formData.status || 'ACTIVE',
         startDate: new Date(formData.startDate).toISOString(),
       };
@@ -254,6 +258,7 @@ export default function ContractListPage() {
                 <th>Employee</th>
                 <th>Position</th>
                 <th>Wage (Monthly)</th>
+                <th>Leave Quota</th>
                 <th>Start Date</th>
                 <th>End Date</th>
                 <th>Status</th>
@@ -274,6 +279,9 @@ export default function ContractListPage() {
                   </td>
                   <td className="text-sm font-extrabold text-stone-900 font-mono">
                     {formatINR(contract.wage)}
+                  </td>
+                  <td className="text-xs font-bold text-amber-700 font-mono">
+                    {contract.annualLeaveQuota ?? 24} days / yr
                   </td>
                   <td className="text-xs font-semibold text-stone-600">
                     {formatDate(contract.startDate)}
@@ -330,12 +338,16 @@ export default function ContractListPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-1">
               <label className="label">Wage (Monthly) *</label>
               <input type="number" required min="0" step="0.01" name="wage" value={formData.wage} onChange={handleFormChange} className="input font-mono" />
             </div>
-            <div>
+            <div className="col-span-1">
+              <label className="label">Annual Leave Quota (Days) *</label>
+              <input type="number" required min="0" step="1" name="annualLeaveQuota" value={formData.annualLeaveQuota} onChange={handleFormChange} placeholder="24" className="input font-mono" />
+            </div>
+            <div className="col-span-1">
               <label className="label">Salary Structure</label>
               <select name="salaryStructureId" value={formData.salaryStructureId} onChange={handleFormChange} className="input">
                 <option value="">Select Structure</option>

@@ -80,7 +80,8 @@ export const timeOffApi = {
   approveAllocation: (id) => api.post(`/time-off/allocations/${id}/approve`),
   refuseAllocation: (id) => api.post(`/time-off/allocations/${id}/refuse`),
 
-  // Requests
+  // Balance & Requests
+  getBalance: (params) => api.get('/time-off/balance', { params }),
   getRequests: (params) => api.get('/time-off/requests', { params }),
   getRequest: (id) => api.get(`/time-off/requests/${id}`),
   createRequest: (data) => api.post('/time-off/requests', data),
@@ -138,3 +139,18 @@ export const reportApi = {
   getAttendance: (params) => api.get('/reports/attendance', { params }),
   getTimeOff: (params) => api.get('/reports/time-off', { params }),
 };
+
+export const workingDaysApi = {
+  getPolicy: (params) => api.get('/working-days/policy', { params }),
+  updatePolicy: (data) => api.put('/working-days/policy', data),
+  calculatePeriod: (params) => api.get('/working-days/calculate-period', { params }),
+};
+
+export const holidayApi = {
+  getSuggestions: () => api.get('/holidays/suggestions'),
+  sync: (params) => api.post('/holidays/sync', null, { params }),
+  processSuggestion: (id, status) => api.post(`/holidays/suggestions/${id}/process`, { status }),
+  createManual: (data) => api.post('/holidays/manual', data),
+  getCompanyHolidays: (params) => api.get('/holidays/company', { params }),
+};
+

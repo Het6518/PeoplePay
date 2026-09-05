@@ -9,6 +9,7 @@ import { useGeolocation } from '../../hooks/useGeolocation';
 import { formatDate } from '../../utils/formatters';
 import { Clock, CheckCircle, MapPin, RefreshCw, AlertTriangle, ShieldCheck, Navigation } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Pagination } from '../../components/ui/Pagination';
 
 // Haversine distance calculator on frontend for real-time visual feedback
 function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
@@ -96,7 +97,7 @@ export default function AttendancePage() {
         limit: 20,
       });
       setRecords(response.data || []);
-      setTotalPages(response.pagination?.totalPages || 1);
+      setTotalPages(response.totalPages || response.pagination?.totalPages || 1);
     } catch (error) {
       toast.error('Failed to fetch attendance records');
     } finally {
@@ -559,6 +560,12 @@ export default function AttendancePage() {
                 )}
               </tbody>
             </table>
+
+            {totalPages > 1 && (
+              <div className="p-4 border-t border-slate-100 flex justify-center">
+                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+              </div>
+            )}
           </div>
         )}
       </div>

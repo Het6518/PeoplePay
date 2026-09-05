@@ -125,13 +125,38 @@ async function calculateAttendanceStats(employeeId, periodStart, periodEnd, pris
     orderBy: { date: 'asc' },
   });
 
-  // Calculate total calendar working days in period (Mon-Fri)
-  let totalWorkingDays = 0;
-  const current = new Date(periodStart);
-  while (current <= periodEnd) {
-    const dayOfWeek = current.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) totalWorkingDays++;
-    current.setDate(current.getDate() + 1);
+  // Calculate dynamic total working days using Working Days Policy & approved paid holidays
+  const workingDaysService = require('./workingDaysService');
+  const periodDaysInfo = await workingDaysService.calculatePeriodWorkingDays(periodStart, periodEnd);
+  let totalWorkingDays = periodDaysInfo.effectiveWorkingDays;
+
+  // Check if employee joined mid-month or left mid-month for proportional adjustment
+  const employee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: { joiningDate: true },
+  });
+
+  if (employee && employee.joiningDate) {
+    const joinDate = new Date(employee.joiningDate);
+    if (joinDate > periodStart && joinDate <= periodEnd) {
+      // Calculate Mon-Fri total in full period vs Mon-Fri total after joining
+      let fullMonFri = 0;
+      let afterJoinMonFri = 0;
+      const cur = new Date(periodStart);
+      while (cur <= periodEnd) {
+        const dow = cur.getDay();
+        if (dow !== 0 && dow !== 6) {
+          fullMonFri++;
+          if (cur >= joinDate) {
+            afterJoinMonFri++;
+          }
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+      if (fullMonFri > 0) {
+        totalWorkingDays = Math.max(1, Math.round((periodDaysInfo.effectiveWorkingDays * afterJoinMonFri) / fullMonFri));
+      }
+    }
   }
 
   let workedDays = 0;

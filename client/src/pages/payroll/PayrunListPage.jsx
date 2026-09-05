@@ -1,37 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Eye, Search, FileText } from 'lucide-react';
-import { payrollApi } from '../../services/apiServices';
+import { Plus, Eye, Search, FileText, Settings, Calendar } from 'lucide-react';
+import { payrollApi, workingDaysApi } from '../../services/apiServices';
 import { formatINR, formatDate } from '../../utils/formatters';
 import { StatusBadge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { Pagination } from '../../components/ui/Pagination';
+import { WorkingDaysPolicyModal } from '../../components/payroll/WorkingDaysPolicyModal';
+import { HolidayReviewWidget } from '../../components/payroll/HolidayReviewWidget';
 
 export default function PayrunListPage() {
   const [payruns, setPayruns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [showPolicyModal, setShowPolicyModal] = useState(false);
+  const [currentPolicy, setCurrentPolicy] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchPayruns = async () => {
-      setLoading(true);
-      try {
-        const response = await payrollApi.getPayruns();
-        const data = Array.isArray(response) ? response : (response?.data || response?.items || []);
-        setPayruns(data);
-      } catch (error) {
-        console.error('Failed to fetch payruns', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPayruns();
+    fetchPolicy();
   }, []);
 
-  const filteredPayruns = filter === 'ALL' 
-    ? payruns 
-    : payruns.filter(p => p.status === filter);
+  const fetchPolicy = async () => {
+    try {
+      const res = await workingDaysApi.getPolicy();
+      setCurrentPolicy(res.data?.data || res.data);
+    } catch (err) {
+      console.error('Failed to fetch policy', err);
+    }
+  };
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
+
+  useEffect(() => {
+    fetchPayruns();
+  }, [page, filter]);
+
+  const fetchPayruns = async () => {
+    setLoading(true);
+    try {
+      const params = { page, limit: 15 };
+      if (filter !== 'ALL') params.status = filter;
+
+      const response = await payrollApi.getPayruns(params);
+      const data = Array.isArray(response) ? response : (response?.data || response?.items || []);
+      setPayruns(data);
+      setTotalPages(response?.totalPages || response?.pagination?.totalPages || 1);
+    } catch (error) {
+      console.error('Failed to fetch payruns', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -41,14 +65,36 @@ export default function PayrunListPage() {
           <p className="text-sm font-medium text-stone-500 mt-1">Batch process employee payrolls and generate payslips</p>
         </div>
         
-        <Link 
-          to="/payroll/payruns/new" 
-          className="btn-primary rounded-full px-5 py-2.5 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          New Payrun
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowPolicyModal(true)}
+            className="rounded-full px-4 py-2.5 text-xs font-bold bg-white text-stone-800 border border-stone-200 hover:bg-stone-50 shadow-xs flex items-center gap-2"
+          >
+            <Settings className="w-3.5 h-3.5 text-amber-600" />
+            Working Days Policy: <span className="text-amber-700 font-extrabold">{currentPolicy?.totalDays || 22} Days</span>
+          </button>
+          
+          <Link 
+            to="/payroll/payruns/new" 
+            className="btn-primary rounded-full px-5 py-2.5 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            New Payrun
+          </Link>
+        </div>
       </div>
+
+      {/* Festival & Public Holiday Review Widget */}
+      <HolidayReviewWidget onHolidayUpdated={fetchPayruns} />
+
+      <WorkingDaysPolicyModal
+        open={showPolicyModal}
+        onClose={() => setShowPolicyModal(false)}
+        onPolicyUpdated={() => {
+          fetchPolicy();
+          fetchPayruns();
+        }}
+      />
 
       <div className="bg-white rounded-[28px] border border-stone-200/80 shadow-soft overflow-hidden">
         <div className="p-4 border-b border-stone-200/60 flex justify-between items-center bg-stone-50/50">
@@ -70,7 +116,7 @@ export default function PayrunListPage() {
 
         {loading ? (
           <div className="py-12 flex justify-center"><LoadingSpinner /></div>
-        ) : filteredPayruns.length === 0 ? (
+        ) : payruns.length === 0 ? (
           <div className="text-center p-12">
             <FileText className="mx-auto h-12 w-12 text-stone-300 mb-3" />
             <h3 className="text-base font-bold text-stone-800">No payruns found</h3>
@@ -79,7 +125,7 @@ export default function PayrunListPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto space-y-4">
             <table className="min-w-full divide-y divide-stone-200/60">
               <thead className="bg-stone-50/80">
                 <tr>
@@ -110,7 +156,7 @@ export default function PayrunListPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100 bg-white">
-                {filteredPayruns.map((payrun) => (
+                {payruns.map((payrun) => (
                   <tr 
                     key={payrun.id} 
                     className="hover:bg-stone-50/60 cursor-pointer transition-colors"
@@ -123,10 +169,10 @@ export default function PayrunListPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">
-                      {payrun.structureName}
+                      {payrun.salaryStructure?.name || payrun.structureName}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-stone-800">
-                      {payrun.employeeCount}
+                      {payrun._count?.payslips || payrun.employeeCount || 0}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-700 text-right">
                       {formatINR(payrun.totalGross)}
@@ -155,6 +201,12 @@ export default function PayrunListPage() {
                 ))}
               </tbody>
             </table>
+
+            {totalPages > 1 && (
+              <div className="p-4 border-t border-stone-100 flex justify-center">
+                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+              </div>
+            )}
           </div>
         )}
       </div>

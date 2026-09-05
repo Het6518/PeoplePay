@@ -8,6 +8,7 @@ const {
   ApproveRejectRequestSchema,
 } = require('../validators/schemas');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
+const emailService = require('../services/emailService');
 
 // ============================================================
 // TIME OFF TYPES
@@ -255,33 +256,18 @@ const createTimeOffRequest = async (req, res, next) => {
       return sendError(res, 'End date cannot be before start date.', 400);
     }
 
-    // Check if timeOffType requires allocation
+    // Check if timeOffType exists
     const timeOffType = await prisma.timeOffType.findUnique({ where: { id: data.timeOffTypeId } });
     if (!timeOffType) return sendError(res, 'Leave type not found.', 404);
 
-    if (timeOffType.requiresAllocation) {
-      // Check approved allocation with sufficient balance
-      const allocation = await prisma.timeOffAllocation.findFirst({
-        where: {
-          employeeId,
-          timeOffTypeId: data.timeOffTypeId,
-          status: 'APPROVED',
-          validFrom: { lte: startDate },
-          validTo: { gte: endDate },
-        },
-      });
-
-      if (!allocation) {
-        return sendError(res, 'No approved leave allocation found for this period.', 400);
-      }
-
-      if (allocation.remainingAmount < data.duration) {
-        return sendError(
-          res,
-          `Insufficient leave balance. Available: ${allocation.remainingAmount} ${timeOffType.unit.toLowerCase()}, Requested: ${data.duration}.`,
-          400
-        );
-      }
+    // Check annual leave quota & balance for employee
+    const balance = await calculateEmployeeLeaveBalance(employeeId);
+    if (data.duration > balance.remainingDays) {
+      return sendError(
+        res,
+        `Leave request exceeds your available leave balance! You requested ${data.duration} day(s), but only have ${balance.remainingDays} day(s) remaining out of your annual quota of ${balance.annualQuota} days.`,
+        400
+      );
     }
 
     const request = await prisma.timeOffRequest.create({
@@ -290,13 +276,42 @@ const createTimeOffRequest = async (req, res, next) => {
         employeeId,
         startDate,
         endDate,
-        status: timeOffType.requiresApproval ? 'PENDING' : 'APPROVED',
+        status: 'PENDING',
       },
       include: {
-        employee: { select: { id: true, firstName: true, lastName: true } },
+        employee: { select: { id: true, firstName: true, lastName: true, employeeCode: true } },
         timeOffType: { select: { id: true, name: true } },
       },
     });
+
+    // Notify HRs via email
+    (async () => {
+      try {
+        const hrUsers = await prisma.user.findMany({
+          where: {
+            role: { in: ['ADMIN', 'HR_MANAGER', 'HR_PAYROLL_MANAGER', 'HR_PAYROLL_USER'] },
+            isActive: true,
+          },
+          select: { email: true },
+        });
+        const hrEmails = Array.from(new Set(hrUsers.map((u) => u.email).filter(Boolean)));
+        if (hrEmails.length > 0) {
+          const empName = `${request.employee.firstName || ''} ${request.employee.lastName || ''}`.trim();
+          await emailService.sendLeaveRequestNotificationToHR({
+            hrEmails,
+            employeeName: empName,
+            employeeCode: request.employee.employeeCode || '',
+            leaveType: request.timeOffType.name,
+            startDate: request.startDate,
+            endDate: request.endDate,
+            duration: request.duration,
+            reason: request.reason,
+          });
+        }
+      } catch (emailErr) {
+        console.error('Failed to send HR leave notification email:', emailErr);
+      }
+    })();
 
     return sendSuccess(res, request, 201);
   } catch (err) {
@@ -363,10 +378,31 @@ const approveTimeOffRequest = async (req, res, next) => {
     const updated = await prisma.timeOffRequest.findUnique({
       where: { id: req.params.id },
       include: {
-        employee: { select: { id: true, firstName: true, lastName: true } },
+        employee: { select: { id: true, firstName: true, lastName: true, email: true } },
         timeOffType: { select: { id: true, name: true } },
       },
     });
+
+    // Send email notification to employee
+    if (updated.employee?.email) {
+      (async () => {
+        try {
+          const empName = `${updated.employee.firstName || ''} ${updated.employee.lastName || ''}`.trim();
+          await emailService.sendLeaveStatusNotificationToEmployee({
+            to: updated.employee.email,
+            employeeName: empName,
+            status: 'APPROVED',
+            leaveType: updated.timeOffType.name,
+            startDate: updated.startDate,
+            endDate: updated.endDate,
+            duration: updated.duration,
+            approvedByName: updated.approvedByName,
+          });
+        } catch (emailErr) {
+          console.error('Failed to send employee leave approval email:', emailErr);
+        }
+      })();
+    }
 
     return sendSuccess(res, updated);
   } catch (err) {
@@ -397,7 +433,32 @@ const rejectTimeOffRequest = async (req, res, next) => {
         rejectedAt: new Date(),
         rejectionReason: rejectionReason || null,
       },
+      include: {
+        employee: { select: { id: true, firstName: true, lastName: true, email: true } },
+        timeOffType: { select: { id: true, name: true } },
+      },
     });
+
+    // Send email notification to employee
+    if (updated.employee?.email) {
+      (async () => {
+        try {
+          const empName = `${updated.employee.firstName || ''} ${updated.employee.lastName || ''}`.trim();
+          await emailService.sendLeaveStatusNotificationToEmployee({
+            to: updated.employee.email,
+            employeeName: empName,
+            status: 'REJECTED',
+            leaveType: updated.timeOffType.name,
+            startDate: updated.startDate,
+            endDate: updated.endDate,
+            duration: updated.duration,
+            rejectionReason: updated.rejectionReason,
+          });
+        } catch (emailErr) {
+          console.error('Failed to send employee leave rejection email:', emailErr);
+        }
+      })();
+    }
 
     return sendSuccess(res, updated);
   } catch (err) {
@@ -455,6 +516,78 @@ const cancelTimeOffRequest = async (req, res, next) => {
   }
 };
 
+// Helper to calculate employee's leave balance in current 1-year cycle
+async function calculateEmployeeLeaveBalance(employeeId) {
+  const now = new Date();
+  
+  // Find employee's active contract
+  const contract = await prisma.contract.findFirst({
+    where: {
+      employeeId,
+      status: 'ACTIVE',
+    },
+    select: { annualLeaveQuota: true, startDate: true },
+  });
+
+  const annualQuota = contract?.annualLeaveQuota ?? 24;
+
+  // Determine current 1-year cycle start date (Contract anniversary or Jan 1)
+  let cycleStart = new Date(now.getFullYear(), 0, 1);
+  if (contract?.startDate) {
+    const cStart = new Date(contract.startDate);
+    cycleStart = new Date(cStart);
+    while (new Date(cycleStart.getFullYear() + 1, cycleStart.getMonth(), cycleStart.getDate()) <= now) {
+      cycleStart.setFullYear(cycleStart.getFullYear() + 1);
+    }
+  }
+
+  // Get all approved leave requests in current cycle
+  const approvedRequests = await prisma.timeOffRequest.findMany({
+    where: {
+      employeeId,
+      status: 'APPROVED',
+      startDate: { gte: cycleStart },
+    },
+    select: { duration: true },
+  });
+
+  // Get all pending leave requests in current cycle
+  const pendingRequests = await prisma.timeOffRequest.findMany({
+    where: {
+      employeeId,
+      status: 'PENDING',
+      startDate: { gte: cycleStart },
+    },
+    select: { duration: true },
+  });
+
+  const approvedDays = approvedRequests.reduce((sum, r) => sum + r.duration, 0);
+  const pendingDays = pendingRequests.reduce((sum, r) => sum + r.duration, 0);
+  const remainingDays = Math.max(0, annualQuota - approvedDays);
+
+  return {
+    annualQuota,
+    approvedDays,
+    pendingDays,
+    remainingDays,
+    cycleStart,
+  };
+}
+
+const getLeaveBalance = async (req, res, next) => {
+  try {
+    const employeeId = req.query.employeeId || req.user.employeeId;
+    if (!employeeId) {
+      return sendError(res, 'No employee ID provided.', 400);
+    }
+
+    const balance = await calculateEmployeeLeaveBalance(employeeId);
+    return sendSuccess(res, balance);
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getTimeOffTypes,
   createTimeOffType,
@@ -471,4 +604,6 @@ module.exports = {
   approveTimeOffRequest,
   rejectTimeOffRequest,
   cancelTimeOffRequest,
+  getLeaveBalance,
+  calculateEmployeeLeaveBalance,
 };

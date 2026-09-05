@@ -98,7 +98,7 @@ export default function EmployeeDetailPage() {
             <Calendar className="h-6 w-6" />
           </div>
           <span className="text-2xl font-extrabold text-stone-900 tracking-tight">{counts.timeOffRequests}</span>
-          <span className="text-xs font-bold text-stone-500 uppercase tracking-wider mt-0.5">Time Off</span>
+          <span className="text-xs font-bold text-stone-500 uppercase tracking-wider mt-0.5">Leave</span>
         </Link>
 
         {canViewPayroll && (

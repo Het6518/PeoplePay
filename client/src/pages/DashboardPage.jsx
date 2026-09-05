@@ -26,6 +26,7 @@ import { formatDate } from '../utils/formatters';
 import { useAuth } from '../contexts/AuthContext';
 import { StatusBadge } from '../components/ui/Badge';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import { HolidayReviewWidget } from '../components/payroll/HolidayReviewWidget';
 import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
@@ -181,6 +182,11 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* HR Festival & Holiday Review Widget */}
+      {currentUser?.role !== 'EMPLOYEE' && (
+        <HolidayReviewWidget onHolidayUpdated={fetchDashboardData} />
+      )}
 
       {/* 2-Column Command Center Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

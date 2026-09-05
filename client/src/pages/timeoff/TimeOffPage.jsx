@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, X, Plus, Calendar, Clock, Edit2, AlertCircle, Sparkles } from 'lucide-react';
+import { Check, X, Plus, Calendar, Clock, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { timeOffApi } from '../../services/apiServices';
 import { useAuth } from '../../contexts/AuthContext';
@@ -7,53 +7,21 @@ import { formatDate } from '../../utils/formatters';
 import { StatusBadge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { Pagination } from '../../components/ui/Pagination';
 
-export default function TimeOffPage({ initialTab = 'requests' }) {
-  const { currentUser } = useAuth();
-  const canManageTimeOff = ['HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'].includes(currentUser?.role);
-  const visibleTabs = canManageTimeOff ? ['requests', 'allocations', 'types'] : ['requests'];
-  const [activeTab, setActiveTab] = useState(visibleTabs.includes(initialTab) ? initialTab : 'requests');
-
-  useEffect(() => {
-    if (!visibleTabs.includes(activeTab)) {
-      setActiveTab('requests');
-    }
-  }, [activeTab, visibleTabs]);
-  
+export default function TimeOffPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header & Tabs */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-stone-900">Time Off Management</h1>
-          <p className="text-sm font-medium text-stone-500 mt-1">Manage leave requests, balances, and policies</p>
-        </div>
-
-        <div className="bg-stone-200/60 p-1.5 rounded-full inline-flex border border-stone-300/50 shadow-inner">
-          {visibleTabs.map((tab) => {
-            const isActive = activeTab === tab;
-            const label = tab === 'requests' ? 'Requests' : tab === 'allocations' ? 'Allocations' : 'Leave Types';
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-5 py-2 rounded-full text-xs font-bold transition-all ${
-                  isActive
-                    ? 'bg-stone-900 text-white shadow-md'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-300/50'
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
+          <h1 className="text-3xl font-black tracking-tight text-stone-900">Leave Management</h1>
+          <p className="text-sm font-medium text-stone-500 mt-1">Manage leave requests and track annual leave balances</p>
         </div>
       </div>
 
       <div className="bg-white rounded-[28px] border border-stone-200/80 shadow-soft p-6">
-        {activeTab === 'requests' && <RequestsTab />}
-        {activeTab === 'allocations' && <AllocationsTab />}
-        {activeTab === 'types' && <LeaveTypesTab />}
+        <RequestsTab />
       </div>
     </div>
   );
@@ -62,18 +30,39 @@ export default function TimeOffPage({ initialTab = 'requests' }) {
 function RequestsTab() {
   const { currentUser } = useAuth();
   const isHR = ['HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'].includes(currentUser?.role);
+  const isEmployee = currentUser?.role === 'EMPLOYEE';
 
   const [requests, setRequests] = useState([]);
+  const [leaveBalance, setLeaveBalance] = useState(null);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('All');
   const [typeFilter, setTypeFilter] = useState('');
   const [types, setTypes] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   useEffect(() => {
     fetchTypes();
-    fetchRequests();
+    fetchBalance();
+  }, []);
+
+  useEffect(() => {
+    setPage(1);
   }, [statusFilter, typeFilter]);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [page, statusFilter, typeFilter]);
+
+  const fetchBalance = async () => {
+    try {
+      const res = await timeOffApi.getBalance({});
+      setLeaveBalance(res.data || res || null);
+    } catch (err) {
+      console.error('Failed to fetch leave balance', err);
+    }
+  };
 
   const fetchTypes = async () => {
     try {
@@ -87,12 +76,13 @@ function RequestsTab() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const params = {};
+      const params = { page, limit: 10 };
       if (statusFilter !== 'All') params.status = statusFilter;
       if (typeFilter) params.timeOffTypeId = typeFilter;
       
       const res = await timeOffApi.getRequests(params);
       setRequests(res.data || []);
+      setTotalPages(res.totalPages || res.pagination?.totalPages || 1);
     } catch (err) {
       toast.error('Failed to fetch requests');
     } finally {
@@ -105,6 +95,7 @@ function RequestsTab() {
       await timeOffApi.approve(id);
       toast.success('Request approved');
       fetchRequests();
+      fetchBalance();
     } catch (err) {
       toast.error('Failed to approve');
     }
@@ -117,6 +108,7 @@ function RequestsTab() {
       await timeOffApi.reject(id, { rejectionReason: reason });
       toast.success('Request rejected');
       fetchRequests();
+      fetchBalance();
     } catch (err) {
       toast.error('Failed to reject');
     }
@@ -126,6 +118,30 @@ function RequestsTab() {
 
   return (
     <div className="space-y-6">
+      {/* Leave Entitlement & Balance Banner */}
+      {leaveBalance && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 bg-stone-950 text-white rounded-[24px] shadow-sm border border-stone-800">
+          <div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">Annual Leave Quota</span>
+            <p className="text-2xl font-black font-mono text-white mt-0.5">{leaveBalance.annualQuota} Days / yr</p>
+          </div>
+          <div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">Approved Leaves</span>
+            <p className="text-2xl font-black font-mono text-emerald-400 mt-0.5">{leaveBalance.approvedDays} Days</p>
+          </div>
+          <div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">Pending Approval</span>
+            <p className="text-2xl font-black font-mono text-amber-400 mt-0.5">{leaveBalance.pendingDays} Days</p>
+          </div>
+          <div>
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">Remaining Balance</span>
+            <p className={`text-2xl font-black font-mono mt-0.5 ${leaveBalance.remainingDays > 5 ? 'text-emerald-400' : leaveBalance.remainingDays > 0 ? 'text-amber-400' : 'text-rose-500'}`}>
+              {leaveBalance.remainingDays} Days
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-wrap gap-3">
           <select 
@@ -150,18 +166,21 @@ function RequestsTab() {
           </select>
         </div>
 
-        <button 
-          onClick={() => setShowModal(true)}
-          className="btn-primary rounded-full px-5 py-2.5 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" /> Request Leave
-        </button>
+        {/* Request Leave button visible ONLY to Employee role */}
+        {isEmployee && (
+          <button 
+            onClick={() => setShowModal(true)}
+            className="btn-primary rounded-full px-5 py-2.5 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> Request Leave
+          </button>
+        )}
       </div>
 
       {loading ? (
         <div className="py-12 flex justify-center"><LoadingSpinner /></div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white">
+        <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white space-y-4">
           <table className="min-w-full divide-y divide-stone-200/60">
             <thead className="bg-stone-50/80">
               <tr>
@@ -169,6 +188,7 @@ function RequestsTab() {
                 <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Type</th>
                 <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Dates</th>
                 <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Duration</th>
+                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Reason</th>
                 <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Status</th>
                 {hasPendingItems && <th className="px-6 py-3.5 text-right text-xs font-bold uppercase tracking-wider text-stone-500">Actions</th>}
               </tr>
@@ -195,6 +215,15 @@ function RequestsTab() {
                       {formatDate(req.startDate)} to {formatDate(req.endDate)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-stone-700">{req.duration} days</td>
+                    <td className="px-6 py-4 text-xs font-medium text-stone-700 max-w-xs">
+                      {req.reason ? (
+                        <span className="bg-stone-100/90 text-stone-800 px-2.5 py-1 rounded-lg border border-stone-200/80 inline-block text-xs font-medium">
+                          {req.reason}
+                        </span>
+                      ) : (
+                        <span className="text-stone-400 font-normal italic">No reason provided</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge status={req.status} />
                     </td>
@@ -217,24 +246,35 @@ function RequestsTab() {
               })}
               {requests.length === 0 && (
                 <tr>
-                  <td colSpan={hasPendingItems ? 6 : 5} className="px-6 py-12 text-center text-xs font-medium text-stone-400">
+                  <td colSpan={hasPendingItems ? 7 : 6} className="px-6 py-12 text-center text-xs font-medium text-stone-400">
                     No leave requests found matching filters.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-stone-100 flex justify-center">
+              <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+            </div>
+          )}
         </div>
       )}
       
       {showModal && (
-        <RequestModal onClose={() => setShowModal(false)} onSave={() => { setShowModal(false); fetchRequests(); }} types={types} />
+        <RequestModal 
+          onClose={() => setShowModal(false)} 
+          onSave={() => { setShowModal(false); fetchRequests(); fetchBalance(); }} 
+          types={types}
+          leaveBalance={leaveBalance}
+        />
       )}
     </div>
   );
 }
 
-function RequestModal({ onClose, onSave, types }) {
+function RequestModal({ onClose, onSave, types, leaveBalance }) {
   const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     timeOffTypeId: '', startDate: '', endDate: '', reason: ''
@@ -254,6 +294,12 @@ function RequestModal({ onClose, onSave, types }) {
         return;
       }
 
+      // Front-end validation: check if requested leave duration exceeds remaining leave balance
+      if (leaveBalance && diffDays > leaveBalance.remainingDays) {
+        toast.error(`Leave request exceeds your available leave balance! You requested ${diffDays} day(s), but only have ${leaveBalance.remainingDays} day(s) remaining out of your annual quota of ${leaveBalance.annualQuota} days.`);
+        return;
+      }
+
       const payload = {
         ...formData,
         employeeId,
@@ -261,7 +307,7 @@ function RequestModal({ onClose, onSave, types }) {
       };
 
       await timeOffApi.createRequest(payload);
-      toast.success('Request submitted');
+      toast.success('Request submitted successfully');
       onSave();
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to submit request');
@@ -271,6 +317,12 @@ function RequestModal({ onClose, onSave, types }) {
   return (
     <Modal open={true} onClose={onClose} title="Request Leave" size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
+        {leaveBalance && (
+          <div className="p-3 bg-amber-50 border border-amber-200/80 rounded-2xl flex items-center justify-between text-xs text-amber-900 font-medium">
+            <span>Available Balance: <strong>{leaveBalance.remainingDays} Days</strong></span>
+            <span>Annual Quota: <strong>{leaveBalance.annualQuota} Days / yr</strong></span>
+          </div>
+        )}
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Leave Type</label>
           <select 
@@ -295,7 +347,7 @@ function RequestModal({ onClose, onSave, types }) {
         </div>
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">Reason</label>
-          <textarea className="w-full rounded-2xl border border-stone-200 px-4 py-2.5 text-sm bg-stone-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20" rows="3" value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} placeholder="Reason for time off..."></textarea>
+          <textarea className="w-full rounded-2xl border border-stone-200 px-4 py-2.5 text-sm bg-stone-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20" rows="3" value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} placeholder="Reason for leave..."></textarea>
         </div>
         <div className="flex justify-end gap-3 pt-4 border-t border-stone-100">
           <button type="button" onClick={onClose} className="px-5 py-2 rounded-full border border-stone-200 text-xs font-bold text-stone-600 hover:bg-stone-50">Cancel</button>
@@ -303,130 +355,5 @@ function RequestModal({ onClose, onSave, types }) {
         </div>
       </form>
     </Modal>
-  );
-}
-
-function AllocationsTab() {
-  const [allocations, setAllocations] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetchAllocations();
-  }, []);
-
-  const fetchAllocations = async () => {
-    setLoading(true);
-    try {
-      const res = await timeOffApi.getAllocations({});
-      setAllocations(res.data || []);
-    } catch (err) {
-      toast.error('Failed to fetch allocations');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getRemainingColor = (remaining) => {
-    if (remaining > 5) return 'text-emerald-600 font-bold';
-    if (remaining > 0) return 'text-amber-600 font-bold';
-    return 'text-rose-600 font-bold';
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-end">
-        <button className="btn-primary rounded-full px-5 py-2.5 text-xs font-bold bg-stone-900 text-white hover:bg-stone-800 shadow-sm flex items-center gap-2">
-          <Plus className="w-4 h-4" /> New Allocation
-        </button>
-      </div>
-
-      {loading ? (
-        <div className="py-12 flex justify-center"><LoadingSpinner /></div>
-      ) : (
-        <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white">
-          <table className="min-w-full divide-y divide-stone-200/60">
-            <thead className="bg-stone-50/80">
-              <tr>
-                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Employee</th>
-                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Leave Type</th>
-                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Allocated</th>
-                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Taken</th>
-                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Remaining</th>
-                <th className="px-6 py-3.5 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Valid Period</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100 bg-white">
-              {allocations.map(a => (
-                <tr key={a.id} className="hover:bg-stone-50/60 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-stone-900">{a.employee?.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-700">{a.leaveType?.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">{a.amount} days</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">{a.taken || 0} days</td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-xs ${getRemainingColor(a.amount - (a.taken || 0))}`}>
-                    {a.amount - (a.taken || 0)} days
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-500">{a.validFrom} - {a.validTo}</td>
-                </tr>
-              ))}
-              {allocations.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-xs font-medium text-stone-400">
-                    No leave allocations found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LeaveTypesTab() {
-  const [types, setTypes] = useState([]);
-
-  useEffect(() => {
-    const fetchTypes = async () => {
-      try {
-        const res = await timeOffApi.getTypes();
-        setTypes(res.data || []);
-      } catch (err) {
-        toast.error('Failed to fetch types');
-      }
-    };
-    fetchTypes();
-  }, []);
-
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-end">
-        <button className="btn-primary rounded-full px-5 py-2.5 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm flex items-center gap-2">
-          <Plus className="w-4 h-4" /> New Type
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {types.map(t => (
-          <div key={t.id} className="rounded-[24px] border border-stone-200/80 bg-stone-50/50 p-5 hover:bg-white hover:border-amber-400/80 transition-all shadow-sm group">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded-full shadow-sm" style={{ backgroundColor: t.color || '#f59e0b' }}></div>
-                <h3 className="text-base font-bold text-stone-900">{t.name}</h3>
-              </div>
-              <button className="p-1.5 rounded-full text-stone-400 hover:text-stone-900 hover:bg-stone-200/60 transition-all">
-                <Edit2 className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-xs font-medium text-stone-500 mb-4 min-h-[36px]">{t.description || 'Standard leave policy'}</p>
-            <div className="flex flex-wrap gap-2 pt-2 border-t border-stone-200/60">
-              <span className="bg-stone-200/70 text-stone-800 text-[11px] font-bold px-2.5 py-1 rounded-full">Unit: {t.unit}</span>
-              {t.requiresAllocation && <span className="bg-amber-100/70 text-amber-900 text-[11px] font-bold px-2.5 py-1 rounded-full">Requires Allocation</span>}
-              {t.requiresApproval && <span className="bg-indigo-100/70 text-indigo-900 text-[11px] font-bold px-2.5 py-1 rounded-full">Requires Approval</span>}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }

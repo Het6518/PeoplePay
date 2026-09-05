@@ -115,7 +115,7 @@ export function AppLayout({ children }) {
     { to: '/contracts', label: 'Contracts', show: isHR() },
     { to: '/schedules', label: 'Calendar', show: isHR() },
     { to: '/attendance', label: 'Attendance', show: true },
-    { to: '/time-off', label: 'Time Off', show: true },
+    { to: '/time-off', label: 'Leave', show: true },
   ];
 
   const bottomNavItems = [

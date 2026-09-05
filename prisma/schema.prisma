@@ -110,6 +110,19 @@ enum ScheduleType {
   SHIFT
 }
 
+enum HolidaySource {
+  API_CALENDARIFIC
+  API_NAGER
+  MANUAL
+}
+
+enum HolidaySuggestionStatus {
+  PENDING
+  APPROVED_PAID
+  APPROVED_UNPAID
+  REJECTED
+}
+
 // ============================================================
 // USER
 // ============================================================
@@ -275,6 +288,7 @@ model Contract {
   position          String?
   wage              Float
   salaryStructureId String?
+  annualLeaveQuota  Int            @default(24)
   status            ContractStatus @default(DRAFT)
   notes             String?
   createdAt         DateTime       @default(now())
@@ -559,3 +573,59 @@ model PayslipLine {
   @@index([payslipId])
   @@index([sequence])
 }
+
+// ============================================================
+// WORKING DAYS POLICY
+// ============================================================
+
+model WorkingDaysPolicy {
+  id              String   @id @default(cuid())
+  name            String   @default("Standard Monthly Policy")
+  totalDays       Int      @default(22)
+  effectivePeriod String?  // e.g. "2026-09" or null for default global policy
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([effectivePeriod])
+}
+
+// ============================================================
+// HOLIDAY SUGGESTION & COMPANY HOLIDAYS
+// ============================================================
+
+model HolidaySuggestion {
+  id        String                  @id @default(cuid())
+  date      DateTime                @db.Date
+  name      String
+  source    HolidaySource           @default(API_CALENDARIFIC)
+  status    HolidaySuggestionStatus @default(PENDING)
+  country   String                  @default("IN")
+  state     String?
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+
+  companyHoliday CompanyHoliday?
+
+  @@unique([date, name])
+  @@index([date])
+  @@index([status])
+}
+
+// ============================================================
+// COMPANY HOLIDAY
+// ============================================================
+
+model CompanyHoliday {
+  id                 String   @id @default(cuid())
+  date               DateTime @db.Date
+  name               String
+  isPaid             Boolean  @default(true)
+  linkedSuggestionId String?  @unique
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  linkedSuggestion HolidaySuggestion? @relation(fields: [linkedSuggestionId], references: [id])
+
+  @@index([date])
+}
+

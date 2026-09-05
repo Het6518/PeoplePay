@@ -65,6 +65,7 @@ const CreateContractSchema = z.object({
   position: z.string().optional().nullable(),
   wage: z.coerce.number().positive('Wage must be a positive number'),
   salaryStructureId: z.string().optional().nullable(),
+  annualLeaveQuota: z.coerce.number().min(0, 'Annual leave quota must be 0 or more').default(24).optional(),
   status: z.enum(['DRAFT', 'ACTIVE', 'EXPIRED', 'TERMINATED']).optional(),
   notes: z.string().optional().nullable(),
 });

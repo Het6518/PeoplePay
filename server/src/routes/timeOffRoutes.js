@@ -18,7 +18,8 @@ router.put('/allocations/:id', authorize(...HR_ROLES), ctrl.updateAllocation);
 router.post('/allocations/:id/approve', authorize(...HR_ROLES), ctrl.approveAllocation);
 router.post('/allocations/:id/refuse', authorize(...HR_ROLES), ctrl.refuseAllocation);
 
-// Requests
+// Requests & Balance
+router.get('/balance', ctrl.getLeaveBalance);
 router.get('/requests', ctrl.getTimeOffRequests);
 router.post('/requests', ctrl.createTimeOffRequest);
 router.get('/requests/:id', ctrl.getTimeOffRequest);

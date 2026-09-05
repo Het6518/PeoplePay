@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { userApi } from '../../services/apiServices';
 import { Modal } from '../../components/ui/Modal';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { Pagination } from '../../components/ui/Pagination';
 
 const ROLE_COLORS = {
   ADMIN: 'bg-rose-100 text-rose-800 border-rose-200',
@@ -18,16 +19,19 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [page]);
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await userApi.getAll({});
+      const res = await userApi.getAll({ page, limit: 15 });
       setUsers(res.data || []);
+      setTotalPages(res.totalPages || res.pagination?.totalPages || 1);
     } catch (err) {
       toast.error('Failed to fetch users');
     } finally {
@@ -65,7 +69,7 @@ export default function UsersPage() {
         {loading ? (
           <div className="py-12 flex justify-center"><LoadingSpinner /></div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto space-y-4">
             <table className="min-w-full divide-y divide-stone-200/60">
               <thead className="bg-stone-50/80">
                 <tr>
@@ -88,7 +92,7 @@ export default function UsersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">
-                      {u.employee?.name || <span className="text-stone-400 italic">Unlinked</span>}
+                      {u.employee?.firstName ? `${u.employee.firstName} ${u.employee.lastName || ''}` : (u.employee?.name || <span className="text-stone-400 italic">Unlinked</span>)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {u.isActive ? (
@@ -117,6 +121,12 @@ export default function UsersPage() {
                 )}
               </tbody>
             </table>
+
+            {totalPages > 1 && (
+              <div className="p-4 border-t border-stone-100 flex justify-center">
+                <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+              </div>
+            )}
           </div>
         )}
       </div>

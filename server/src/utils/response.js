@@ -1,11 +1,23 @@
 // Consistent API response helpers
 
-const sendSuccess = (res, data, statusCode = 200, meta = {}) => {
-  return res.status(statusCode).json({
+const sendSuccess = (res, data, statusCodeOrMessage = 200, meta = {}) => {
+  let statusCode = 200;
+  let message = undefined;
+
+  if (typeof statusCodeOrMessage === 'number') {
+    statusCode = statusCodeOrMessage;
+  } else if (typeof statusCodeOrMessage === 'string') {
+    message = statusCodeOrMessage;
+  }
+
+  const payload = {
     success: true,
     data,
     ...meta,
-  });
+  };
+  if (message) payload.message = message;
+
+  return res.status(statusCode).json(payload);
 };
 
 const sendError = (res, message, statusCode = 400, errors = []) => {
