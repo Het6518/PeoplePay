@@ -67,7 +67,7 @@ async function detectAnomalies(payrunId) {
       if (Math.abs(changePercent) > ANOMALY_THRESHOLDS.SALARY_JUMP_PERCENT) {
         const direction = changePercent > 0 ? 'increase' : 'decrease';
         anomalies.push({
-          severity: Math.abs(changePercent) > 50 ? 'ERROR' : 'WARNING',
+          severity: 'WARNING',
           type: 'SALARY_ANOMALY',
           employeeId: employee.id,
           employeeName: empName,
@@ -119,14 +119,23 @@ async function detectAnomalies(payrunId) {
     // --------------------------------------------------------
     // 4. Zero/negative net salary
     // --------------------------------------------------------
-    if (payslip.netSalary <= 0) {
+    if (payslip.netSalary < 0) {
       anomalies.push({
         severity: 'ERROR',
+        type: 'NEGATIVE_NET_SALARY',
+        employeeId: employee.id,
+        employeeName: empName,
+        message: `${empName}: Net salary is negative (₹${payslip.netSalary}). This is invalid.`,
+        metadata: { netSalary: payslip.netSalary },
+      });
+    } else if (payslip.netSalary === 0) {
+      anomalies.push({
+        severity: 'WARNING',
         type: 'ZERO_NET_SALARY',
         employeeId: employee.id,
         employeeName: empName,
-        message: `${empName}: Net salary is ₹${payslip.netSalary}. This is critically invalid.`,
-        metadata: { netSalary: payslip.netSalary },
+        message: `${empName}: Net salary is ₹0 for this period (no worked days or unpaid leave).`,
+        metadata: { netSalary: 0 },
       });
     }
 

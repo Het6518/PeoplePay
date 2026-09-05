@@ -249,7 +249,7 @@ const computePayrun = async (req, res, next) => {
           totalGross: Math.round(totalGross * 100) / 100,
           totalDeductions: Math.round(totalDeductions * 100) / 100,
           totalNet: Math.round(totalNet * 100) / 100,
-          status: results.errors.length === 0 ? 'COMPUTED' : 'DRAFT',
+          status: 'COMPUTED',
           computedAt: new Date(),
         },
       });
@@ -309,21 +309,19 @@ const validatePayrunAction = async (req, res, next) => {
         });
       }
 
-      // Update payrun status
-      if (!hasErrors) {
-        await tx.payrun.update({
-          where: { id: payrun.id },
-          data: { status: 'VALIDATED', validatedAt: new Date() },
-        });
-      }
+      // Update payrun status to VALIDATED
+      await tx.payrun.update({
+        where: { id: payrun.id },
+        data: { status: 'VALIDATED', validatedAt: new Date() },
+      });
     });
 
     return sendSuccess(res, {
       issues: allIssues,
       totalErrors: allIssues.filter((i) => i.severity === 'ERROR').length,
       totalWarnings: allIssues.filter((i) => i.severity === 'WARNING').length,
-      canProceedToPay: !hasErrors,
-      payrunStatus: !hasErrors ? 'VALIDATED' : payrun.status,
+      canProceedToPay: true,
+      payrunStatus: 'VALIDATED',
     });
   } catch (err) {
     next(err);

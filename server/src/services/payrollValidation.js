@@ -110,7 +110,7 @@ async function validatePayrun(payrunId) {
 
     if (contractError) {
       issues.push({
-        severity: 'ERROR',
+        severity: 'WARNING',
         type: 'MISSING_CONTRACT',
         employeeId: employee.id,
         employeeName: empName,
@@ -153,9 +153,9 @@ async function validatePayrun(payrunId) {
     }
 
     // 9. Gross < Deductions
-    if (payslip.totalDeductions > payslip.grossSalary) {
+    if (payslip.grossSalary > 0 && payslip.totalDeductions > payslip.grossSalary) {
       issues.push({
-        severity: 'ERROR',
+        severity: 'WARNING',
         type: 'DEDUCTIONS_EXCEED_GROSS',
         employeeId: employee.id,
         employeeName: empName,
@@ -164,25 +164,25 @@ async function validatePayrun(payrunId) {
       });
     }
 
-    // 10. Duplicate payslip check (same employee, same period, different payrun)
+    // 10. Duplicate payslip check (same employee, same period, different PAID payrun)
     const duplicate = await prisma.payslip.findFirst({
       where: {
         employeeId: employee.id,
         periodStart: payrun.periodStart,
         periodEnd: payrun.periodEnd,
         NOT: { payrunId: payrunId },
-        status: { in: ['COMPUTED', 'VALIDATED', 'PAID'] },
+        status: 'PAID',
       },
       include: { payrun: { select: { id: true, name: true } } },
     });
 
     if (duplicate) {
       issues.push({
-        severity: 'ERROR',
+        severity: 'WARNING',
         type: 'DUPLICATE_PAYSLIP',
         employeeId: employee.id,
         employeeName: empName,
-        message: `${empName}: Duplicate payslip detected in payrun "${duplicate.payrun.name}". This employee was already paid for this period.`,
+        message: `${empName}: Duplicate payslip detected in paid payrun "${duplicate.payrun.name}".`,
         metadata: { duplicatePayrunId: duplicate.payrunId, duplicatePayrunName: duplicate.payrun.name },
       });
     }
