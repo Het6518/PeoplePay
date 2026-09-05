@@ -17,7 +17,7 @@ export default function ReportsPage() {
         <div>
           <h1 className="text-3xl font-black tracking-tight text-stone-900">Reports & Export Center</h1>
           <p className="text-sm font-medium text-stone-500 mt-1">
-            Generate, filter, and export comprehensive Payroll, Attendance, and Time Off reports to CSV or PDF.
+            Generate, filter, and export comprehensive Payroll, Attendance, and Leave reports to CSV or PDF.
           </p>
         </div>
 
@@ -26,7 +26,7 @@ export default function ReportsPage() {
           {[
             { id: 'payroll', label: 'Payroll Summary' },
             { id: 'attendance', label: 'Attendance & Shift Audit' },
-            { id: 'timeoff', label: 'Time Off & Leave Summary' },
+            { id: 'timeoff', label: 'Leave Summary' },
           ].map((tab) => (
             <button
               key={tab.id}
