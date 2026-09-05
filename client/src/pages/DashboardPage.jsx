@@ -2,15 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
 } from 'recharts';
 import {
   Calendar,
@@ -24,12 +18,15 @@ import {
   Briefcase,
   Users,
   FileText,
+  XCircle,
+  Loader2,
 } from 'lucide-react';
-import { dashboardApi, employeeApi, payrollApi } from '../services/apiServices';
-import { formatINR, formatDate, formatMonth } from '../utils/formatters';
+import { dashboardApi, timeOffApi } from '../services/apiServices';
+import { formatDate } from '../utils/formatters';
 import { useAuth } from '../contexts/AuthContext';
 import { StatusBadge } from '../components/ui/Badge';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
+import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -39,105 +36,71 @@ export default function DashboardPage() {
     currentUser?.email?.split('@')[0] ||
     'Admin';
 
-  const [period, setPeriod] = useState('last3months');
   const [summary, setSummary] = useState(null);
-  const [trend, setTrend] = useState([]);
-  const [deptData, setDeptData] = useState([]);
   const [attendanceChart, setAttendanceChart] = useState([]);
-  const [alerts, setAlerts] = useState([]);
-  const [recentDisbursements, setRecentDisbursements] = useState([]);
-  const [activePayrun, setActivePayrun] = useState(null);
+  const [pendingLeaveRequests, setPendingLeaveRequests] = useState([]);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Dynamic Current Week Dates Generation
-  const today = new Date();
-  const weekDays = Array.from({ length: 4 }, (_, i) => {
-    const d = new Date();
-    d.setDate(today.getDate() + i);
-    return {
-      dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
-      dateNum: d.getDate(),
-      isToday: i === 0,
-      fullDate: d,
-    };
-  });
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const [summaryRes, pendingLeaveRes] = await Promise.all([
+        dashboardApi.getSummary({}),
+        timeOffApi.getRequests({ status: 'PENDING' }),
+      ]);
+
+      const summaryData = summaryRes.data || summaryRes || null;
+      const pendingLeaveData = pendingLeaveRes.data || pendingLeaveRes || [];
+
+      setSummary(summaryData);
+      setPendingLeaveRequests(Array.isArray(pendingLeaveData) ? pendingLeaveData : []);
+
+      // Dynamic Employee Composition (Full Time vs Contract vs Part Time)
+      const ftCount = summaryData?.fullTimeCount || 0;
+      const ptCount = (summaryData?.contractCount || 0) + (summaryData?.partTimeCount || 0);
+      const totalEmp = summaryData?.totalEmployees || 1;
+
+      setAttendanceChart([
+        { name: 'Full Time', value: ftCount || Math.max(1, Math.round(totalEmp * 0.75)), color: '#FACC15' },
+        { name: 'Contract & Part Time', value: ptCount || Math.max(0, Math.round(totalEmp * 0.25)), color: '#18181B' },
+      ]);
+    } catch (error) {
+      console.error('Failed to fetch dashboard data', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      try {
-        const [
-          summaryRes,
-          trendRes,
-          deptSalaryRes,
-          attendanceRes,
-          alertsRes,
-          payslipsRes,
-          payrunsRes,
-        ] = await Promise.all([
-          dashboardApi.getSummary({ period }),
-          dashboardApi.getPayrollTrend({ period }),
-          dashboardApi.getSalaryByDepartment({ period }),
-          dashboardApi.getAttendance({ period }),
-          dashboardApi.getAlerts(),
-          payrollApi.getPayslips({ limit: 4 }),
-          payrollApi.getPayruns({ limit: 1 }),
-        ]);
-
-        const summaryData = summaryRes.data || summaryRes || null;
-        const trendData = (trendRes.data || trendRes || []).map((t) => ({
-          ...t,
-          netSalary: t.netSalary ?? t.net ?? 0,
-        }));
-        const deptSalaryData = (deptSalaryRes.data || deptSalaryRes || []).map(
-          (d) => ({
-            ...d,
-            department: d.department || d.departmentName || '',
-            totalNet: d.totalNet ?? 0,
-          })
-        );
-        const attendanceData = attendanceRes.data || attendanceRes || null;
-        const rawAlerts = alertsRes.data || alertsRes || [];
-        const alertsData = Array.isArray(rawAlerts) ? rawAlerts : [];
-
-        if (summaryData) {
-          summaryData.netSalaryPaid =
-            summaryData.netSalaryPaid ?? summaryData.totalNetPaid ?? 0;
-        }
-
-        setSummary(summaryData);
-        setTrend(trendData);
-        setDeptData(deptSalaryData);
-
-        // Dynamic Employee Composition (Full Time vs Contract vs Part Time)
-        const totalEmp = summaryData?.totalEmployees || 1;
-        setAttendanceChart([
-          { name: 'Full Time', value: Math.max(1, Math.round(totalEmp * 0.75)), color: '#FACC15' },
-          { name: 'Contract & Part Time', value: Math.max(1, Math.round(totalEmp * 0.25)), color: '#18181B' },
-        ]);
-
-        setAlerts(alertsData);
-
-        // Recent Disbursements fetched directly from PostgreSQL database
-        const fetchedPayslips = payslipsRes.data || payslipsRes || [];
-        setRecentDisbursements(Array.isArray(fetchedPayslips) ? fetchedPayslips : []);
-
-        // Active Payrun fetched directly from database
-        const fetchedPayruns = payrunsRes.data || payrunsRes || [];
-        if (Array.isArray(fetchedPayruns) && fetchedPayruns.length > 0) {
-          setActivePayrun(fetchedPayruns[0]);
-        } else {
-          setActivePayrun(null);
-        }
-      } catch (error) {
-        console.error('Failed to fetch dashboard data', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDashboardData();
-  }, [period]);
+  }, []);
+
+  const handleApproveLeave = async (id) => {
+    setActionLoadingId(id);
+    try {
+      await timeOffApi.approve(id);
+      toast.success('Leave request approved!');
+      await fetchDashboardData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to approve leave request');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleRejectLeave = async (id) => {
+    setActionLoadingId(id);
+    try {
+      await timeOffApi.reject(id, { rejectionReason: 'Rejected from Dashboard' });
+      toast.success('Leave request rejected');
+      await fetchDashboardData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to reject leave request');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
 
   if (loading) {
     return <LoadingSpinner fullPage={true} />;
@@ -192,10 +155,10 @@ export default function DashboardPage() {
               <span className="w-2.5 h-2.5 rounded-full bg-stone-950" />
               <div>
                 <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">
-                  Payslips
+                  Pending Leaves
                 </span>
-                <span className="text-2xl font-black text-stone-950 tracking-tight font-mono">
-                  {summary.payslipsGenerated || 0}
+                <span className="text-2xl font-black text-amber-600 tracking-tight font-mono">
+                  {pendingLeaveRequests.length}
                 </span>
               </div>
             </div>
@@ -217,207 +180,125 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* 3-Column Command Center Grid */}
+      {/* 2-Column Command Center Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* ============================================================ */}
-        {/* LEFT COLUMN: Schedule & Real HR Alerts (Red Circle 2)         */}
+        {/* MAIN AREA: Pending Leave Approvals (Red Box Requirement)    */}
         {/* ============================================================ */}
-        <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white/95 rounded-[28px] p-5 border border-stone-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between min-h-[580px]">
-            <div>
-              {/* Card Header */}
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-black text-stone-950 uppercase tracking-wider">
-                  Schedule & Alerts
-                </h3>
-                <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-full">
-                  <Calendar size={14} className="text-stone-600" />
-                </div>
-              </div>
-
-              {/* DYNAMIC Calendar Date Strip (Computed from Real Dates) */}
-              <div className="grid grid-cols-4 gap-1.5 mb-5 bg-stone-50 p-1.5 rounded-2xl border border-stone-100 text-center">
-                {weekDays.map((w, idx) => (
-                  <div
-                    key={idx}
-                    className={`py-1.5 rounded-xl font-bold text-xs transition-all ${
-                      w.isToday
-                        ? 'bg-amber-400 text-stone-950 font-black shadow-xs'
-                        : 'text-stone-500 hover:bg-white'
-                    }`}
-                  >
-                    {w.dayName}
-                    <span className="block text-[10px] font-bold">{w.dateNum}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* DYNAMIC Active Payrun / Schedule Card (Fetched from Database) */}
-              <div
-                onClick={() => activePayrun && navigate(`/payroll/payruns/${activePayrun.id}`)}
-                className="mb-5 bg-stone-950 text-white p-4 rounded-2xl shadow-md border border-stone-800 cursor-pointer hover:bg-stone-900 transition-colors"
-              >
-                <div className="flex items-center justify-between text-amber-400 text-[10px] font-black uppercase tracking-wider mb-1">
-                  <span>{activePayrun ? `PAYRUN: ${activePayrun.status}` : 'ACTIVE SHIFT SCHEDULE'}</span>
-                  <span>{activePayrun ? formatDate(activePayrun.periodStart) : 'Standard Shift'}</span>
-                </div>
-                <h4 className="text-xs font-extrabold text-white">
-                  {activePayrun ? activePayrun.name : 'Standard Working Schedule'}
-                </h4>
-                <p className="text-[11px] text-stone-400 mt-1">
-                  {activePayrun
-                    ? `${activePayrun._count?.payslips || 0} employees included in payrun.`
-                    : 'System active for employee attendance and leave management.'}
-                </p>
-              </div>
-
-              {/* DYNAMIC Real Alerts List (Fetched from Database) */}
-              <div className="space-y-3.5 border-l-2 border-amber-400 pl-4 ml-2">
-                {alerts.slice(0, 4).map((alert, idx) => (
-                  <div
-                    key={alert.id || idx}
-                    onClick={() => {
-                      if (alert.type === 'PENDING_LEAVE') navigate('/time-off/requests');
-                      else if (alert.type === 'PAYRUN_PENDING') navigate('/payroll/payruns');
-                      else navigate('/reports');
-                    }}
-                    className="relative group cursor-pointer"
-                  >
-                    {/* Node Dot */}
-                    <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white ring-2 ring-stone-100" />
-                    <div>
-                      <p className="text-xs font-bold text-stone-900 group-hover:text-amber-600 transition-colors">
-                        {alert.message}
-                      </p>
-                      <p className="text-[10px] font-semibold text-stone-400 mt-0.5 font-mono">
-                        {alert.type} • {formatDate(alert.date || new Date())}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-
-                {alerts.length === 0 && (
-                  <div className="text-xs text-stone-500 font-semibold py-4">
-                    <CheckCircle className="w-4 h-4 text-emerald-500 inline mr-1.5" />
-                    All HR & Payroll systems operating normally.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Bottom Navigation Link */}
-            <div
-              onClick={() => navigate('/payroll/payruns')}
-              className="pt-4 mt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-stone-700 hover:text-stone-950 cursor-pointer"
-            >
-              <span>View All Payruns & Operations</span>
-              <ChevronRight size={14} className="text-stone-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* ============================================================ */}
-        {/* MIDDLE COLUMN: Real Salary & Disbursement List (Red Circle 3)*/}
-        {/* ============================================================ */}
-        <div className="lg:col-span-6 space-y-6">
+        <div className="lg:col-span-8 space-y-6">
           
-          {/* Top Card: Salary & Employee Disbursement Table (Fetched from PostgreSQL DB) */}
-          <div className="bg-white/95 rounded-[28px] p-6 border border-stone-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-black text-stone-950 uppercase tracking-wider">
-                Salary & Employee Disbursement
-              </h3>
+          {/* PRIMARY LEAVE NOTIFICATIONS & PENDING APPROVALS BOX */}
+          <div className="bg-white/95 rounded-[28px] p-6 border border-stone-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-700 flex items-center justify-center font-extrabold">
+                  <Calendar size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-stone-950 uppercase tracking-wider flex items-center gap-2">
+                    Leave Notifications & Approvals
+                    <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300/60">
+                      {pendingLeaveRequests.length} Pending
+                    </span>
+                  </h3>
+                  <p className="text-xs font-medium text-stone-500 mt-0.5">
+                    Review and approve employee leave requests pending your authorization.
+                  </p>
+                </div>
+              </div>
               <button
-                onClick={() => navigate('/payroll/payslips')}
-                className="text-xs font-bold text-stone-600 hover:text-stone-950 bg-stone-100 hover:bg-stone-200 px-3 py-1 rounded-full transition-all"
+                onClick={() => navigate('/time-off/requests')}
+                className="text-xs font-bold bg-stone-900 text-white hover:bg-stone-800 px-4 py-2 rounded-full shadow-xs transition-all flex items-center gap-1.5 self-start sm:self-auto"
               >
-                View All Payslips
+                All Requests <ChevronRight size={14} />
               </button>
             </div>
 
-            {/* Dynamic Real Payslips / Wages List */}
-            <div className="divide-y divide-stone-100">
-              {recentDisbursements.map((ps) => (
+            {/* Pending Leave Requests List */}
+            <div className="space-y-3.5 pt-1">
+              {pendingLeaveRequests.map((req) => (
                 <div
-                  key={ps.id}
-                  onClick={() => navigate(`/payroll/payslips/${ps.id}`)}
-                  className="py-3.5 flex items-center justify-between hover:bg-amber-50/30 px-2 rounded-xl transition-colors cursor-pointer"
+                  key={req.id}
+                  className="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/70 hover:bg-amber-100/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-stone-950 text-amber-400 font-extrabold text-xs flex items-center justify-center">
-                      {(ps.employee?.firstName?.[0] || 'E').toUpperCase()}
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-10 h-10 rounded-full bg-stone-950 text-amber-400 font-black text-xs flex items-center justify-center shrink-0 shadow-xs">
+                      {(req.employee?.firstName?.[0] || 'E').toUpperCase()}
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-stone-900">
-                        {ps.employee?.firstName} {ps.employee?.lastName}
+                      <h4 className="text-sm font-black text-stone-950 flex items-center gap-2">
+                        {req.employee?.firstName} {req.employee?.lastName}
+                        <span className="text-xs font-mono text-stone-400 font-semibold">
+                          ({req.employee?.employeeCode || 'EMP'})
+                        </span>
                       </h4>
-                      <p className="text-[10px] font-semibold text-stone-400">
-                        {ps.employee?.department?.name || ps.payrun?.name || 'Full Time'}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <span className="text-xs font-extrabold text-amber-800 bg-amber-200/60 px-2.5 py-0.5 rounded-full border border-amber-300/80">
+                          {req.timeOffType?.name || 'Leave'}
+                        </span>
+                        <span className="text-xs font-bold text-stone-600 font-mono">
+                          {req.duration} {req.timeOffType?.unit === 'HOURS' ? 'Hours' : 'Days'}
+                        </span>
+                        <span className="text-xs font-semibold text-stone-500 font-mono">
+                          ({formatDate(req.startDate)} – {formatDate(req.endDate)})
+                        </span>
+                      </div>
+                      {req.reason && (
+                        <p className="text-xs font-medium text-stone-600 italic mt-1.5 bg-white/80 px-3 py-1 rounded-xl border border-stone-200/60 inline-block">
+                          "{req.reason}"
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    <span className="text-xs font-black text-stone-950 font-mono block">
-                      {formatINR(ps.netSalary)}
-                    </span>
-                    <span className="inline-block mt-0.5">
-                      <StatusBadge status={ps.status || 'PAID'} />
-                    </span>
+                  <div className="flex items-center gap-2 shrink-0 sm:self-center">
+                    <button
+                      onClick={() => handleApproveLeave(req.id)}
+                      disabled={actionLoadingId === req.id}
+                      className="px-4 py-2 rounded-full text-xs font-black bg-emerald-600 text-white hover:bg-emerald-500 transition-all shadow-sm flex items-center gap-1.5"
+                    >
+                      {actionLoadingId === req.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle size={14} />
+                      )}
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleRejectLeave(req.id)}
+                      disabled={actionLoadingId === req.id}
+                      className="px-3.5 py-2 rounded-full text-xs font-bold bg-stone-200 text-stone-700 hover:bg-rose-100 hover:text-rose-700 transition-all"
+                    >
+                      Reject
+                    </button>
                   </div>
                 </div>
               ))}
 
-              {recentDisbursements.length === 0 && (
-                <div className="text-center py-8 text-xs font-semibold text-stone-400">
-                  No disbursement records generated yet.
+              {pendingLeaveRequests.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-12 bg-stone-50/60 rounded-2xl border border-dashed border-stone-200 text-center">
+                  <CheckCircle className="w-10 h-10 text-emerald-500 mb-2" />
+                  <h4 className="text-sm font-black text-stone-900">No Pending Leave Approvals</h4>
+                  <p className="text-xs font-medium text-stone-500 mt-1 max-w-sm">
+                    All employee leave applications are processed. New leave requests will appear here for your immediate approval.
+                  </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Bottom Card: Monthly Payroll Trend Line Chart */}
-          <div className="bg-white/95 rounded-[28px] p-6 border border-stone-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-black text-stone-950 uppercase tracking-wider">
-                Payroll Statistics
-              </h3>
-              <span className="text-xs font-extrabold text-stone-900 bg-amber-100 px-3 py-1 rounded-full border border-amber-200/60">
-                Monthly Net Trend
-              </span>
-            </div>
-
-            <div className="h-56 w-full">
-              <ResponsiveContainer>
-                <LineChart data={trend} margin={{ top: 10, right: 10, bottom: 5, left: -20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F0E6" />
-                  <XAxis dataKey="month" tickFormatter={formatMonth} stroke="#A1A1AA" fontSize={10} fontWeight={700} />
-                  <YAxis tickFormatter={(val) => `₹${val / 1000}k`} stroke="#A1A1AA" fontSize={10} fontWeight={700} />
-                  <Tooltip formatter={(val) => formatINR(val)} labelFormatter={formatMonth} />
-                  <Line
-                    type="monotone"
-                    dataKey="netSalary"
-                    stroke="#EAB308"
-                    strokeWidth={3.5}
-                    dot={{ r: 5, fill: '#18181B', strokeWidth: 2, stroke: '#EAB308' }}
-                    activeDot={{ r: 7 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
         </div>
 
         {/* ============================================================ */}
-        {/* RIGHT COLUMN: Dynamic Attendance Dark Card (Red Circle 4)     */}
+        {/* RIGHT SIDEBAR (Yellow Box Area): Attendance & Composition     */}
         {/* ============================================================ */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-4 space-y-6">
           
-          {/* Top Card: Dark Attendance Command Card (Dynamic from DB) */}
+          {/* Top Card: Dark Attendance Command Card (Full HR Access) */}
           <div
             onClick={() => navigate('/attendance')}
-            className="bg-stone-950 text-white rounded-[28px] p-5 border border-stone-800 shadow-xl flex flex-col justify-between min-h-[260px] cursor-pointer hover:bg-stone-900 transition-colors"
+            className="bg-stone-950 text-white rounded-[28px] p-6 border border-stone-800 shadow-xl flex flex-col justify-between min-h-[280px] cursor-pointer hover:bg-stone-900 transition-colors group"
           >
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -452,19 +333,22 @@ export default function DashboardPage() {
             </div>
 
             {/* DYNAMIC Compliance Percentage (Calculated from Real Database) */}
-            <div className="flex items-center justify-between text-[11px] font-bold text-stone-400 pt-3 border-t border-stone-800">
+            <div className="flex items-center justify-between text-[11px] font-bold text-stone-400 pt-3 border-t border-stone-800 group-hover:text-amber-400 transition-colors">
               <span>Shift Compliance: {summary?.attendanceHealth || 0}%</span>
               <ArrowUpRight size={14} className="text-amber-400" />
             </div>
           </div>
 
-          {/* Bottom Card: Employee Composition Donut Chart */}
-          <div className="bg-white/95 rounded-[28px] p-5 border border-stone-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between min-h-[280px]">
+          {/* Bottom Card: Employee Composition Donut Chart (Full HR Access) */}
+          <div
+            onClick={() => navigate('/employees')}
+            className="bg-white/95 rounded-[28px] p-6 border border-stone-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between min-h-[300px] cursor-pointer hover:border-amber-300/80 transition-all group"
+          >
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-black text-stone-950 uppercase tracking-wider">
                 Employee Composition
               </h3>
-              <MoreHorizontal size={16} className="text-stone-400" />
+              <MoreHorizontal size={16} className="text-stone-400 group-hover:text-amber-600 transition-colors" />
             </div>
 
             {/* Recharts Donut Chart */}
@@ -497,14 +381,14 @@ export default function DashboardPage() {
             </div>
 
             {/* Bottom Percentage Breakdown */}
-            <div className="flex items-center justify-center gap-4 text-xs font-bold text-stone-700 pt-2 border-t border-stone-100">
+            <div className="flex items-center justify-center gap-4 text-xs font-bold text-stone-700 pt-3 border-t border-stone-100">
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                Full Time
+                Full Time ({summary?.fullTimeCount || 0})
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-stone-950" />
-                Contract
+                Contract & Part Time ({(summary?.contractCount || 0) + (summary?.partTimeCount || 0)})
               </span>
             </div>
           </div>

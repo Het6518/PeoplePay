@@ -22,6 +22,7 @@ const getSummary = async (req, res, next) => {
       payslipCount,
       pendingLeave,
       attendanceToday,
+      employeeTypes,
     ] = await Promise.all([
       prisma.employee.count({ where: employeeWhere }),
 
@@ -38,16 +39,41 @@ const getSummary = async (req, res, next) => {
 
       prisma.timeOffRequest.count({ where: { status: 'PENDING' } }),
 
-      // Today's attendance
+      // Today's attendance (with fallback to latest attendance date)
       (async () => {
-        const nowStr = new Date().toISOString();
-        const today = new Date(nowStr.split('T')[0] + 'T00:00:00.000Z');
-        return prisma.attendance.groupBy({
+        const d = new Date();
+        const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+        const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+        let records = await prisma.attendance.groupBy({
           by: ['status'],
-          where: { date: today },
+          where: { date: { gte: start, lte: end } },
           _count: true,
         });
+
+        if (!records || records.length === 0) {
+          const latestRecord = await prisma.attendance.findFirst({
+            orderBy: { date: 'desc' },
+            select: { date: true },
+          });
+          if (latestRecord && latestRecord.date) {
+            const lDate = new Date(latestRecord.date);
+            const lStart = new Date(lDate.getFullYear(), lDate.getMonth(), lDate.getDate(), 0, 0, 0, 0);
+            const lEnd = new Date(lDate.getFullYear(), lDate.getMonth(), lDate.getDate(), 23, 59, 59, 999);
+            records = await prisma.attendance.groupBy({
+              by: ['status'],
+              where: { date: { gte: lStart, lte: lEnd } },
+              _count: true,
+            });
+          }
+        }
+        return records || [];
       })(),
+
+      prisma.employee.groupBy({
+        by: ['employeeType'],
+        where: { status: 'ACTIVE' },
+        _count: true,
+      }),
     ]);
 
     const totalNetPaid = payslipAgg._sum.netSalary || 0;
@@ -58,6 +84,10 @@ const getSummary = async (req, res, next) => {
     const lateCount = attendanceToday.find((a) => a.status === 'LATE')?._count || 0;
     const absentCount = attendanceToday.find((a) => a.status === 'ABSENT')?._count || 0;
     const attendanceHealth = totalEmployees > 0 ? Math.round(((presentCount + lateCount) / totalEmployees) * 100) : 0;
+
+    const fullTimeCount = employeeTypes.find((e) => e.employeeType === 'FULL_TIME')?._count || 0;
+    const partTimeCount = employeeTypes.find((e) => e.employeeType === 'PART_TIME')?._count || 0;
+    const contractCount = employeeTypes.find((e) => e.employeeType === 'CONTRACT')?._count || 0;
 
     return sendSuccess(res, {
       totalEmployees,
@@ -70,6 +100,9 @@ const getSummary = async (req, res, next) => {
       presentToday: presentCount,
       lateToday: lateCount,
       absentToday: absentCount,
+      fullTimeCount,
+      partTimeCount,
+      contractCount,
     });
   } catch (err) {
     next(err);
