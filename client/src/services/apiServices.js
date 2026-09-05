@@ -159,3 +159,7 @@ export const holidayApi = {
   getCompanyHolidays: (params) => api.get('/holidays/company', { params }),
 };
 
+export const redisApi = {
+  getStatus: () => api.get('/admin/redis-status'),
+  clearCache: () => api.post('/admin/redis-clear'),
+};

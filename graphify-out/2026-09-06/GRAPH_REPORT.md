@@ -1,16 +1,16 @@
 # Graph Report - peoplepay360  (2026-09-06)
 
 ## Corpus Check
-- 106 files · ~69,155 words
+- 107 files · ~73,968 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 700 nodes · 1455 edges · 44 communities (36 shown, 4 thin omitted)
+- 713 nodes · 1468 edges · 54 communities (45 shown, 5 thin omitted)
 - Extraction: 90% EXTRACTED · 10% INFERRED · 0% AMBIGUOUS · INFERRED: 150 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `9c01ba71`
+- Built from commit: `a3755063`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -24,7 +24,7 @@
 - authController.js
 - adminController.js
 - attendanceController.js
-- schemas.js
+- timeOffController.js
 - app.js
 - sendSuccess
 - geofenceTest.js
@@ -53,8 +53,18 @@
 - employeeRoutes.js
 - React + Vite
 - react-leaflet
-- contractController.js
+- salaryController.js
+- schemas.js
 - HR_ROLES
+- payrollEngine.js
+- attendanceLocationService.js
+- seed.ts
+- holidayService.js
+- emailService.js
+- payrollValidation.js
+- workingDaysService.js
+- payrollAnomaly.js
+- server.js
 
 ## God Nodes (most connected - your core abstractions)
 1. `sendSuccess()` - 108 edges
@@ -83,7 +93,7 @@
 ## Import Cycles
 - 2-file cycle: `server/src/services/payrollEngine.js -> server/src/services/workingDaysService.js -> server/src/services/payrollEngine.js`
 
-## Communities (44 total, 4 thin omitted)
+## Communities (54 total, 5 thin omitted)
 
 ### Community 0 - "App.jsx"
 Cohesion: 0.05
@@ -99,11 +109,11 @@ Nodes (17): autoprefixer, devDependencies, autoprefixer, oxlint, postcss, tailwi
 
 ### Community 3 - "employeeController.js"
 Cohesion: 0.09
-Nodes (23): getUsers(), getAttendance(), getContracts(), bcrypt, createEmployee(), { CreateEmployeeSchema, UpdateEmployeeSchema }, deleteEmployee(), EMPLOYEE_SELECT (+15 more)
+Nodes (22): getAttendance(), getContracts(), bcrypt, createEmployee(), { CreateEmployeeSchema, UpdateEmployeeSchema }, deleteEmployee(), EMPLOYEE_SELECT, getEmployee() (+14 more)
 
 ### Community 4 - "prisma.js"
-Cohesion: 0.05
-Nodes (16): prisma, prisma, prisma, { PrismaClient }, app, prisma, prisma, toggleLocationStatus() (+8 more)
+Cohesion: 0.11
+Nodes (7): prisma, prisma, prisma, { PrismaClient }, prisma, prisma, prisma
 
 ### Community 5 - "dependencies"
 Cohesion: 0.13
@@ -115,30 +125,30 @@ Nodes (19): bcrypt, { createError }, getMe(), jwt, login(), { LoginSchema, Regis
 
 ### Community 7 - "adminController.js"
 Cohesion: 0.16
-Nodes (16): bcrypt, createDepartment(), createUser(), deleteDepartment(), { DepartmentSchema }, getDepartment(), getDepartments(), prisma (+8 more)
+Nodes (16): bcrypt, createDepartment(), createUser(), deleteDepartment(), { DepartmentSchema }, getDepartment(), getDepartments(), getUsers() (+8 more)
 
 ### Community 8 - "attendanceController.js"
 Cohesion: 0.14
 Nodes (17): attendanceLocationService, calculateWorkedHours(), checkIn(), checkOut(), correctAttendance(), createAttendance(), { CreateAttendanceSchema, CorrectAttendanceSchema, CheckInSchema, CheckOutSchema }, determineStatus() (+9 more)
 
-### Community 9 - "schemas.js"
-Cohesion: 0.07
-Nodes (32): approveAllocation(), approveTimeOffRequest(), calculateEmployeeLeaveBalance(), cancelTimeOffRequest(), createAllocation(), createTimeOffRequest(), createTimeOffType(), {
+### Community 9 - "timeOffController.js"
+Cohesion: 0.09
+Nodes (24): approveAllocation(), approveTimeOffRequest(), calculateEmployeeLeaveBalance(), cancelTimeOffRequest(), createAllocation(), createTimeOffRequest(), createTimeOffType(), {
   CreateTimeOffTypeSchema,
   UpdateTimeOffTypeSchema,
   CreateAllocationSchema,
   UpdateAllocationSchema,
   CreateTimeOffRequestSchema,
   ApproveRejectRequestSchema,
-} (+24 more)
+} (+16 more)
 
 ### Community 10 - "app.js"
 Cohesion: 0.11
 Nodes (18): adminRoutes, app, attendanceLocationRoutes, attendanceRoutes, authRoutes, contractRoutes, cors, dashboardRoutes (+10 more)
 
 ### Community 11 - "sendSuccess"
-Cohesion: 0.09
-Nodes (36): flagPayslipWarning(), getAdminDashboard(), getAlerts(), getAttendanceReport(), getAttendanceSummary(), { getDashboardAnomalies }, getPayrollManagerDashboard(), getPayrollReport() (+28 more)
+Cohesion: 0.14
+Nodes (22): flagPayslipWarning(), getAdminDashboard(), getAlerts(), getAttendanceReport(), getAttendanceSummary(), { getDashboardAnomalies }, getPayrollManagerDashboard(), getPayrollReport() (+14 more)
 
 ### Community 12 - "geofenceTest.js"
 Cohesion: 0.15
@@ -149,8 +159,8 @@ Cohesion: 0.17
 Nodes (11): PAYROLL_MANAGER_ROLES, PAYROLL_ROLES, ALL_ROLES, { authenticate, authorize, PAYROLL_ROLES, PAYROLL_MANAGER_ROLES }, ctrl, express, router, { authenticate, authorize, HR_ROLES, PAYROLL_ROLES, PAYROLL_MANAGER_ROLES } (+3 more)
 
 ### Community 14 - "payrollController.js"
-Cohesion: 0.06
-Nodes (49): { calculateAttendanceStats, processPayrollRules, computeEmployeePayroll }, prisma, runTests(), calculateOverlapsForEmployees(), checkOverlaps(), { computeEmployeePayroll }, computePayrun(), { CreatePayrunSchema } (+41 more)
+Cohesion: 0.12
+Nodes (18): calculateOverlapsForEmployees(), checkOverlaps(), { computeEmployeePayroll }, { CreatePayrunSchema }, { detectAnomalies }, downloadPayslipPDF(), emailService, formatDateISO() (+10 more)
 
 ### Community 15 - "sendError"
 Cohesion: 0.09
@@ -185,8 +195,8 @@ Cohesion: 0.40
 Nodes (4): { authenticate, authorize, HR_ROLES }, ctrl, express, router
 
 ### Community 22 - "seed.js"
-Cohesion: 0.27
-Nodes (8): bcrypt, hashPassword(), path, prisma, { PrismaClient }, randomBetween(), seed(), workingDaysInMonth()
+Cohesion: 0.18
+Nodes (12): bcrypt, BANK_NAMES, FIRST_NAMES_FEMALE, FIRST_NAMES_MALE, JOB_POSITIONS_BY_DEPT, LAST_NAMES, main(), prisma (+4 more)
 
 ### Community 23 - "generatePayslipPDF"
 Cohesion: 0.36
@@ -232,30 +242,66 @@ Nodes (4): { authenticate, authorize, HR_ROLES }, ctrl, express, router
 Cohesion: 0.50
 Nodes (3): Expanding the Oxlint configuration, React Compiler, React + Vite
 
-### Community 43 - "contractController.js"
-Cohesion: 0.20
-Nodes (9): createContract(), { CreateContractSchema, UpdateContractSchema }, deleteContract(), getContract(), prisma, { sendSuccess, sendError, sendPaginated }, updateContract(), CreateContractSchema (+1 more)
+### Community 42 - "salaryController.js"
+Cohesion: 0.11
+Nodes (18): createSalaryRule(), createSalaryStructure(), { CreateSalaryStructureSchema, UpdateSalaryStructureSchema, CreateSalaryRuleSchema, UpdateSalaryRuleSchema }, deleteSalaryRule(), deleteSalaryStructure(), getSalaryRule(), getSalaryRules(), getSalaryStructure() (+10 more)
+
+### Community 43 - "schemas.js"
+Cohesion: 0.13
+Nodes (15): createContract(), { CreateContractSchema, UpdateContractSchema }, deleteContract(), getContract(), prisma, { sendSuccess, sendError, sendPaginated }, updateContract(), CreateContractSchema (+7 more)
 
 ### Community 44 - "HR_ROLES"
 Cohesion: 0.33
 Nodes (5): HR_ROLES, { authenticate, authorize, HR_ROLES }, ctrl, express, router
 
+### Community 45 - "payrollEngine.js"
+Cohesion: 0.29
+Nodes (10): { calculateAttendanceStats, processPayrollRules, computeEmployeePayroll }, prisma, runTests(), computePayrun(), calculateAttendanceStats(), computeEmployeePayroll(), { create, all }, math (+2 more)
+
+### Community 46 - "attendanceLocationService.js"
+Cohesion: 0.20
+Nodes (3): prisma, toggleLocationStatus(), updateLocation()
+
+### Community 47 - "seed.ts"
+Cohesion: 0.24
+Nodes (9): BANK_NAMES, FIRST_NAMES_FEMALE, FIRST_NAMES_MALE, JOB_POSITIONS_BY_DEPT, LAST_NAMES, main(), prisma, randomBetween() (+1 more)
+
+### Community 48 - "holidayService.js"
+Cohesion: 0.28
+Nodes (4): fetchCalendarificHolidays(), fetchNagerHolidays(), prisma, syncHolidaysForYear()
+
+### Community 49 - "emailService.js"
+Cohesion: 0.50
+Nodes (7): createTransport(), formatDate(), formatINR(), nodemailer, sendLeaveRequestNotificationToHR(), sendLeaveStatusNotificationToEmployee(), sendPayslipEmail()
+
+### Community 50 - "payrollValidation.js"
+Cohesion: 0.40
+Nodes (5): markPayrunPaid(), getApplicableContract(), { getApplicableContract }, prisma, validatePayrun()
+
+### Community 51 - "workingDaysService.js"
+Cohesion: 0.40
+Nodes (4): calculatePeriodWorkingDays(), getWorkingDaysPolicy(), prisma, recomputeAffectedDraftPayruns()
+
+### Community 52 - "payrollAnomaly.js"
+Cohesion: 0.40
+Nodes (4): validatePayrunAction(), ANOMALY_THRESHOLDS, detectAnomalies(), prisma
+
 ## Knowledge Gaps
-- **253 isolated node(s):** `$schema`, `oxc`, `react/rules-of-hooks`, `warn`, `name` (+248 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 289 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **264 isolated node(s):** `$schema`, `oxc`, `react/rules-of-hooks`, `warn`, `name` (+259 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 299 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `sendSuccess()` connect `sendSuccess` to `employeeController.js`, `authController.js`, `adminController.js`, `attendanceController.js`, `schemas.js`, `contractController.js`, `payrollController.js`, `sendError`, `scheduleController.js`?**
-  _High betweenness centrality (0.081) - this node is a cross-community bridge._
-- **Why does `sendError()` connect `sendError` to `employeeController.js`, `authController.js`, `adminController.js`, `attendanceController.js`, `schemas.js`, `sendSuccess`, `contractController.js`, `payrollController.js`, `scheduleController.js`, `authenticate`, `auth.js`?**
-  _High betweenness centrality (0.061) - this node is a cross-community bridge._
+- **Why does `sendSuccess()` connect `sendSuccess` to `employeeController.js`, `authController.js`, `adminController.js`, `attendanceController.js`, `timeOffController.js`, `salaryController.js`, `schemas.js`, `payrollEngine.js`, `payrollController.js`, `sendError`, `scheduleController.js`, `payrollValidation.js`, `payrollAnomaly.js`?**
+  _High betweenness centrality (0.078) - this node is a cross-community bridge._
+- **Why does `sendError()` connect `sendError` to `employeeController.js`, `authController.js`, `adminController.js`, `attendanceController.js`, `timeOffController.js`, `salaryController.js`, `sendSuccess`, `schemas.js`, `payrollEngine.js`, `payrollController.js`, `scheduleController.js`, `payrollValidation.js`, `payrollAnomaly.js`, `authenticate`, `auth.js`?**
+  _High betweenness centrality (0.059) - this node is a cross-community bridge._
 - **Why does `authenticate()` connect `authenticate` to `workingDaysRoutes.js`, `contractRoutes.js`, `employeeRoutes.js`, `authController.js`, `adminController.js`, `HR_ROLES`, `payrollRoutes.js`, `sendError`, `attendanceRoutes.js`, `holidayRoutes.js`, `scheduleRoutes.js`, `auth.js`?**
   _High betweenness centrality (0.011) - this node is a cross-community bridge._
 - **What connects `$schema`, `oxc`, `react/rules-of-hooks` to the rest of the system?**
-  _253 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _264 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `App.jsx` be split into smaller, more focused modules?**
   _Cohesion score 0.05348583877995643 - nodes in this community are weakly interconnected._
 - **Should `dependencies` be split into smaller, more focused modules?**

@@ -8,7 +8,7 @@
   "6": "authController.js",
   "7": "adminController.js",
   "8": "attendanceController.js",
-  "9": "schemas.js",
+  "9": "timeOffController.js",
   "10": "app.js",
   "11": "sendSuccess",
   "12": "geofenceTest.js",
@@ -41,6 +41,16 @@
   "39": "vite.config.js",
   "40": "tailwindcss",
   "41": "react-leaflet",
-  "43": "contractController.js",
-  "44": "HR_ROLES"
+  "42": "salaryController.js",
+  "43": "schemas.js",
+  "44": "HR_ROLES",
+  "45": "payrollEngine.js",
+  "46": "attendanceLocationService.js",
+  "47": "seed.ts",
+  "48": "holidayService.js",
+  "49": "emailService.js",
+  "50": "payrollValidation.js",
+  "51": "workingDaysService.js",
+  "52": "payrollAnomaly.js",
+  "53": "server.js"
 }

@@ -2,6 +2,7 @@ const prisma = require('../config/prisma');
 const bcrypt = require('bcryptjs');
 const { DepartmentSchema } = require('../validators/schemas');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
+const { getRedisStatus, flushAllCache } = require('../config/redis');
 
 // ============================================================
 // DEPARTMENTS
@@ -152,6 +153,28 @@ const updateUser = async (req, res, next) => {
   }
 };
 
+// ============================================================
+// REDIS STATUS & FLUSH CONTROLLER
+// ============================================================
+
+const getRedisInfo = async (req, res, next) => {
+  try {
+    const status = await getRedisStatus();
+    return sendSuccess(res, status);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const clearRedisCache = async (req, res, next) => {
+  try {
+    await flushAllCache();
+    return sendSuccess(res, { message: 'Redis cache flushed successfully.' });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getDepartments,
   createDepartment,
@@ -161,4 +184,6 @@ module.exports = {
   getUsers,
   createUser,
   updateUser,
+  getRedisInfo,
+  clearRedisCache,
 };

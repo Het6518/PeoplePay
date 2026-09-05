@@ -228,9 +228,9 @@
     "semantic_hash": ""
   },
   "client/src/services/apiServices.js": {
-    "mtime": 1788642884.6185408,
-    "seen": 1788644286.131067,
-    "ast_hash": "7f4f9ed55eced192fab608229e53e69a",
+    "mtime": 1788645189.8965816,
+    "seen": 1788645210.7509472,
+    "ast_hash": "4129958cf771780fca03ba706d95bf56",
     "semantic_hash": ""
   },
   "client/src/utils/formatters.js": {
@@ -258,15 +258,15 @@
     "semantic_hash": ""
   },
   "prisma/seed.js": {
-    "mtime": 1788607656.4911785,
-    "seen": 1788607875.0265436,
-    "ast_hash": "3042267746e4c6100c49ddf83f7af5c7",
+    "mtime": 1788644699.7059777,
+    "seen": 1788644734.1368701,
+    "ast_hash": "fdc6664da9f5758783d5df73c5c991ed",
     "semantic_hash": ""
   },
   "server/package.json": {
-    "mtime": 1788585844.5324435,
-    "seen": 1788607875.0265436,
-    "ast_hash": "0c2ccda287f8dfab7bfea19411d3c4f0",
+    "mtime": 1788645125.1297326,
+    "seen": 1788645210.7528315,
+    "ast_hash": "5c2043329209470b89397997d868ca3b",
     "semantic_hash": ""
   },
   "server/src/app.js": {
@@ -282,9 +282,9 @@
     "semantic_hash": ""
   },
   "server/src/controllers/adminController.js": {
-    "mtime": 1788644019.803016,
-    "seen": 1788644286.1346924,
-    "ast_hash": "f90ce4417244e1d98d9878091fafd425",
+    "mtime": 1788645181.698033,
+    "seen": 1788645210.7528315,
+    "ast_hash": "2008b0ea63f8d364f46e72a7c7246712",
     "semantic_hash": ""
   },
   "server/src/controllers/attendanceController.js": {
@@ -360,15 +360,15 @@
     "semantic_hash": ""
   },
   "server/src/routes/adminRoutes.js": {
-    "mtime": 1788585151.8503878,
-    "seen": 1788607875.0265436,
-    "ast_hash": "9175d7adc04115ac9a0e858788fa85f8",
+    "mtime": 1788645183.7415676,
+    "seen": 1788645210.754337,
+    "ast_hash": "34efba3a6482ead7f3d8f650c5eb9255",
     "semantic_hash": ""
   },
   "server/src/routes/attendanceLocationRoutes.js": {
-    "mtime": 1788624532.531753,
-    "seen": 1788644286.1346924,
-    "ast_hash": "d42f1f2cb4227f65558187e55628349f",
+    "mtime": 1788645158.6512682,
+    "seen": 1788645210.754337,
+    "ast_hash": "b3481bebe1b8f52835fbf8fe3e4fc8e5",
     "semantic_hash": ""
   },
   "server/src/routes/attendanceRoutes.js": {
@@ -390,45 +390,45 @@
     "semantic_hash": ""
   },
   "server/src/routes/dashboardRoutes.js": {
-    "mtime": 1788642880.7237115,
-    "seen": 1788644286.1346924,
-    "ast_hash": "09f06665b51db148b76447fd63ce573d",
+    "mtime": 1788645148.147415,
+    "seen": 1788645210.754337,
+    "ast_hash": "5672e347e9dc8630caf8e2455bcfd449",
     "semantic_hash": ""
   },
   "server/src/routes/employeeRoutes.js": {
-    "mtime": 1788585144.5268233,
-    "seen": 1788607875.0265436,
-    "ast_hash": "62976b2f67107c023c384a5df58fe2b0",
+    "mtime": 1788645168.2272396,
+    "seen": 1788645210.754337,
+    "ast_hash": "5a23c6db4db6d3fe84364ebb1db59d21",
     "semantic_hash": ""
   },
   "server/src/routes/payrollRoutes.js": {
-    "mtime": 1788641694.3572917,
-    "seen": 1788644286.1346924,
-    "ast_hash": "e60ddf7b11e95ef16c3cd732541edc7e",
+    "mtime": 1788645165.5633738,
+    "seen": 1788645210.754337,
+    "ast_hash": "7df04329ee3c5b0c9476369b62f2b905",
     "semantic_hash": ""
   },
   "server/src/routes/reportRoutes.js": {
-    "mtime": 1788585213.2819436,
-    "seen": 1788607875.0265436,
-    "ast_hash": "5a2bb25d0b25e97f1560f0012095c478",
+    "mtime": 1788645161.9499128,
+    "seen": 1788645210.754337,
+    "ast_hash": "8d7b09dce8ece3f2ea74bdfc8a669d99",
     "semantic_hash": ""
   },
   "server/src/routes/salaryRoutes.js": {
-    "mtime": 1788624741.30394,
-    "seen": 1788644286.1362705,
-    "ast_hash": "7ffe85ca5c0e398185054febf23eb570",
+    "mtime": 1788645154.8045087,
+    "seen": 1788645210.754337,
+    "ast_hash": "7e1f11a6bd8187bad61f0ca5ad282067",
     "semantic_hash": ""
   },
   "server/src/routes/scheduleRoutes.js": {
-    "mtime": 1788585163.6993465,
-    "seen": 1788607875.0265436,
-    "ast_hash": "fe68b8328becc4e22718e8b0ff9547bd",
+    "mtime": 1788645151.692436,
+    "seen": 1788645210.754337,
+    "ast_hash": "40898b164e37f9c019e34793b0c0e9af",
     "semantic_hash": ""
   },
   "server/src/routes/timeOffRoutes.js": {
-    "mtime": 1788630853.3471136,
-    "seen": 1788644286.1362705,
-    "ast_hash": "d57d6ab94b9b81578cfbd061926689c6",
+    "mtime": 1788645171.728275,
+    "seen": 1788645210.754337,
+    "ast_hash": "1e642b752b863b3b4679f958ea902e9c",
     "semantic_hash": ""
   },
   "server/src/server.js": {
@@ -642,9 +642,9 @@
     "semantic_hash": ""
   },
   "server/src/routes/workingDaysRoutes.js": {
-    "mtime": 1788633908.5556483,
-    "seen": 1788644286.1362705,
-    "ast_hash": "091b188e07f2b311c9c89b602703f01c",
+    "mtime": 1788645174.7822688,
+    "seen": 1788645210.754337,
+    "ast_hash": "3e408bc3c2926a6d1f63988e5fb0ff11",
     "semantic_hash": ""
   },
   "server/src/services/holidayService.js": {
@@ -663,6 +663,24 @@
     "mtime": 1788642852.935933,
     "seen": 1788644286.1362705,
     "ast_hash": "6c9b1da8a34011ea857a8716208ec399",
+    "semantic_hash": ""
+  },
+  "prisma/seed.ts": {
+    "mtime": 1788644706.1579192,
+    "seen": 1788644734.1368701,
+    "ast_hash": "2db091155b4cbedcb9386ce30006e0ce",
+    "semantic_hash": ""
+  },
+  "server/src/config/redis.js": {
+    "mtime": 1788645141.3221192,
+    "seen": 1788645210.7528315,
+    "ast_hash": "7247a56bbf2f854172931369d638481c",
+    "semantic_hash": ""
+  },
+  "server/src/middleware/redisCache.js": {
+    "mtime": 1788645144.325833,
+    "seen": 1788645210.754337,
+    "ast_hash": "9ead3c38f042231d161527941ca01b3b",
     "semantic_hash": ""
   }
 }

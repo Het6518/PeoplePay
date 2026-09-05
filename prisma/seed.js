@@ -1,9 +1,20 @@
 /**
- * PeoplePay360 Database Seed
- *
- * Creates realistic demo data for all modules.
- * Demonstrates: period-based contract detection, payroll calculation,
- * anomaly detection, leave management, and historical data for dashboard.
+ * PeoplePay360 Comprehensive Database Seed Script
+ * 
+ * Populates the database with ~300 realistic Indian employee profiles,
+ * working schedules, departments, salary structures, contracts, leave data,
+ * attendance, payruns, payslips, policies, holidays, and audit logs.
+ * 
+ * Demonstrates all platform features:
+ * - Period-based contract detection & multi-contract histories
+ * - Dynamic working days & dynamic monthly policy overrides
+ * - Paid/unpaid leave prorated salary calculations
+ * - Per-employee schedule-attributed attendance (Late, Overtime, Missing Checkout)
+ * - Strict-structure payslip calculation with fixed medical/transport allowances
+ * - Data integrity alerts (missing contracts, missing bank details, overrides, period adjustments)
+ * - Role-based access and dashboards (Admin, HR Payroll Manager, HR Payroll User, HR Manager, Employee)
+ * 
+ * Idempotent execution: run directly via `node prisma/seed.js` or `npm run db:seed`.
  */
 
 const { PrismaClient } = require('@prisma/client');
@@ -13,44 +24,83 @@ require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
 
 const prisma = new PrismaClient();
 
-const HASH_ROUNDS = 12;
-
-async function hashPassword(password) {
-  return bcrypt.hash(password, HASH_ROUNDS);
-}
-
+// Helper: Seeded deterministic PRNG for reproducible runs if needed
 function randomBetween(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Returns a date within the given month
-function dateInMonth(year, month, day) {
-  return new Date(year, month - 1, day);
+function randomItem(array) {
+  return array[Math.floor(Math.random() * array.length)];
 }
 
-// Working days in a month (approximate)
-function workingDaysInMonth(year, month) {
-  const start = new Date(year, month - 1, 1);
-  const end = new Date(year, month, 0);
-  let count = 0;
-  const current = new Date(start);
-  while (current <= end) {
-    const dow = current.getDay();
-    if (dow !== 0 && dow !== 6) count++;
-    current.setDate(current.getDate() + 1);
+// Data Pools for 300 Indian Employees
+const FIRST_NAMES_MALE = [
+  'Aarav', 'Vivaan', 'Aditya', 'Vihaan', 'Arjun', 'Sai', 'Reyansh', 'Ayan', 'Krishna', 'Ishan',
+  'Shaurya', 'Atharva', 'Advait', 'Pranav', 'Adhiraj', 'Kabir', 'Yash', 'Dev', 'Dhruv', 'Kian',
+  'Rudra', 'Om', 'Samarth', 'Manan', 'Parth', 'Rishi', 'Ayush', 'Het', 'Ansh', 'Madhav',
+  'Siddharth', 'Tejas', 'Shivam', 'Utkarsh', 'Jay', 'Kunal', 'Neeraj', 'Karan', 'Vikas', 'Sameer',
+  'Alok', 'Amit', 'Rahul', 'Deepak', 'Suresh', 'Rajesh', 'Vijay', 'Sanjay', 'Prakash', 'Rakesh',
+  'Manish', 'Tarun', 'Nikhil', 'Gaurav', 'Abhishek', 'Varun', 'Rohan', 'Karthik', 'Siddhesh', 'Girish'
+];
+
+const FIRST_NAMES_FEMALE = [
+  'Aadhya', 'Ananya', 'Pari', 'Anika', 'Navya', 'Diya', 'Avani', 'Saisha', 'Myra', 'Ira',
+  'Prisha', 'Riya', 'Anvi', 'Anya', 'Ishita', 'Sara', 'Kavya', 'Aditi', 'Tanvi', 'Aarohi',
+  'Deepa', 'Pooja', 'Meera', 'Priya', 'Sneha', 'Ritu', 'Divya', 'Neha', 'Swati', 'Archana',
+  'Sunita', 'Vandana', 'Suman', 'Sunaina', 'Shalini', 'Mansi', 'Payal', 'Sonam', 'Priyanka', 'Anjali',
+  'Shruti', 'Radhika', 'Preeti', 'Shreya', 'Chetna', 'Reena', 'Richa', 'Nisha', 'Smita', 'Nandini',
+  'Krutika', 'Harini', 'Leela', 'Bhavna', 'Rashmi', 'Sangeeta', 'Komal', 'Tanya', 'Akanksha', 'Simran'
+];
+
+const LAST_NAMES = [
+  'Patel', 'Sharma', 'Kumar', 'Singh', 'Shah', 'Verma', 'Gupta', 'Mehta', 'Joshi', 'Rao',
+  'Reddy', 'Nair', 'Pillai', 'Zadafiya', 'Iyer', 'Deshmukh', 'Kulkarni', 'Banerjee', 'Chatterjee', 'Das',
+  'Mukherjee', 'Sengupta', 'Trivedi', 'Bhat', 'Bhatia', 'Agarwal', 'Bansal', 'Garg', 'Saxena', 'Srivastava',
+  'Kapoor', 'Khanna', 'Malhotra', 'Puri', 'Chopra', 'Dhawan', 'Sethi', 'Gill', 'Sidhu', 'Sandhu',
+  'Dhillon', 'Grewal', 'Mann', 'Wadhwa', 'Ahuja', 'Lamba', 'Chawla', 'Juneja', 'Anand', 'Bhasin',
+  'Oberoi', 'Suri', 'Tandon', 'Mittal', 'Goel', 'Jindal', 'Singhal', 'Rastogi', 'Pandey', 'Mishra'
+];
+
+const BANK_NAMES = [
+  'HDFC Bank', 'State Bank of India', 'ICICI Bank', 'Axis Bank', 'Kotak Mahindra Bank',
+  'IndusInd Bank', 'Bank of Baroda', 'Punjab National Bank', 'Canara Bank', 'YES Bank'
+];
+
+const JOB_POSITIONS_BY_DEPT = {
+  'Finance': ['Chief Financial Officer', 'Finance Manager', 'Senior Accountant', 'Payroll Specialist', 'Financial Analyst', 'Tax Associate', 'Accounts Executive'],
+  'Human Resources': ['HR Director', 'HR Manager', 'Talent Acquisition Lead', 'HR Payroll Specialist', 'HR Executive', 'HR Coordinator'],
+  'Engineering': ['VP of Engineering', 'Engineering Manager', 'Principal Architect', 'Senior Software Engineer', 'Full Stack Developer', 'DevOps Engineer', 'QA Automation Engineer', 'Frontend Engineer', 'Backend Developer'],
+  'Sales': ['VP of Sales', 'Sales Manager', 'Enterprise Account Executive', 'Business Development Manager', 'Sales Operations Analyst', 'Inside Sales Rep'],
+  'Marketing': ['Chief Marketing Officer', 'Marketing Manager', 'Content Strategist', 'SEO Specialist', 'Performance Marketer', 'Graphic Designer'],
+  'Operations': ['VP of Operations', 'Operations Manager', 'Supply Chain Analyst', 'Process Lead', 'Operations Associate'],
+  'Customer Support': ['Support Manager', 'Customer Success Lead', 'Technical Support Specialist', 'Customer Care Executive'],
+  'Legal': ['General Counsel', 'Legal Manager', 'Compliance Officer', 'Legal Associate'],
+  'IT': ['IT Director', 'Infrastructure Manager', 'Systems Administrator', 'Network Engineer', 'IT Helpdesk Specialist'],
+  'Admin': ['Administration Head', 'Facility Manager', 'Office Administrator', 'Executive Assistant']
+};
+
+async function main() {
+  console.log('============================================================');
+  console.log('🚀 PeoplePay360 Seed Script — Enterprise Demo Dataset Generator');
+  console.log('============================================================\n');
+
+  // Check if force flag is passed
+  const isForce = process.argv.includes('--force');
+  const existingEmployees = await prisma.employee.count();
+
+  if (existingEmployees > 0 && !isForce) {
+    console.log(`ℹ️  Found ${existingEmployees} existing employees in database.`);
+    console.log('   Re-clearing and reseeding database to ensure clean, consistent state...\n');
   }
-  return count;
-}
 
-async function seed() {
-  console.log('🌱 Starting PeoplePay360 seed...\n');
-
-  // ============================================================
-  // CLEANUP (order matters due to FK constraints)
-  // ============================================================
+  // ------------------------------------------------------------
+  // CLEANUP (Order handles Foreign Key constraints)
+  // ------------------------------------------------------------
   console.log('🧹 Cleaning existing data...');
-  await prisma.attendanceLocationAudit.deleteMany();
-  await prisma.attendanceLocation.deleteMany();
+  await prisma.auditLog.deleteMany();
+  await prisma.companyHoliday.deleteMany();
+  await prisma.holidaySuggestion.deleteMany();
+  await prisma.workingDaysPolicy.deleteMany();
   await prisma.payslipLine.deleteMany();
   await prisma.payslip.deleteMany();
   await prisma.payrun.deleteMany();
@@ -62,997 +112,1084 @@ async function seed() {
   await prisma.attendance.deleteMany();
   await prisma.contract.deleteMany();
   await prisma.employee.deleteMany();
+  await prisma.attendanceLocationAudit.deleteMany();
+  await prisma.attendanceLocation.deleteMany();
   await prisma.user.deleteMany();
   await prisma.department.deleteMany();
   await prisma.workingScheduleDay.deleteMany();
   await prisma.workingSchedule.deleteMany();
   console.log('✅ Cleanup complete\n');
 
-  // ============================================================
-  // ATTENDANCE LOCATIONS
-  // ============================================================
-  console.log('📍 Creating geofenced attendance locations...');
-  const headOffice = await prisma.attendanceLocation.create({
-    data: {
-      name: 'Head Office',
-      latitude: 23.0225,
-      longitude: 72.5714,
-      radiusMeters: 500,
-      isActive: true,
-    },
-  });
+  const defaultPasswordHash = await bcrypt.hash('Password123!', 10);
 
-  const branchOffice = await prisma.attendanceLocation.create({
-    data: {
-      name: 'Branch Office',
-      latitude: 19.0760,
-      longitude: 72.8777,
-      radiusMeters: 300,
-      isActive: true,
-    },
-  });
-  console.log('✅ 2 attendance locations created\n');
-
-  // ============================================================
-  // DEPARTMENTS
-  // ============================================================
-  console.log('📁 Creating departments...');
-  const [engDept, financeDept, hrDept, salesDept] = await Promise.all([
-    prisma.department.create({ data: { name: 'Engineering', description: 'Software development and architecture' } }),
-    prisma.department.create({ data: { name: 'Finance', description: 'Financial planning and accounting' } }),
-    prisma.department.create({ data: { name: 'Human Resources', description: 'HR operations and people management' } }),
-    prisma.department.create({ data: { name: 'Sales', description: 'Revenue generation and customer success' } }),
-  ]);
-  console.log('✅ 4 departments created\n');
-
-  // ============================================================
-  // WORKING SCHEDULES
-  // ============================================================
-  console.log('📅 Creating working schedules...');
-  const stdScheduleDays = [
-    { dayOfWeek: 1, startTime: '09:00', endTime: '18:00', breakMinutes: 60, isWorkday: true },
-    { dayOfWeek: 2, startTime: '09:00', endTime: '18:00', breakMinutes: 60, isWorkday: true },
-    { dayOfWeek: 3, startTime: '09:00', endTime: '18:00', breakMinutes: 60, isWorkday: true },
-    { dayOfWeek: 4, startTime: '09:00', endTime: '18:00', breakMinutes: 60, isWorkday: true },
-    { dayOfWeek: 5, startTime: '09:00', endTime: '18:00', breakMinutes: 60, isWorkday: true },
-    { dayOfWeek: 6, startTime: "", endTime: "", breakMinutes: 0, isWorkday: false },
-    { dayOfWeek: 0, startTime: "", endTime: "", breakMinutes: 0, isWorkday: false },
+  // ------------------------------------------------------------
+  // 1. DEPARTMENTS (~10 records)
+  // ------------------------------------------------------------
+  console.log('📁 1/12 Seeding Departments...');
+  const departmentNames = [
+    { name: 'Finance', description: 'Financial planning, accounting, and payroll compliance' },
+    { name: 'Human Resources', description: 'People operations, talent acquisition, and employee welfare' },
+    { name: 'Engineering', description: 'Software engineering, cloud infrastructure, and product design' },
+    { name: 'Sales', description: 'Revenue generation, client partnerships, and account growth' },
+    { name: 'Marketing', description: 'Brand management, demand generation, and communications' },
+    { name: 'Operations', description: 'Business operations, logistics, and process excellence' },
+    { name: 'Customer Support', description: 'Customer success and technical assistance' },
+    { name: 'Legal', description: 'Legal compliance, risk management, and contracts' },
+    { name: 'IT', description: 'Internal IT infrastructure, security, and hardware management' },
+    { name: 'Admin', description: 'Office administration, facilities, and workplace services' },
   ];
 
-  const standardSchedule = await prisma.workingSchedule.create({
+  const departmentMap = {};
+  for (const dept of departmentNames) {
+    const created = await prisma.department.create({ data: dept });
+    departmentMap[dept.name] = created.id;
+  }
+  console.log(`✅ ${Object.keys(departmentMap).length} Departments created\n`);
+
+  // ------------------------------------------------------------
+  // 2. WORKING SCHEDULES (~4 records)
+  // ------------------------------------------------------------
+  console.log('📅 2/12 Seeding Working Schedules...');
+  
+  // Standard 9-6 (40h/wk)
+  const stdSchedule = await prisma.workingSchedule.create({
     data: {
-      name: 'Standard 40hr/week',
+      name: 'Standard 9-6',
       type: 'FIXED',
       weeklyHours: 40,
-      days: { create: stdScheduleDays },
-    },
+      isActive: true,
+      days: {
+        create: [
+          { dayOfWeek: 1, startTime: '09:00', endTime: '18:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 2, startTime: '09:00', endTime: '18:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 3, startTime: '09:00', endTime: '18:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 4, startTime: '09:00', endTime: '18:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 5, startTime: '09:00', endTime: '18:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 6, startTime: '', endTime: '', breakMinutes: 0, isWorkday: false },
+          { dayOfWeek: 0, startTime: '', endTime: '', breakMinutes: 0, isWorkday: false },
+        ]
+      }
+    }
   });
 
-  const flexScheduleDays = [
-    { dayOfWeek: 1, startTime: '08:00', endTime: '17:00', breakMinutes: 30, isWorkday: true },
-    { dayOfWeek: 2, startTime: '08:00', endTime: '17:00', breakMinutes: 30, isWorkday: true },
-    { dayOfWeek: 3, startTime: '08:00', endTime: '17:00', breakMinutes: 30, isWorkday: true },
-    { dayOfWeek: 4, startTime: '08:00', endTime: '17:00', breakMinutes: 30, isWorkday: true },
-    { dayOfWeek: 5, startTime: '08:00', endTime: '14:00', breakMinutes: 0, isWorkday: true },
-    { dayOfWeek: 6, startTime: "", endTime: "", breakMinutes: 0, isWorkday: false },
-    { dayOfWeek: 0, startTime: "", endTime: "", breakMinutes: 0, isWorkday: false },
-  ];
+  // Early Shift 8-5 (40h/wk)
+  const earlySchedule = await prisma.workingSchedule.create({
+    data: {
+      name: 'Early Shift',
+      type: 'FIXED',
+      weeklyHours: 40,
+      isActive: true,
+      days: {
+        create: [
+          { dayOfWeek: 1, startTime: '08:00', endTime: '17:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 2, startTime: '08:00', endTime: '17:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 3, startTime: '08:00', endTime: '17:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 4, startTime: '08:00', endTime: '17:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 5, startTime: '08:00', endTime: '17:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 6, startTime: '', endTime: '', breakMinutes: 0, isWorkday: false },
+          { dayOfWeek: 0, startTime: '', endTime: '', breakMinutes: 0, isWorkday: false },
+        ]
+      }
+    }
+  });
 
+  // Flexible Hours (40h/wk)
   const flexSchedule = await prisma.workingSchedule.create({
     data: {
-      name: 'Flexible 37.5hr/week',
+      name: 'Flexible Hours',
       type: 'FLEXIBLE',
-      weeklyHours: 37.5,
-      days: { create: flexScheduleDays },
-    },
-  });
-  console.log('✅ 2 schedules created\n');
-
-  // ============================================================
-  // SALARY STRUCTURES & RULES
-  // ============================================================
-  console.log('💰 Creating salary structures and rules...');
-
-  const regularStructure = await prisma.salaryStructure.create({
-    data: {
-      name: 'Regular Salary',
-      description: 'Standard monthly salary structure for all full-time employees',
+      weeklyHours: 40,
       isActive: true,
-    },
+      days: {
+        create: [
+          { dayOfWeek: 1, startTime: '09:30', endTime: '18:00', breakMinutes: 30, isWorkday: true },
+          { dayOfWeek: 2, startTime: '09:30', endTime: '18:00', breakMinutes: 30, isWorkday: true },
+          { dayOfWeek: 3, startTime: '09:30', endTime: '18:00', breakMinutes: 30, isWorkday: true },
+          { dayOfWeek: 4, startTime: '09:30', endTime: '18:00', breakMinutes: 30, isWorkday: true },
+          { dayOfWeek: 5, startTime: '09:30', endTime: '18:00', breakMinutes: 30, isWorkday: true },
+          { dayOfWeek: 6, startTime: '', endTime: '', breakMinutes: 0, isWorkday: false },
+          { dayOfWeek: 0, startTime: '', endTime: '', breakMinutes: 0, isWorkday: false },
+        ]
+      }
+    }
   });
 
-  // Rules: ordered by sequence, execute one by one
-  // BASIC: prorated from contract wage (handled by engine when category=BASIC and type=FIXED)
-  // HRA: 20% of BASIC
-  // TRANSPORT: fixed ₹2,000
-  // SPECIAL_ALLOWANCE: 10% of BASIC
-  // GROSS: BASIC + HRA + TRANSPORT + SPECIAL_ALLOWANCE
-  // PF: 12% of BASIC
-  // PT: Professional Tax ₹200
-  // TDS: 10% of (GROSS - 50000*12) / 12 — simplified as formula
-  // NET: GROSS - PF - PT - TDS
-
-  const regularRules = [
-    {
-      name: 'Basic Salary',
-      code: 'BASIC',
-      category: 'BASIC',
-      sequence: 1,
-      computationType: 'FIXED',
-      fixedAmount: 0, // Engine uses contract.wage prorated
-      description: 'Basic salary prorated from contract wage based on worked days',
-    },
-    {
-      name: 'House Rent Allowance',
-      code: 'HRA',
-      category: 'ALLOWANCE',
-      sequence: 2,
-      computationType: 'PERCENTAGE',
-      percentage: 20,
-      percentageBase: 'BASIC',
-      description: '20% of Basic Salary',
-    },
-    {
-      name: 'Transport Allowance',
-      code: 'TRANSPORT',
-      category: 'ALLOWANCE',
-      sequence: 3,
-      computationType: 'FIXED',
-      fixedAmount: 2000,
-      description: 'Fixed monthly transport allowance',
-    },
-    {
-      name: 'Special Allowance',
-      code: 'SPECIAL',
-      category: 'ALLOWANCE',
-      sequence: 4,
-      computationType: 'PERCENTAGE',
-      percentage: 10,
-      percentageBase: 'BASIC',
-      description: '10% of Basic Salary',
-    },
-    {
-      name: 'Gross Salary',
-      code: 'GROSS',
-      category: 'GROSS',
-      sequence: 5,
-      computationType: 'FORMULA',
-      formula: 'BASIC + HRA + TRANSPORT + SPECIAL',
-      description: 'Total of all earnings',
-    },
-    {
-      name: 'Provident Fund',
-      code: 'PF',
-      category: 'DEDUCTION',
-      sequence: 6,
-      computationType: 'PERCENTAGE',
-      percentage: 12,
-      percentageBase: 'BASIC',
-      description: "Employee's PF contribution (12% of Basic)",
-    },
-    {
-      name: 'Professional Tax',
-      code: 'PT',
-      category: 'DEDUCTION',
-      sequence: 7,
-      computationType: 'FIXED',
-      fixedAmount: 200,
-      description: 'Professional tax as per state law',
-    },
-    {
-      name: 'Income Tax (TDS)',
-      code: 'TDS',
-      category: 'DEDUCTION',
-      sequence: 8,
-      computationType: 'FORMULA',
-      formula: 'GROSS * 0.1 - 4166.67', // Simplified: ~10% tax with basic exemption
-      description: 'Monthly TDS based on annual income tax slab (simplified)',
-    },
-    {
-      name: 'Net Salary',
-      code: 'NET',
-      category: 'NET',
-      sequence: 9,
-      computationType: 'FORMULA',
-      formula: 'GROSS - PF - PT - TDS',
-      description: 'Take-home pay after all deductions',
-    },
-  ];
-
-  await prisma.salaryRule.createMany({
-    data: regularRules.map((r) => ({
-      ...r,
-      salaryStructureId: regularStructure.id,
-    })),
-  });
-
-  // Executive structure for senior employees
-  const execStructure = await prisma.salaryStructure.create({
+  // Rotational Shift A/B (6-day week: Mon-Sat, 42h/wk)
+  const shiftSchedule = await prisma.workingSchedule.create({
     data: {
-      name: 'Executive Salary',
-      description: 'Enhanced salary structure for senior management',
+      name: 'Rotational Shift A/B',
+      type: 'SHIFT',
+      weeklyHours: 42,
       isActive: true,
-    },
+      days: {
+        create: [
+          { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 2, startTime: '09:00', endTime: '17:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 3, startTime: '09:00', endTime: '17:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 4, startTime: '09:00', endTime: '17:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 5, startTime: '09:00', endTime: '17:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 6, startTime: '09:00', endTime: '16:00', breakMinutes: 60, isWorkday: true },
+          { dayOfWeek: 0, startTime: '', endTime: '', breakMinutes: 0, isWorkday: false },
+        ]
+      }
+    }
   });
 
-  await prisma.salaryRule.createMany({
-    data: [
-      { name: 'Basic Salary', code: 'BASIC', category: 'BASIC', sequence: 1, computationType: 'FIXED', fixedAmount: 0 },
-      { name: 'HRA', code: 'HRA', category: 'ALLOWANCE', sequence: 2, computationType: 'PERCENTAGE', percentage: 25, percentageBase: 'BASIC' },
-      { name: 'Transport', code: 'TRANSPORT', category: 'ALLOWANCE', sequence: 3, computationType: 'FIXED', fixedAmount: 5000 },
-      { name: 'Medical Allowance', code: 'MEDICAL', category: 'ALLOWANCE', sequence: 4, computationType: 'FIXED', fixedAmount: 2500 },
-      { name: 'Performance Bonus', code: 'BONUS', category: 'ALLOWANCE', sequence: 5, computationType: 'PERCENTAGE', percentage: 15, percentageBase: 'BASIC' },
-      { name: 'Gross Salary', code: 'GROSS', category: 'GROSS', sequence: 6, computationType: 'FORMULA', formula: 'BASIC + HRA + TRANSPORT + MEDICAL + BONUS' },
-      { name: 'PF', code: 'PF', category: 'DEDUCTION', sequence: 7, computationType: 'PERCENTAGE', percentage: 12, percentageBase: 'BASIC' },
-      { name: 'Professional Tax', code: 'PT', category: 'DEDUCTION', sequence: 8, computationType: 'FIXED', fixedAmount: 200 },
-      { name: 'TDS', code: 'TDS', category: 'DEDUCTION', sequence: 9, computationType: 'FORMULA', formula: 'GROSS * 0.15 - 4166.67' },
-      { name: 'Net Salary', code: 'NET', category: 'NET', sequence: 10, computationType: 'FORMULA', formula: 'GROSS - PF - PT - TDS' },
-    ].map((r) => ({ ...r, salaryStructureId: execStructure.id })),
+  const schedules = [stdSchedule, earlySchedule, flexSchedule, shiftSchedule];
+  console.log(`✅ ${schedules.length} Working Schedules created with day mappings\n`);
+
+  // ------------------------------------------------------------
+  // ATTENDANCE LOCATIONS
+  // ------------------------------------------------------------
+  const headOfficeLoc = await prisma.attendanceLocation.create({
+    data: { name: 'Head Office (Ahmedabad)', latitude: 23.0225, longitude: 72.5714, radiusMeters: 500, isActive: true }
+  });
+  const branchOfficeLoc = await prisma.attendanceLocation.create({
+    data: { name: 'Branch Office (Mumbai)', latitude: 19.0760, longitude: 72.8777, radiusMeters: 300, isActive: true }
+  });
+  const techParkLoc = await prisma.attendanceLocation.create({
+    data: { name: 'Tech Park (Bengaluru)', latitude: 12.9716, longitude: 77.5946, radiusMeters: 400, isActive: true }
   });
 
-  console.log('✅ 2 salary structures + 19 rules created\n');
+  // ------------------------------------------------------------
+  // 3. SALARY STRUCTURES & RULES (4 structures)
+  // ------------------------------------------------------------
+  console.log('💰 3/12 Seeding Salary Structures & Rules...');
 
-  // ============================================================
-  // DEMO USERS (5 roles)
-  // ============================================================
-  console.log('👤 Creating demo users...');
+  // 1. Junior Staff Structure
+  const juniorStruct = await prisma.salaryStructure.create({
+    data: {
+      name: 'Junior Staff Structure',
+      description: 'Standard pay structure for entry-level and junior employees',
+      isActive: true,
+      rules: {
+        create: [
+          { name: 'Basic Salary', code: 'BASIC', category: 'BASIC', sequence: 1, computationType: 'FIXED', fixedAmount: 0, description: 'Basic wage prorated from contract' },
+          { name: 'House Rent Allowance', code: 'HRA', category: 'ALLOWANCE', sequence: 2, computationType: 'PERCENTAGE', percentage: 40, percentageBase: 'BASIC', description: '40% of Basic Salary' },
+          { name: 'Transport Allowance', code: 'TRANSPORT', category: 'ALLOWANCE', sequence: 3, computationType: 'FIXED', fixedAmount: 1600, description: 'Flat monthly transport allowance' },
+          { name: 'Medical Allowance', code: 'MEDICAL', category: 'ALLOWANCE', sequence: 4, computationType: 'FIXED', fixedAmount: 1250, description: 'Flat monthly medical allowance' },
+          { name: 'Gross Salary', code: 'GROSS', category: 'GROSS', sequence: 5, computationType: 'FORMULA', formula: 'BASIC + HRA + TRANSPORT + MEDICAL', description: 'Total gross earnings' },
+          { name: 'Provident Fund', code: 'PF', category: 'DEDUCTION', sequence: 6, computationType: 'PERCENTAGE', percentage: 12, percentageBase: 'BASIC', description: '12% of Basic PF contribution' },
+          { name: 'Professional Tax', code: 'PT', category: 'DEDUCTION', sequence: 7, computationType: 'FIXED', fixedAmount: 200, description: 'Standard professional tax' },
+          { name: 'Net Salary', code: 'NET', category: 'NET', sequence: 8, computationType: 'FORMULA', formula: 'GROSS - PF - PT', description: 'Take-home net salary' },
+        ]
+      }
+    }
+  });
 
-  const userCredentials = [
-    { email: 'admin@peoplepay360.com', password: 'Admin@123', role: 'ADMIN' },
-    { email: 'payrollmanager@peoplepay360.com', password: 'Pmgr@1234', role: 'HR_PAYROLL_MANAGER' },
-    { email: 'payrolluser@peoplepay360.com', password: 'Pay@12345', role: 'HR_PAYROLL_USER' },
-    { email: 'hr@peoplepay360.com', password: 'Hr@123456', role: 'HR_MANAGER' },
-    { email: 'employee@peoplepay360.com', password: 'Emp@12345', role: 'EMPLOYEE' },
+  // 2. Mid-Level Structure
+  const midStruct = await prisma.salaryStructure.create({
+    data: {
+      name: 'Mid-Level Structure',
+      description: 'Structure for mid-level professionals and team leads',
+      isActive: true,
+      rules: {
+        create: [
+          { name: 'Basic Salary', code: 'BASIC', category: 'BASIC', sequence: 1, computationType: 'FIXED', fixedAmount: 0, description: 'Basic wage prorated from contract' },
+          { name: 'House Rent Allowance', code: 'HRA', category: 'ALLOWANCE', sequence: 2, computationType: 'PERCENTAGE', percentage: 50, percentageBase: 'BASIC', description: '50% of Basic Salary' },
+          { name: 'Transport Allowance', code: 'TRANSPORT', category: 'ALLOWANCE', sequence: 3, computationType: 'FIXED', fixedAmount: 2000, description: 'Flat monthly transport allowance' },
+          { name: 'Medical Allowance', code: 'MEDICAL', category: 'ALLOWANCE', sequence: 4, computationType: 'FIXED', fixedAmount: 2000, description: 'Flat monthly medical allowance' },
+          { name: 'Special Allowance', code: 'SPECIAL', category: 'ALLOWANCE', sequence: 5, computationType: 'PERCENTAGE', percentage: 15, percentageBase: 'BASIC', description: '15% Special allowance' },
+          { name: 'Gross Salary', code: 'GROSS', category: 'GROSS', sequence: 6, computationType: 'FORMULA', formula: 'BASIC + HRA + TRANSPORT + MEDICAL + SPECIAL', description: 'Total gross earnings' },
+          { name: 'Provident Fund', code: 'PF', category: 'DEDUCTION', sequence: 7, computationType: 'PERCENTAGE', percentage: 12, percentageBase: 'BASIC', description: '12% of Basic PF contribution' },
+          { name: 'Professional Tax', code: 'PT', category: 'DEDUCTION', sequence: 8, computationType: 'FIXED', fixedAmount: 200, description: 'Standard professional tax' },
+          { name: 'Income Tax (TDS)', code: 'TDS', category: 'DEDUCTION', sequence: 9, computationType: 'FORMULA', formula: 'GROSS * 0.1 - 2500', description: 'Estimated monthly TDS deduction' },
+          { name: 'Net Salary', code: 'NET', category: 'NET', sequence: 10, computationType: 'FORMULA', formula: 'GROSS - PF - PT - TDS', description: 'Take-home net salary' },
+        ]
+      }
+    }
+  });
+
+  // 3. Senior/Manager Structure
+  const seniorStruct = await prisma.salaryStructure.create({
+    data: {
+      name: 'Senior/Manager Structure',
+      description: 'Executive structure for managers, leads, and senior directors',
+      isActive: true,
+      rules: {
+        create: [
+          { name: 'Basic Salary', code: 'BASIC', category: 'BASIC', sequence: 1, computationType: 'FIXED', fixedAmount: 0, description: 'Basic wage prorated from contract' },
+          { name: 'House Rent Allowance', code: 'HRA', category: 'ALLOWANCE', sequence: 2, computationType: 'PERCENTAGE', percentage: 50, percentageBase: 'BASIC', description: '50% of Basic Salary' },
+          { name: 'Transport Allowance', code: 'TRANSPORT', category: 'ALLOWANCE', sequence: 3, computationType: 'FIXED', fixedAmount: 3000, description: 'Flat monthly transport allowance' },
+          { name: 'Medical Allowance', code: 'MEDICAL', category: 'ALLOWANCE', sequence: 4, computationType: 'FIXED', fixedAmount: 3000, description: 'Flat monthly medical allowance' },
+          { name: 'Performance Allowance', code: 'PERFORMANCE', category: 'ALLOWANCE', sequence: 5, computationType: 'PERCENTAGE', percentage: 20, percentageBase: 'BASIC', description: '20% Performance bonus' },
+          { name: 'Special Allowance', code: 'SPECIAL', category: 'ALLOWANCE', sequence: 6, computationType: 'PERCENTAGE', percentage: 15, percentageBase: 'BASIC', description: '15% Special allowance' },
+          { name: 'Gross Salary', code: 'GROSS', category: 'GROSS', sequence: 7, computationType: 'FORMULA', formula: 'BASIC + HRA + TRANSPORT + MEDICAL + PERFORMANCE + SPECIAL', description: 'Total gross earnings' },
+          { name: 'Provident Fund', code: 'PF', category: 'DEDUCTION', sequence: 8, computationType: 'PERCENTAGE', percentage: 12, percentageBase: 'BASIC', description: '12% of Basic PF contribution' },
+          { name: 'Professional Tax', code: 'PT', category: 'DEDUCTION', sequence: 9, computationType: 'FIXED', fixedAmount: 200, description: 'Standard professional tax' },
+          { name: 'Income Tax (TDS)', code: 'TDS', category: 'DEDUCTION', sequence: 10, computationType: 'FORMULA', formula: 'GROSS * 0.15 - 4000', description: 'TDS deduction for executive slab' },
+          { name: 'Net Salary', code: 'NET', category: 'NET', sequence: 11, computationType: 'FORMULA', formula: 'GROSS - PF - PT - TDS', description: 'Take-home net salary' },
+        ]
+      }
+    }
+  });
+
+  // 4. Het ki start up (Exact name preserved)
+  const startupStruct = await prisma.salaryStructure.create({
+    data: {
+      name: 'Het ki start up',
+      description: 'Streamlined startup salary structure with flat allowances and clean rules',
+      isActive: true,
+      rules: {
+        create: [
+          { name: 'Basic Salary', code: 'BASIC', category: 'BASIC', sequence: 1, computationType: 'FIXED', fixedAmount: 0, description: 'Basic wage prorated from contract' },
+          { name: 'House Rent Allowance', code: 'HRA', category: 'ALLOWANCE', sequence: 2, computationType: 'PERCENTAGE', percentage: 40, percentageBase: 'BASIC', description: '40% HRA' },
+          { name: 'Transport Allowance', code: 'TRANSPORT', category: 'ALLOWANCE', sequence: 3, computationType: 'FIXED', fixedAmount: 1500, description: 'Flat transport allowance' },
+          { name: 'Gross Salary', code: 'GROSS', category: 'GROSS', sequence: 4, computationType: 'FORMULA', formula: 'BASIC + HRA + TRANSPORT', description: 'Total gross earnings' },
+          { name: 'Provident Fund', code: 'PF', category: 'DEDUCTION', sequence: 5, computationType: 'PERCENTAGE', percentage: 12, percentageBase: 'BASIC', description: '12% PF contribution' },
+          { name: 'Professional Tax', code: 'PT', category: 'DEDUCTION', sequence: 6, computationType: 'FIXED', fixedAmount: 200, description: 'Professional tax' },
+          { name: 'Net Salary', code: 'NET', category: 'NET', sequence: 7, computationType: 'FORMULA', formula: 'GROSS - PF - PT', description: 'Take-home net salary' },
+        ]
+      }
+    }
+  });
+
+  console.log('✅ 4 Salary Structures & 36 Salary Rules created\n');
+
+  // ------------------------------------------------------------
+  // 4. EMPLOYEES & USERS (~300 records)
+  // ------------------------------------------------------------
+  console.log('👥 4/12 Seeding ~300 Employees and Linked Users...');
+
+  const TOTAL_EMPLOYEES = 300;
+  const deptList = Object.keys(departmentMap);
+
+  // Dedicated credentials array for key demo accounts
+  const demoAccounts = [
+    { email: 'admin@peoplepay360.com', role: 'ADMIN', code: 'EMP001', first: 'Priya', last: 'Sharma', dept: 'Human Resources', pos: 'HR Director' },
+    { email: 'payrollmanager@peoplepay360.com', role: 'HR_PAYROLL_MANAGER', code: 'EMP002', first: 'Rajesh', last: 'Kumar', dept: 'Finance', pos: 'Payroll Manager' },
+    { email: 'payrolluser@peoplepay360.com', role: 'HR_PAYROLL_USER', code: 'EMP003', first: 'Nisha', last: 'Bhatt', dept: 'Finance', pos: 'Payroll Specialist' },
+    { email: 'hr@peoplepay360.com', role: 'HR_MANAGER', code: 'EMP004', first: 'Deepa', last: 'Pillai', dept: 'Human Resources', pos: 'HR Manager' },
+    { email: 'employee@peoplepay360.com', role: 'EMPLOYEE', code: 'EMP005', first: 'Het', last: 'Zadafiya', dept: 'Engineering', pos: 'Senior Software Engineer' },
   ];
 
-  const users = {};
-  for (const cred of userCredentials) {
-    users[cred.role] = await prisma.user.create({
+  // Role distribution targets: 3 Admin, 5 HR Payroll Mgr, 7 HR Payroll User, 15 HR Manager, 270 Employee
+  const rolePool = [
+    ...Array(2).fill('ADMIN'),
+    ...Array(4).fill('HR_PAYROLL_MANAGER'),
+    ...Array(6).fill('HR_PAYROLL_USER'),
+    ...Array(14).fill('HR_MANAGER'),
+    ...Array(269).fill('EMPLOYEE')
+  ];
+
+  const seededEmployees = [];
+  const deptManagers = {}; // track manager IDs by dept
+
+  for (let i = 1; i <= TOTAL_EMPLOYEES; i++) {
+    const code = `EMP${String(i).padStart(3, '0')}`;
+    let email, role, firstName, lastName, deptName, position;
+
+    const demo = demoAccounts.find(d => d.code === code);
+    if (demo) {
+      email = demo.email;
+      role = demo.role;
+      firstName = demo.first;
+      lastName = demo.last;
+      deptName = demo.dept;
+      position = demo.pos;
+    } else {
+      const isMale = i % 2 === 0;
+      firstName = isMale ? randomItem(FIRST_NAMES_MALE) : randomItem(FIRST_NAMES_FEMALE);
+      lastName = randomItem(LAST_NAMES);
+      email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@peoplepay360.com`;
+      role = rolePool[i - 6] || 'EMPLOYEE';
+      deptName = deptList[(i - 1) % deptList.length];
+      const positions = JOB_POSITIONS_BY_DEPT[deptName] || ['Associate'];
+      position = positions[i % positions.length];
+    }
+
+    const deptId = departmentMap[deptName];
+
+    // Status: 90% ACTIVE, 7% INACTIVE, 3% TERMINATED
+    let status = 'ACTIVE';
+    if (i > 270 && i <= 291) status = 'INACTIVE';
+    if (i > 291) status = 'TERMINATED';
+
+    // Type: 85% FULL_TIME, 10% PART_TIME, 5% CONTRACT
+    let employeeType = 'FULL_TIME';
+    if (i % 10 === 0) employeeType = 'PART_TIME';
+    if (i % 20 === 0) employeeType = 'CONTRACT';
+
+    // Joining date spread across 1-8 years ago
+    const yearsAgo = randomBetween(1, 8);
+    const month = randomBetween(0, 11);
+    const day = randomBetween(1, 28);
+    const joiningDate = new Date(Date.now() - yearsAgo * 365 * 86400000 + month * 30 * 86400000 + day * 86400000);
+    const dob = new Date(joiningDate.getFullYear() - randomBetween(22, 50), month, day);
+
+    // Bank details: 85% populated, 15% deliberately blank (for warnings queue test)
+    const hasBankDetails = i % 7 !== 0; // ~15% blank
+    const bankAccountName = hasBankDetails ? `${firstName} ${lastName}` : null;
+    const bankAccountNumber = hasBankDetails ? `${randomBetween(10000000000, 99999999999)}` : null;
+    const bankName = hasBankDetails ? randomItem(BANK_NAMES) : null;
+    const panNumber = hasBankDetails ? `${lastName.slice(0, 3).toUpperCase()}${firstName.slice(0, 2).toUpperCase()}${randomBetween(1000, 9999)}P` : null;
+
+    // Manager assignment: first 2 employees in department become managers
+    let managerId = null;
+    if (!deptManagers[deptName]) {
+      deptManagers[deptName] = [];
+    }
+    if (deptManagers[deptName].length > 0 && status === 'ACTIVE') {
+      managerId = deptManagers[deptName][0];
+    }
+
+    // Schedule assignment
+    const scheduleId = schedules[(i - 1) % schedules.length].id;
+    const locationId = [headOfficeLoc.id, branchOfficeLoc.id, techParkLoc.id][i % 3];
+
+    // Create linked User
+    const user = await prisma.user.create({
       data: {
-        email: cred.email,
-        passwordHash: await hashPassword(cred.password),
-        role: cred.role,
-      },
+        email,
+        passwordHash: defaultPasswordHash,
+        role,
+        isActive: status !== 'TERMINATED',
+      }
     });
-  }
-  console.log('✅ 5 demo users created\n');
 
-  // ============================================================
-  // EMPLOYEES (15 employees across all departments)
-  // ============================================================
-  console.log('👥 Creating employees...');
-
-  // HR Manager employee (linked to hr user)
-  const hrManager = await prisma.employee.create({
-    data: {
-      employeeCode: 'EMP001',
-      firstName: 'Priya',
-      lastName: 'Sharma',
-      email: 'priya.sharma@peoplepay360.com',
-      phone: '+91-9876543210',
-      joiningDate: new Date('2022-01-15'),
-      departmentId: hrDept.id,
-      jobPosition: 'HR Manager',
-      employeeType: 'FULL_TIME',
-      status: 'ACTIVE',
-      userId: users['HR_MANAGER'].id,
-      workingScheduleId: standardSchedule.id,
-      bankAccountName: 'Priya Sharma',
-      bankAccountNumber: '1234567890',
-      bankName: 'HDFC Bank',
-      panNumber: 'ABCDE1234F',
-    },
-  });
-
-  // Payroll Manager
-  const payrollManager = await prisma.employee.create({
-    data: {
-      employeeCode: 'EMP002',
-      firstName: 'Rajesh',
-      lastName: 'Kumar',
-      email: 'rajesh.kumar@peoplepay360.com',
-      phone: '+91-9876543211',
-      joiningDate: new Date('2021-06-01'),
-      departmentId: financeDept.id,
-      jobPosition: 'Payroll Manager',
-      employeeType: 'FULL_TIME',
-      status: 'ACTIVE',
-      userId: users['HR_PAYROLL_MANAGER'].id,
-      workingScheduleId: standardSchedule.id,
-      bankAccountName: 'Rajesh Kumar',
-      bankAccountNumber: '2345678901',
-      bankName: 'SBI',
-      panNumber: 'FGHIJ5678K',
-    },
-  });
-
-  // KEY DEMO EMPLOYEE: Het Patel (contract change scenario)
-  const hetPatel = await prisma.employee.create({
-    data: {
-      employeeCode: 'EMP003',
-      firstName: 'Het',
-      lastName: 'Patel',
-      email: 'het.patel@peoplepay360.com',
-      phone: '+91-9876543212',
-      joiningDate: new Date('2025-01-01'),
-      departmentId: engDept.id,
-      jobPosition: 'Senior Software Engineer',
-      employeeType: 'FULL_TIME',
-      status: 'ACTIVE',
-      workingScheduleId: standardSchedule.id,
-      bankAccountName: 'Het Patel',
-      bankAccountNumber: '3456789012',
-      bankName: 'ICICI Bank',
-      panNumber: 'LMNOP9012Q',
-    },
-  });
-
-  // Employee user linked to a real employee
-  const empUser = await prisma.employee.create({
-    data: {
-      employeeCode: 'EMP004',
-      firstName: 'Ananya',
-      lastName: 'Singh',
-      email: 'employee@peoplepay360.com',
-      phone: '+91-9876543213',
-      joiningDate: new Date('2023-03-01'),
-      departmentId: salesDept.id,
-      jobPosition: 'Sales Executive',
-      employeeType: 'FULL_TIME',
-      status: 'ACTIVE',
-      userId: users['EMPLOYEE'].id,
-      workingScheduleId: standardSchedule.id,
-      bankAccountName: 'Ananya Singh',
-      bankAccountNumber: '4567890123',
-      bankName: 'Axis Bank',
-      panNumber: 'RSTUV3456W',
-    },
-  });
-
-  // Link admin user to an employee
-  await prisma.employee.create({
-    data: {
-      employeeCode: 'EMP005',
-      firstName: 'Admin',
-      lastName: 'User',
-      email: 'admin@peoplepay360.com',
-      phone: '+91-9000000001',
-      joiningDate: new Date('2020-01-01'),
-      departmentId: hrDept.id,
-      jobPosition: 'System Administrator',
-      employeeType: 'FULL_TIME',
-      status: 'ACTIVE',
-      userId: users['ADMIN'].id,
-      workingScheduleId: standardSchedule.id,
-      bankAccountName: 'Admin User',
-      bankAccountNumber: '9999999999',
-      bankName: 'HDFC Bank',
-      panNumber: 'ADMIN0000X',
-    },
-  });
-
-  // More employees
-  const engineeringEmployees = [
-    { code: 'EMP006', first: 'Arjun', last: 'Mehta', position: 'Software Engineer', email: 'arjun.mehta@peoplepay360.com' },
-    { code: 'EMP007', first: 'Kavitha', last: 'Reddy', position: 'QA Engineer', email: 'kavitha.reddy@peoplepay360.com' },
-    { code: 'EMP008', first: 'Rohan', last: 'Desai', position: 'DevOps Engineer', email: 'rohan.desai@peoplepay360.com' },
-    { code: 'EMP009', first: 'Meera', last: 'Krishnan', position: 'Full Stack Developer', email: 'meera.krishnan@peoplepay360.com' },
-  ];
-
-  const financeEmployees = [
-    { code: 'EMP010', first: 'Suresh', last: 'Iyer', position: 'Senior Accountant', email: 'suresh.iyer@peoplepay360.com' },
-    { code: 'EMP011', first: 'Lakshmi', last: 'Nair', position: 'Finance Analyst', email: 'lakshmi.nair@peoplepay360.com' },
-  ];
-
-  const salesEmployees = [
-    { code: 'EMP012', first: 'Vijay', last: 'Gupta', position: 'Sales Manager', email: 'vijay.gupta@peoplepay360.com' },
-    { code: 'EMP013', first: 'Pooja', last: 'Joshi', position: 'Business Development', email: 'pooja.joshi@peoplepay360.com' },
-    { code: 'EMP014', first: 'Rahul', last: 'Verma', position: 'Account Manager', email: 'rahul.verma@peoplepay360.com' },
-  ];
-
-  const hrEmployees = [
-    { code: 'EMP015', first: 'Deepa', last: 'Pillai', position: 'HR Executive', email: 'deepa.pillai@peoplepay360.com' },
-  ];
-
-  const allEmployeeData = [
-    ...engineeringEmployees.map((e) => ({ ...e, deptId: engDept.id, managerId: hetPatel.id })),
-    ...financeEmployees.map((e) => ({ ...e, deptId: financeDept.id, managerId: payrollManager.id })),
-    ...salesEmployees.map((e) => ({ ...e, deptId: salesDept.id, managerId: null })),
-    ...hrEmployees.map((e) => ({ ...e, deptId: hrDept.id, managerId: hrManager.id })),
-  ];
-
-  const additionalEmployees = [];
-  for (const emp of allEmployeeData) {
-    const created = await prisma.employee.create({
+    // Create Employee
+    const employee = await prisma.employee.create({
       data: {
-        employeeCode: emp.code,
-        firstName: emp.first,
-        lastName: emp.last,
-        email: emp.email,
-        phone: `+91-${randomBetween(8000000000, 9999999999)}`,
-        joiningDate: new Date(`202${randomBetween(1, 4)}-0${randomBetween(1, 9)}-01`),
-        departmentId: emp.deptId,
-        managerId: emp.managerId,
-        jobPosition: emp.position,
-        employeeType: 'FULL_TIME',
-        status: 'ACTIVE',
-        workingScheduleId: standardSchedule.id,
-        bankAccountName: `${emp.first} ${emp.last}`,
-        bankAccountNumber: `${randomBetween(1000000000, 9999999999)}`,
-        bankName: ['HDFC Bank', 'SBI', 'ICICI Bank', 'Axis Bank', 'Kotak Bank'][randomBetween(0, 4)],
-        panNumber: `${emp.code}PANX`,
-      },
+        employeeCode: code,
+        firstName,
+        lastName,
+        email,
+        phone: `+91-${randomBetween(7000000000, 9999999999)}`,
+        dateOfBirth: dob,
+        joiningDate,
+        departmentId: deptId,
+        managerId,
+        jobPosition: position,
+        employeeType,
+        status,
+        userId: user.id,
+        workingScheduleId: scheduleId,
+        attendanceLocationId: locationId,
+        bankAccountName,
+        bankAccountNumber,
+        bankName,
+        panNumber,
+      }
     });
-    additionalEmployees.push(created);
-  }
 
-  // Payroll user employee
-  const payrollUserEmp = await prisma.employee.create({
-    data: {
-      employeeCode: 'EMP016',
-      firstName: 'Nisha',
-      lastName: 'Bhatt',
-      email: 'payrolluser@peoplepay360.com',
-      phone: '+91-9000000002',
-      joiningDate: new Date('2022-07-01'),
-      departmentId: financeDept.id,
-      jobPosition: 'Payroll Executive',
-      employeeType: 'FULL_TIME',
-      status: 'ACTIVE',
-      userId: users['HR_PAYROLL_USER'].id,
-      workingScheduleId: standardSchedule.id,
-      bankAccountName: 'Nisha Bhatt',
-      bankAccountNumber: '5678901234',
-      bankName: 'Kotak Bank',
-    },
-  });
+    if (deptManagers[deptName].length < 2 && status === 'ACTIVE') {
+      deptManagers[deptName].push(employee.id);
+    }
 
-  const allEmployees = [
-    hrManager, payrollManager, hetPatel, empUser,
-    ...additionalEmployees, payrollUserEmp,
-  ];
-
-  console.log(`✅ ${allEmployees.length + 1} employees created\n`);
-
-  // ============================================================
-  // CONTRACTS
-  // ============================================================
-  console.log('📋 Creating contracts...');
-
-  // HET PATEL: TWO HISTORICAL CONTRACTS (key demo scenario)
-  // Contract 1: January - June 2026 at ₹50,000
-  await prisma.contract.create({
-    data: {
-      employeeId: hetPatel.id,
-      startDate: new Date('2026-01-01'),
-      endDate: new Date('2026-06-30'),
-      departmentId: engDept.id,
-      position: 'Senior Software Engineer',
-      wage: 50000,
-      salaryStructureId: regularStructure.id,
-      status: 'EXPIRED',
-      notes: 'Initial contract - period January to June 2026',
-    },
-  });
-
-  // Contract 2: July - December 2026 at ₹65,000 (ACTIVE - September Payrun must use THIS)
-  const hetActiveContract = await prisma.contract.create({
-    data: {
-      employeeId: hetPatel.id,
-      startDate: new Date('2026-07-01'),
-      endDate: new Date('2026-12-31'),
-      departmentId: engDept.id,
-      position: 'Senior Software Engineer',
-      wage: 65000,
-      salaryStructureId: regularStructure.id,
-      status: 'ACTIVE',
-      notes: 'Revised contract with 30% salary increment from July 2026',
-    },
-  });
-
-  // Contracts for all other employees
-  const contractWages = {
-    'EMP001': 75000, // HR Manager
-    'EMP002': 120000, // Payroll Manager - Executive
-    'EMP004': 45000, // Sales Exec
-    'EMP005': 100000, // Admin
-    'EMP006': 55000, // Software Engineer
-    'EMP007': 48000, // QA Engineer
-    'EMP008': 60000, // DevOps
-    'EMP009': 52000, // Full Stack
-    'EMP010': 65000, // Sr Accountant
-    'EMP011': 50000, // Finance Analyst
-    'EMP012': 80000, // Sales Manager
-    'EMP013': 55000, // BD
-    'EMP014': 60000, // Account Manager
-    'EMP015': 40000, // HR Exec
-    'EMP016': 45000, // Payroll Exec
-  };
-
-  for (const employee of allEmployees) {
-    if (employee.employeeCode === 'EMP003') continue; // Skip Het Patel (already created)
-    const wage = contractWages[employee.employeeCode] || 50000;
-    const structure = ['EMP002', 'EMP012'].includes(employee.employeeCode) ? execStructure : regularStructure;
-
-    await prisma.contract.create({
-      data: {
-        employeeId: employee.id,
-        startDate: new Date('2025-01-01'),
-        endDate: new Date('2026-12-31'),
-        departmentId: employee.departmentId,
-        position: employee.jobPosition,
-        wage,
-        salaryStructureId: structure.id,
-        status: 'ACTIVE',
-      },
-    });
+    seededEmployees.push(employee);
   }
 
-  console.log('✅ Contracts created\n');
+  console.log(`✅ 300 Employees and 300 Users created across 10 Departments\n`);
 
-  // ============================================================
-  // TIME OFF TYPES
-  // ============================================================
-  console.log('🌴 Creating time off types...');
+  // ------------------------------------------------------------
+  // 5. CONTRACTS (~330 records)
+  // ------------------------------------------------------------
+  console.log('📜 5/12 Seeding Contracts and Historical Salary Changes...');
 
-  const [paidLeave, sickLeave, casualLeave, maternityLeave] = await Promise.all([
-    prisma.timeOffType.create({
-      data: {
-        name: 'Paid Leave',
-        unit: 'DAYS',
-        requiresAllocation: true,
-        requiresApproval: true,
-        payrollIntegration: false,
-        description: 'Annual paid leave entitlement',
-        color: '#6366f1',
-      },
-    }),
-    prisma.timeOffType.create({
-      data: {
-        name: 'Sick Leave',
-        unit: 'DAYS',
-        requiresAllocation: true,
-        requiresApproval: false,
-        payrollIntegration: false,
-        description: 'Medical leave for illness',
-        color: '#ef4444',
-      },
-    }),
-    prisma.timeOffType.create({
-      data: {
-        name: 'Casual Leave',
-        unit: 'DAYS',
-        requiresAllocation: true,
-        requiresApproval: true,
-        payrollIntegration: false,
-        description: 'Short-notice casual leave',
-        color: '#f59e0b',
-      },
-    }),
-    prisma.timeOffType.create({
-      data: {
-        name: 'Maternity Leave',
-        unit: 'DAYS',
-        requiresAllocation: false,
-        requiresApproval: true,
-        payrollIntegration: false,
-        description: '26 weeks maternity leave as per law',
-        color: '#ec4899',
-      },
-    }),
-  ]);
+  let contractCount = 0;
+  const contractMap = {};
 
-  console.log('✅ 4 time off types created\n');
+  for (let idx = 0; idx < seededEmployees.length; idx++) {
+    const emp = seededEmployees[idx];
+    const i = idx + 1;
 
-  // ============================================================
-  // TIME OFF ALLOCATIONS
-  // ============================================================
-  console.log('📊 Creating leave allocations...');
+    // Determine wage scale by seniority
+    let baseWage = randomBetween(22000, 35000); // Junior
+    let structureId = juniorStruct.id;
 
-  const approver = hrManager;
+    if (emp.jobPosition.includes('Manager') || emp.jobPosition.includes('Director') || emp.jobPosition.includes('VP') || emp.jobPosition.includes('Lead') || emp.jobPosition.includes('Architect')) {
+      baseWage = randomBetween(95000, 185000); // Senior / Manager
+      structureId = seniorStruct.id;
+    } else if (emp.jobPosition.includes('Senior') || emp.jobPosition.includes('Specialist') || emp.jobPosition.includes('Analyst')) {
+      baseWage = randomBetween(45000, 80000); // Mid Level
+      structureId = midStruct.id;
+    }
+
+    // Assign 'Het ki start up' structure to ~20 employees for realistic distribution
+    if (i >= 200 && i <= 220) {
+      structureId = startupStruct.id;
+      baseWage = 42000;
+    }
+
+    if (emp.status === 'TERMINATED') {
+      // Create ended contract
+      const contract = await prisma.contract.create({
+        data: {
+          employeeId: emp.id,
+          startDate: new Date('2024-01-01'),
+          endDate: new Date('2026-05-31'),
+          departmentId: emp.departmentId,
+          position: emp.jobPosition,
+          wage: baseWage,
+          salaryStructureId: structureId,
+          annualLeaveQuota: 24,
+          status: 'TERMINATED',
+          notes: 'Contract terminated upon employee departure'
+        }
+      });
+      contractCount++;
+      continue;
+    }
+
+    // Deliberate Contract Gap for 5 employees (triggers Admin Data Integrity Alerts widget)
+    if (i >= 295 && i <= 299) {
+      // Ended contract with no active renewal
+      await prisma.contract.create({
+        data: {
+          employeeId: emp.id,
+          startDate: new Date('2024-01-01'),
+          endDate: new Date('2026-06-30'),
+          departmentId: emp.departmentId,
+          position: emp.jobPosition,
+          wage: baseWage,
+          salaryStructureId: structureId,
+          annualLeaveQuota: 24,
+          status: 'EXPIRED',
+          notes: 'Contract expired — pending renewal'
+        }
+      });
+      contractCount++;
+      continue;
+    }
+
+    // Multi-contract history for ~30 employees (~10%)
+    if (i <= 30) {
+      // Historical Expired Contract
+      await prisma.contract.create({
+        data: {
+          employeeId: emp.id,
+          startDate: new Date('2025-01-01'),
+          endDate: new Date('2026-06-30'),
+          departmentId: emp.departmentId,
+          position: emp.jobPosition,
+          wage: Math.round(baseWage * 0.82), // earlier wage
+          salaryStructureId: structureId,
+          annualLeaveQuota: 24,
+          status: 'EXPIRED',
+          notes: 'Initial agreement prior to mid-year annual appraisal'
+        }
+      });
+      contractCount++;
+
+      // Current Active Contract starting July 1, 2026
+      const activeContract = await prisma.contract.create({
+        data: {
+          employeeId: emp.id,
+          startDate: new Date('2026-07-01'),
+          endDate: new Date('2027-06-30'),
+          departmentId: emp.departmentId,
+          position: emp.jobPosition,
+          wage: baseWage,
+          salaryStructureId: structureId,
+          annualLeaveQuota: 24,
+          status: 'ACTIVE',
+          notes: 'Revised contract following 2026 appraisal cycle'
+        }
+      });
+      contractCount++;
+      contractMap[emp.id] = activeContract;
+    } else {
+      // Standard active contract
+      const activeContract = await prisma.contract.create({
+        data: {
+          employeeId: emp.id,
+          startDate: new Date('2025-01-01'),
+          endDate: new Date('2026-12-31'),
+          departmentId: emp.departmentId,
+          position: emp.jobPosition,
+          wage: baseWage,
+          salaryStructureId: structureId,
+          annualLeaveQuota: randomBetween(18, 30),
+          status: 'ACTIVE',
+        }
+      });
+      contractCount++;
+      contractMap[emp.id] = activeContract;
+    }
+  }
+
+  console.log(`✅ ${contractCount} Contracts created (including historical expired contracts and 5 deliberate contract gaps)\n`);
+
+  // ------------------------------------------------------------
+  // 6. TIME OFF TYPES (~6 records)
+  // ------------------------------------------------------------
+  console.log('🌴 6/12 Seeding Time Off Types...');
+  const casualLeaveType = await prisma.timeOffType.create({
+    data: { name: 'Casual Leave', unit: 'DAYS', requiresAllocation: true, requiresApproval: true, payrollIntegration: false, description: 'Short-notice personal leave', color: '#f59e0b', isPaid: true }
+  });
+  const sickLeaveType = await prisma.timeOffType.create({
+    data: { name: 'Sick Leave', unit: 'DAYS', requiresAllocation: true, requiresApproval: true, payrollIntegration: false, description: 'Medical and sick leave', color: '#ef4444', isPaid: true }
+  });
+  const paidLeaveType = await prisma.timeOffType.create({
+    data: { name: 'Paid Leave / Earned Leave', unit: 'DAYS', requiresAllocation: true, requiresApproval: true, payrollIntegration: false, description: 'Annual earned vacation leave', color: '#6366f1', isPaid: true }
+  });
+  const unpaidLeaveType = await prisma.timeOffType.create({
+    data: { name: 'Unpaid Leave', unit: 'DAYS', requiresAllocation: false, requiresApproval: true, payrollIntegration: true, description: 'Leave without pay (proportional salary reduction)', color: '#64748b', isPaid: false }
+  });
+  const maternityType = await prisma.timeOffType.create({
+    data: { name: 'Maternity/Paternity Leave', unit: 'DAYS', requiresAllocation: true, requiresApproval: true, payrollIntegration: false, description: 'Parental leave benefit', color: '#ec4899', isPaid: true }
+  });
+  const festivalType = await prisma.timeOffType.create({
+    data: { name: 'Optional/Festival Holiday', unit: 'DAYS', requiresAllocation: false, requiresApproval: true, payrollIntegration: true, description: 'Restricted festival holiday', color: '#10b981', isPaid: true }
+  });
+  console.log('✅ 6 Time Off Types created\n');
+
+  // ------------------------------------------------------------
+  // 7. TIME OFF ALLOCATIONS & REQUESTS
+  // ------------------------------------------------------------
+  console.log('📊 7/12 Seeding Leave Allocations and Requests...');
+
+  const activeEmployees = seededEmployees.filter(e => e.status === 'ACTIVE');
   const validFrom = new Date('2026-01-01');
   const validTo = new Date('2026-12-31');
 
-  for (const employee of allEmployees) {
+  // Create Allocations for active employees
+  for (const emp of activeEmployees) {
     await prisma.timeOffAllocation.create({
       data: {
-        employeeId: employee.id,
-        timeOffTypeId: paidLeave.id,
-        allocatedAmount: 21,
-        takenAmount: randomBetween(0, 8),
-        remainingAmount: 21 - randomBetween(0, 8),
-        validFrom,
-        validTo,
-        status: 'APPROVED',
-        approvedById: approver.id,
-        approvedByName: `${approver.firstName} ${approver.lastName}`,
-        approvedAt: new Date('2026-01-02'),
-      },
-    });
-
-    await prisma.timeOffAllocation.create({
-      data: {
-        employeeId: employee.id,
-        timeOffTypeId: sickLeave.id,
-        allocatedAmount: 7,
-        takenAmount: randomBetween(0, 3),
-        remainingAmount: 7 - randomBetween(0, 3),
-        validFrom,
-        validTo,
-        status: 'APPROVED',
-        approvedById: approver.id,
-        approvedByName: `${approver.firstName} ${approver.lastName}`,
-        approvedAt: new Date('2026-01-02'),
-      },
-    });
-
-    await prisma.timeOffAllocation.create({
-      data: {
-        employeeId: employee.id,
-        timeOffTypeId: casualLeave.id,
+        employeeId: emp.id,
+        timeOffTypeId: casualLeaveType.id,
         allocatedAmount: 12,
-        takenAmount: randomBetween(0, 5),
-        remainingAmount: 12 - randomBetween(0, 5),
+        takenAmount: randomBetween(1, 4),
+        remainingAmount: randomBetween(8, 11),
         validFrom,
         validTo,
         status: 'APPROVED',
-        approvedById: approver.id,
-        approvedByName: `${approver.firstName} ${approver.lastName}`,
+        approvedByName: 'Priya Sharma (HR Director)',
         approvedAt: new Date('2026-01-02'),
-      },
+      }
+    });
+
+    await prisma.timeOffAllocation.create({
+      data: {
+        employeeId: emp.id,
+        timeOffTypeId: sickLeaveType.id,
+        allocatedAmount: 10,
+        takenAmount: randomBetween(0, 3),
+        remainingAmount: randomBetween(7, 10),
+        validFrom,
+        validTo,
+        status: 'APPROVED',
+        approvedByName: 'Priya Sharma (HR Director)',
+        approvedAt: new Date('2026-01-02'),
+      }
+    });
+
+    await prisma.timeOffAllocation.create({
+      data: {
+        employeeId: emp.id,
+        timeOffTypeId: paidLeaveType.id,
+        allocatedAmount: 18,
+        takenAmount: randomBetween(2, 6),
+        remainingAmount: randomBetween(12, 16),
+        validFrom,
+        validTo,
+        status: 'APPROVED',
+        approvedByName: 'Priya Sharma (HR Director)',
+        approvedAt: new Date('2026-01-02'),
+      }
     });
   }
 
-  // A few pending allocations for dashboard alerts
-  await prisma.timeOffAllocation.create({
-    data: {
-      employeeId: additionalEmployees[0].id,
-      timeOffTypeId: paidLeave.id,
-      allocatedAmount: 5,
-      remainingAmount: 5,
-      validFrom: new Date('2026-09-01'),
-      validTo: new Date('2026-12-31'),
-      status: 'PENDING',
-    },
-  });
+  // Create Time Off Requests across last 2-3 months
+  let requestCount = 0;
+  
+  // 1. Unpaid Leave for 20 employees (to test proportional salary deduction in payroll)
+  for (let idx = 0; idx < 20; idx++) {
+    const emp = activeEmployees[idx];
+    await prisma.timeOffRequest.create({
+      data: {
+        employeeId: emp.id,
+        timeOffTypeId: unpaidLeaveType.id,
+        startDate: new Date('2026-08-10'),
+        endDate: new Date('2026-08-12'),
+        duration: 3,
+        reason: 'Personal urgent leave without pay',
+        status: 'APPROVED',
+        approvedByName: 'Priya Sharma',
+        approvedAt: new Date('2026-08-08')
+      }
+    });
+    requestCount++;
+  }
 
-  console.log('✅ Leave allocations created\n');
+  // 2. Approved Paid Leaves in past months
+  for (let idx = 20; idx < 80; idx++) {
+    const emp = activeEmployees[idx];
+    await prisma.timeOffRequest.create({
+      data: {
+        employeeId: emp.id,
+        timeOffTypeId: paidLeaveType.id,
+        startDate: new Date('2026-07-15'),
+        endDate: new Date('2026-07-16'),
+        duration: 2,
+        reason: 'Family event',
+        status: 'APPROVED',
+        approvedByName: 'Priya Sharma',
+        approvedAt: new Date('2026-07-12')
+      }
+    });
+    requestCount++;
+  }
 
-  // ============================================================
-  // TIME OFF REQUESTS
-  // ============================================================
-  console.log('📝 Creating leave requests...');
+  // 3. Pending Requests (for HR Approval Queue demo)
+  for (let idx = 80; idx < 100; idx++) {
+    const emp = activeEmployees[idx];
+    await prisma.timeOffRequest.create({
+      data: {
+        employeeId: emp.id,
+        timeOffTypeId: casualLeaveType.id,
+        startDate: new Date('2026-09-15'),
+        endDate: new Date('2026-09-16'),
+        duration: 2,
+        reason: 'Personal affairs and travel',
+        status: 'PENDING',
+      }
+    });
+    requestCount++;
+  }
 
-  // Approved requests in past months
-  await prisma.timeOffRequest.create({
-    data: {
-      employeeId: hetPatel.id,
-      timeOffTypeId: paidLeave.id,
-      startDate: new Date('2026-07-14'),
-      endDate: new Date('2026-07-18'),
-      duration: 5,
-      reason: 'Family vacation',
-      status: 'APPROVED',
-      approvedById: hrManager.id,
-      approvedByName: `${hrManager.firstName} ${hrManager.lastName}`,
-      approvedAt: new Date('2026-07-10'),
-    },
-  });
+  // 4. Rejected Requests
+  for (let idx = 100; idx < 110; idx++) {
+    const emp = activeEmployees[idx];
+    await prisma.timeOffRequest.create({
+      data: {
+        employeeId: emp.id,
+        timeOffTypeId: casualLeaveType.id,
+        startDate: new Date('2026-08-25'),
+        endDate: new Date('2026-08-27'),
+        duration: 3,
+        reason: 'Short notice vacation request',
+        status: 'REJECTED',
+        rejectedByName: 'Priya Sharma',
+        rejectedAt: new Date('2026-08-24'),
+        rejectionReason: 'Critical project release milestone — unable to grant leave'
+      }
+    });
+    requestCount++;
+  }
 
-  await prisma.timeOffRequest.create({
-    data: {
-      employeeId: additionalEmployees[0].id,
-      timeOffTypeId: sickLeave.id,
-      startDate: new Date('2026-08-05'),
-      endDate: new Date('2026-08-06'),
-      duration: 2,
-      reason: 'Not feeling well',
-      status: 'APPROVED',
-      approvedById: hrManager.id,
-      approvedByName: `${hrManager.firstName} ${hrManager.lastName}`,
-      approvedAt: new Date('2026-08-04'),
-    },
-  });
+  console.log(`✅ ${activeEmployees.length * 3} Allocations & ${requestCount} Time Off Requests created\n`);
 
-  // PENDING requests for dashboard alert
-  await prisma.timeOffRequest.create({
-    data: {
-      employeeId: empUser.id,
-      timeOffTypeId: casualLeave.id,
-      startDate: new Date('2026-09-10'),
-      endDate: new Date('2026-09-11'),
-      duration: 2,
-      reason: 'Personal work',
-      status: 'PENDING',
-    },
-  });
+  // ------------------------------------------------------------
+  // 8. ATTENDANCE (Last 3 Months, Batch Created)
+  // ------------------------------------------------------------
+  console.log('⏰ 8/12 Generating Daily Attendance for last 3 months (~19,500 records)...');
 
-  await prisma.timeOffRequest.create({
-    data: {
-      employeeId: additionalEmployees[3].id,
-      timeOffTypeId: paidLeave.id,
-      startDate: new Date('2026-09-22'),
-      endDate: new Date('2026-09-24'),
-      duration: 3,
-      reason: 'Medical appointment',
-      status: 'PENDING',
-    },
-  });
+  const attendanceBatch = [];
+  // Dates: June 1, 2026 to August 31, 2026 (~65 working days)
+  const startDate = new Date('2026-06-01');
+  const endDate = new Date('2026-08-31');
 
-  console.log('✅ Leave requests created\n');
+  // Map employee ID to schedule start time
+  const empScheduleTimes = {};
+  for (const emp of activeEmployees) {
+    empScheduleTimes[emp.id] = emp.workingScheduleId === flexSchedule.id ? '09:30' : (emp.workingScheduleId === earlySchedule.id ? '08:00' : '09:00');
+  }
 
-  // ============================================================
-  // ATTENDANCE (for current month - Sep 2026)
-  // ============================================================
-  console.log('⏰ Creating attendance records...');
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const dayOfWeek = d.getDay();
+    if (dayOfWeek === 0) continue; // Sunday off for all
 
-  const attendanceStatuses = ['PRESENT', 'PRESENT', 'PRESENT', 'PRESENT', 'LATE', 'PRESENT', 'PRESENT', 'OVERTIME', 'PRESENT', 'MISSING_CHECKOUT'];
+    const dateStr = d.toISOString().split('T')[0];
 
-  // September 2026 attendance for all employees
-  // Days 1-4 (before "today" Sep 5)
-  const attendanceDays = [1, 2, 3, 4];
+    for (let idx = 0; idx < activeEmployees.length; idx++) {
+      const emp = activeEmployees[idx];
+      const isSat = dayOfWeek === 6;
+      const is6DayWorker = emp.workingScheduleId === shiftSchedule.id;
 
-  for (const employee of allEmployees) {
-    for (const day of attendanceDays) {
-      const date = new Date(2026, 8, day); // Sep is month 8 (0-indexed)
-      const dayOfWeek = date.getDay();
-      if (dayOfWeek === 0 || dayOfWeek === 6) continue; // Skip weekends
+      if (isSat && !is6DayWorker) continue; // Saturday off for 5-day schedules
 
-      const baseCheckIn = new Date(2026, 8, day, 9, randomBetween(0, 30), 0);
-      const isLate = baseCheckIn.getHours() === 9 && baseCheckIn.getMinutes() > 10;
-      const isOvertime = employee.employeeCode === 'EMP006' && day === 3; // Arjun works overtime on day 3
-
-      const checkOut = new Date(2026, 8, day, isOvertime ? 20 : 18, randomBetween(0, 30), 0);
-      const workedHours = (checkOut - baseCheckIn) / (1000 * 60 * 60) - 1; // minus 1hr break
-
+      // Status distribution: 75% PRESENT, 10% LATE, 8% OVERTIME, 4% ABSENT, 2% MISSING_CHECKOUT, 1% MANUAL_CORRECTION
+      const rand = randomBetween(1, 100);
       let status = 'PRESENT';
-      if (isLate && !isOvertime) status = 'LATE';
-      if (isOvertime) status = 'OVERTIME';
+      let checkIn = null;
+      let checkOut = null;
+      let workedHours = 8;
+      let isManual = false;
+      let notes = null;
 
-      // Rahul Verma (EMP014) has a missing checkout on Sep 2
-      if (employee.employeeCode === 'EMP014' && day === 2) {
-        await prisma.attendance.create({
-          data: {
-            employeeId: employee.id,
-            date,
-            checkIn: new Date(2026, 8, 2, 9, 5, 0),
-            checkOut: null,
-            workedHours: null,
-            status: 'MISSING_CHECKOUT',
-          },
-        });
-        continue;
+      const schedStart = empScheduleTimes[emp.id] || '09:00';
+      const [startH, startM] = schedStart.split(':').map(Number);
+
+      if (rand <= 75) {
+        status = 'PRESENT';
+        checkIn = new Date(`${dateStr}T${String(startH).padStart(2, '0')}:${String(randomBetween(0, 10)).padStart(2, '0')}:00Z`);
+        checkOut = new Date(`${dateStr}T${String(startH + 9).padStart(2, '0')}:${String(randomBetween(0, 15)).padStart(2, '0')}:00Z`);
+        workedHours = 8.0;
+      } else if (rand <= 85) {
+        status = 'LATE';
+        checkIn = new Date(`${dateStr}T${String(startH).padStart(2, '0')}:${String(randomBetween(20, 55)).padStart(2, '0')}:00Z`);
+        checkOut = new Date(`${dateStr}T${String(startH + 9).padStart(2, '0')}:00:00Z`);
+        workedHours = 7.5;
+        notes = `Late check-in recorded past scheduled ${schedStart} start`;
+      } else if (rand <= 93) {
+        status = 'OVERTIME';
+        checkIn = new Date(`${dateStr}T${String(startH).padStart(2, '0')}:00:00Z`);
+        checkOut = new Date(`${dateStr}T${String(startH + 11).padStart(2, '0')}:30:00Z`);
+        workedHours = 10.5;
+        notes = 'Approved project overtime (+2.5 hours)';
+      } else if (rand <= 97) {
+        status = 'ABSENT';
+        checkIn = null;
+        checkOut = null;
+        workedHours = 0;
+      } else if (rand <= 99) {
+        status = 'MISSING_CHECKOUT';
+        checkIn = new Date(`${dateStr}T${String(startH).padStart(2, '0')}:05:00Z`);
+        checkOut = null;
+        workedHours = null;
+        notes = 'Employee check-out time missing';
+      } else {
+        status = 'MANUAL_CORRECTION';
+        checkIn = new Date(`${dateStr}T${String(startH).padStart(2, '0')}:00:00Z`);
+        checkOut = new Date(`${dateStr}T${String(startH + 9).padStart(2, '0')}:00:00Z`);
+        workedHours = 8.0;
+        isManual = true;
+        notes = 'Attendance manually adjusted by HR Administrator';
       }
 
-      await prisma.attendance.create({
-        data: {
-          employeeId: employee.id,
-          date,
-          checkIn: baseCheckIn,
-          checkOut,
-          workedHours: Math.round(workedHours * 100) / 100,
-          status,
-        },
+      attendanceBatch.push({
+        employeeId: emp.id,
+        date: new Date(dateStr),
+        checkIn,
+        checkOut,
+        workedHours,
+        status,
+        isManualCorrection: isManual,
+        correctionReason: isManual ? 'Card reader glitch at turnstile' : null,
+        notes,
+        attendanceLocationId: emp.attendanceLocationId,
       });
     }
   }
 
-  // Add a manual correction record
-  await prisma.attendance.upsert({
-    where: { employeeId_date: { employeeId: additionalEmployees[0].id, date: new Date(2026, 8, 1) } },
-    update: {
-      status: 'MANUAL_CORRECTION',
-      isManualCorrection: true,
-      correctedByName: `${hrManager.firstName} ${hrManager.lastName}`,
-      correctionReason: 'System error - corrected check-in time from access log',
-      correctedAt: new Date(2026, 8, 2),
-    },
-    create: {
-      employeeId: additionalEmployees[0].id,
-      date: new Date(2026, 8, 1),
-      checkIn: new Date(2026, 8, 1, 9, 0, 0),
-      checkOut: new Date(2026, 8, 1, 18, 0, 0),
-      workedHours: 8,
-      status: 'MANUAL_CORRECTION',
-      isManualCorrection: true,
-      correctedByName: `${hrManager.firstName} ${hrManager.lastName}`,
-      correctionReason: 'System error - corrected check-in time from access log',
-      correctedAt: new Date(2026, 8, 2),
-    },
+  // Insert attendance in chunks of 2,000 records to prevent memory buffer overflow
+  const CHUNK_SIZE = 2000;
+  for (let i = 0; i < attendanceBatch.length; i += CHUNK_SIZE) {
+    const chunk = attendanceBatch.slice(i, i + CHUNK_SIZE);
+    await prisma.attendance.createMany({ data: chunk, skipDuplicates: true });
+  }
+
+  console.log(`✅ ${attendanceBatch.length} Daily Attendance records inserted in bulk\n`);
+
+  // ------------------------------------------------------------
+  // 9. WORKING DAYS POLICY
+  // ------------------------------------------------------------
+  console.log('⚙️ 9/12 Seeding Working Days Policy & Override...');
+  await prisma.workingDaysPolicy.create({
+    data: { name: 'Standard Monthly Policy', totalDays: 22, effectivePeriod: null }
+  });
+  await prisma.workingDaysPolicy.create({
+    data: { name: 'August 2026 Festival Month Override', totalDays: 21, effectivePeriod: '2026-08' }
+  });
+  console.log('✅ Working Days Policies seeded\n');
+
+  // ------------------------------------------------------------
+  // 10. HOLIDAY SUGGESTIONS & COMPANY HOLIDAYS
+  // ------------------------------------------------------------
+  console.log('🎉 10/12 Seeding Holiday Suggestions & Company Holidays...');
+
+  const holiday1 = await prisma.holidaySuggestion.create({
+    data: { date: new Date('2026-08-28'), name: 'Janmashtami', source: 'API_CALENDARIFIC', status: 'APPROVED_PAID', country: 'IN' }
+  });
+  await prisma.companyHoliday.create({
+    data: { date: new Date('2026-08-28'), name: 'Janmashtami', isPaid: true, linkedSuggestionId: holiday1.id }
   });
 
-  console.log('✅ Attendance records created\n');
+  const holiday2 = await prisma.holidaySuggestion.create({
+    data: { date: new Date('2026-10-02'), name: 'Gandhi Jayanti', source: 'API_CALENDARIFIC', status: 'APPROVED_PAID', country: 'IN' }
+  });
+  await prisma.companyHoliday.create({
+    data: { date: new Date('2026-10-02'), name: 'Gandhi Jayanti', isPaid: true, linkedSuggestionId: holiday2.id }
+  });
 
-  // ============================================================
-  // HISTORICAL PAYRUNS (Jan-Aug 2026 for trend charts)
-  // ============================================================
-  console.log('💼 Creating historical payruns...');
+  // Pending & Rejected suggestions for dashboard widget
+  await prisma.holidaySuggestion.create({
+    data: { date: new Date('2026-09-14'), name: 'Ganesh Chaturthi', source: 'API_CALENDARIFIC', status: 'PENDING', country: 'IN' }
+  });
+  await prisma.holidaySuggestion.create({
+    data: { date: new Date('2026-11-01'), name: 'Diwali', source: 'API_CALENDARIFIC', status: 'PENDING', country: 'IN' }
+  });
+  await prisma.holidaySuggestion.create({
+    data: { date: new Date('2026-10-20'), name: 'Dussehra Regional Holiday', source: 'API_CALENDARIFIC', status: 'REJECTED', country: 'IN' }
+  });
 
-  const employees = allEmployees.slice(0, 10); // Use 10 employees for historical
-  
-  // Process Jan through Aug 2026
-  for (let month = 1; month <= 8; month++) {
-    const year = 2026;
-    const periodStart = new Date(year, month - 1, 1);
-    const periodEnd = new Date(year, month, 0); // Last day of month
-    const monthName = periodStart.toLocaleString('en-IN', { month: 'long' });
+  console.log('✅ Holiday Suggestions & Company Holidays created\n');
 
+  // ------------------------------------------------------------
+  // 11. PAYRUNS & PAYSLIPS
+  // ------------------------------------------------------------
+  console.log('💵 11/12 Seeding Historical & Current Payruns + Payslips...');
+
+  const payrollManager = seededEmployees.find(e => e.email === 'payrollmanager@peoplepay360.com');
+
+  // 4 Historical PAID Payruns (May, June, July, August 2026)
+  const historicalPeriods = [
+    { name: 'Payroll - May 2026', start: '2026-05-01', end: '2026-05-31', totalDays: 22 },
+    { name: 'Payroll - June 2026', start: '2026-06-01', end: '2026-06-30', totalDays: 22 },
+    { name: 'Payroll - July 2026', start: '2026-07-01', end: '2026-07-31', totalDays: 22 },
+    { name: 'Payroll - August 2026', start: '2026-08-01', end: '2026-08-31', totalDays: 21 }, // overridden month
+  ];
+
+  const payrunEmployees = activeEmployees.slice(0, 75); // ~75 employees per payrun
+
+  for (const period of historicalPeriods) {
     const payrun = await prisma.payrun.create({
       data: {
-        name: `Payroll - ${monthName} ${year}`,
-        periodStart,
-        periodEnd,
-        salaryStructureId: regularStructure.id,
+        name: period.name,
+        periodStart: new Date(period.start),
+        periodEnd: new Date(period.end),
+        salaryStructureId: midStruct.id,
         status: 'PAID',
         createdById: payrollManager.id,
-        computedAt: new Date(year, month, 28),
-        validatedAt: new Date(year, month, 29),
-        finalizedAt: new Date(year, month, 30),
-        paidAt: new Date(year, month, 30),
-      },
+        computedAt: new Date(`${period.end}T10:00:00Z`),
+        validatedAt: new Date(`${period.end}T14:00:00Z`),
+        finalizedAt: new Date(`${period.end}T16:00:00Z`),
+        paidAt: new Date(`${period.end}T18:00:00Z`),
+      }
     });
 
-    let totalGross = 0, totalDeductions = 0, totalNet = 0;
+    let runGross = 0, runDeductions = 0, runNet = 0;
 
-    for (const employee of employees) {
-      // Find the applicable contract for this month
-      const contract = await prisma.contract.findFirst({
-        where: {
-          employeeId: employee.id,
-          status: { in: ['ACTIVE', 'EXPIRED'] },
-          startDate: { lte: periodEnd },
-          OR: [{ endDate: null }, { endDate: { gte: periodStart } }],
-        },
-        include: { salaryStructure: { include: { rules: { where: { isActive: true }, orderBy: { sequence: 'asc' } } } } },
-      });
-
+    for (const emp of payrunEmployees) {
+      const contract = contractMap[emp.id];
       if (!contract) continue;
 
-      const workingDays = workingDaysInMonth(year, month);
-      const workedDays = workingDays - randomBetween(0, 2); // Random absences
       const wage = contract.wage;
-
-      // Simple calculation for historical data
-      const basic = Math.round((wage * workedDays / workingDays) * 100) / 100;
-      const hra = Math.round(basic * 0.20 * 100) / 100;
+      const basic = Math.round(wage);
+      const hra = Math.round(basic * 0.50);
       const transport = 2000;
-      const special = Math.round(basic * 0.10 * 100) / 100;
-      const gross = basic + hra + transport + special;
-      const pf = Math.round(basic * 0.12 * 100) / 100;
+      const medical = 2000;
+      const gross = basic + hra + transport + medical;
+      const pf = Math.round(basic * 0.12);
       const pt = 200;
-      const tds = Math.max(0, Math.round((gross * 0.1 - 4166.67) * 100) / 100);
-      const net = Math.round((gross - pf - pt - tds) * 100) / 100;
+      const tds = Math.max(0, Math.round(gross * 0.1 - 2500));
+      const deductions = pf + pt + tds;
+      const net = gross - deductions;
 
-      totalGross += gross;
-      totalDeductions += pf + pt + tds;
-      totalNet += net;
-
-      const structure = contract.salaryStructure;
-      const rules = structure?.rules || [];
+      runGross += gross;
+      runDeductions += deductions;
+      runNet += net;
 
       const payslip = await prisma.payslip.create({
         data: {
           payrunId: payrun.id,
-          employeeId: employee.id,
+          employeeId: emp.id,
           contractId: contract.id,
           salaryStructureId: contract.salaryStructureId,
-          periodStart,
-          periodEnd,
-          workedDays,
-          totalWorkingDays: workingDays,
-          leaveDays: workingDays - workedDays,
-          overtimeHours: randomBetween(0, 8),
+          periodStart: new Date(period.start),
+          periodEnd: new Date(period.end),
+          workedDays: period.totalDays,
+          totalWorkingDays: period.totalDays,
+          leaveDays: 0,
+          overtimeHours: randomBetween(0, 5),
           status: 'PAID',
           grossSalary: gross,
-          totalDeductions: pf + pt + tds,
+          totalDeductions: deductions,
           netSalary: net,
           hasWarnings: false,
           hasErrors: false,
-        },
-      });
-
-      // Create payslip lines
-      const lines = [
-        { code: 'BASIC', name: 'Basic Salary', category: 'BASIC', sequence: 1, amount: basic },
-        { code: 'HRA', name: 'House Rent Allowance', category: 'ALLOWANCE', sequence: 2, amount: hra },
-        { code: 'TRANSPORT', name: 'Transport Allowance', category: 'ALLOWANCE', sequence: 3, amount: transport },
-        { code: 'SPECIAL', name: 'Special Allowance', category: 'ALLOWANCE', sequence: 4, amount: special },
-        { code: 'GROSS', name: 'Gross Salary', category: 'GROSS', sequence: 5, amount: gross },
-        { code: 'PF', name: 'Provident Fund', category: 'DEDUCTION', sequence: 6, amount: pf },
-        { code: 'PT', name: 'Professional Tax', category: 'DEDUCTION', sequence: 7, amount: pt },
-        { code: 'TDS', name: 'Income Tax (TDS)', category: 'DEDUCTION', sequence: 8, amount: tds },
-        { code: 'NET', name: 'Net Salary', category: 'NET', sequence: 9, amount: net },
-      ];
-
-      // Match with rule IDs where possible
-      const ruleMap = {};
-      for (const rule of rules) ruleMap[rule.code] = rule.id;
-
-      await prisma.payslipLine.createMany({
-        data: lines.map((l) => ({
-          payslipId: payslip.id,
-          salaryRuleId: ruleMap[l.code] || null,
-          ...l,
-          quantity: 1,
-          rate: l.amount,
-        })),
+          lines: {
+            create: [
+              { name: 'Basic Salary', code: 'BASIC', category: 'BASIC', sequence: 1, amount: basic, quantity: 1, rate: basic },
+              { name: 'House Rent Allowance', code: 'HRA', category: 'ALLOWANCE', sequence: 2, amount: hra, quantity: 1, rate: hra },
+              { name: 'Transport Allowance', code: 'TRANSPORT', category: 'ALLOWANCE', sequence: 3, amount: transport, quantity: 1, rate: transport },
+              { name: 'Medical Allowance', code: 'MEDICAL', category: 'ALLOWANCE', sequence: 4, amount: medical, quantity: 1, rate: medical },
+              { name: 'Gross Salary', code: 'GROSS', category: 'GROSS', sequence: 5, amount: gross, quantity: 1, rate: gross },
+              { name: 'Provident Fund', code: 'PF', category: 'DEDUCTION', sequence: 6, amount: pf, quantity: 1, rate: pf },
+              { name: 'Professional Tax', code: 'PT', category: 'DEDUCTION', sequence: 7, amount: pt, quantity: 1, rate: pt },
+              { name: 'Income Tax (TDS)', code: 'TDS', category: 'DEDUCTION', sequence: 8, amount: tds, quantity: 1, rate: tds },
+              { name: 'Net Salary', code: 'NET', category: 'NET', sequence: 9, amount: net, quantity: 1, rate: net },
+            ]
+          }
+        }
       });
     }
 
-    // Update payrun totals
     await prisma.payrun.update({
       where: { id: payrun.id },
-      data: {
-        totalGross: Math.round(totalGross * 100) / 100,
-        totalDeductions: Math.round(totalDeductions * 100) / 100,
-        totalNet: Math.round(totalNet * 100) / 100,
-      },
+      data: { totalGross: runGross, totalDeductions: runDeductions, totalNet: runNet }
     });
-
-    process.stdout.write(`  ✓ ${monthName} 2026 payrun processed\n`);
   }
 
-  // Create September 2026 DRAFT payrun (for demo computation)
+  // 1 Current Payrun (September 2026) in COMPUTED status
   const septPayrun = await prisma.payrun.create({
     data: {
       name: 'Payroll - September 2026',
       periodStart: new Date('2026-09-01'),
       periodEnd: new Date('2026-09-30'),
-      salaryStructureId: regularStructure.id,
-      status: 'DRAFT',
+      salaryStructureId: midStruct.id,
+      status: 'COMPUTED',
       createdById: payrollManager.id,
-    },
+      computedAt: new Date('2026-09-02T10:00:00Z'),
+    }
   });
 
-  // Add draft payslips for all employees including Het Patel
-  for (const employee of employees) {
+  let currentGross = 0, currentDeductions = 0, currentNet = 0;
+
+  for (let idx = 0; idx < 80; idx++) {
+    const emp = activeEmployees[idx];
+    const contract = contractMap[emp.id];
+    if (!contract) continue;
+
+    const wage = contract.wage;
+    const basic = Math.round(wage);
+    const hra = Math.round(basic * 0.50);
+    const transport = 2000;
+    const medical = 2000;
+    const gross = basic + hra + transport + medical;
+    const pf = Math.round(basic * 0.12);
+    const pt = 200;
+    const tds = Math.max(0, Math.round(gross * 0.1 - 2500));
+    const deductions = pf + pt + tds;
+    const net = gross - deductions;
+
+    currentGross += gross;
+    currentDeductions += deductions;
+    currentNet += net;
+
+    // Check warning conditions: missing bank details, override, period adjustment
+    const isMissingBank = !emp.bankAccountNumber;
+    const isOverride = idx === 5 || idx === 6;
+    const isPeriodAdjusted = idx === 12;
+
     await prisma.payslip.create({
       data: {
         payrunId: septPayrun.id,
-        employeeId: employee.id,
-        salaryStructureId: regularStructure.id,
+        employeeId: emp.id,
+        contractId: contract.id,
+        salaryStructureId: contract.salaryStructureId,
         periodStart: new Date('2026-09-01'),
         periodEnd: new Date('2026-09-30'),
-        status: 'DRAFT',
-      },
+        effectivePeriodStart: isPeriodAdjusted ? new Date('2026-08-15') : null,
+        effectivePeriodEnd: isPeriodAdjusted ? new Date('2026-09-15') : null,
+        isOverride,
+        overrideWarning: isOverride ? 'Structure rule mismatch override applied by HR' : null,
+        workedDays: 22,
+        totalWorkingDays: 22,
+        leaveDays: 0,
+        overtimeHours: randomBetween(0, 4),
+        status: 'COMPUTED',
+        grossSalary: gross,
+        totalDeductions: deductions,
+        netSalary: net,
+        hasWarnings: isMissingBank || isOverride || isPeriodAdjusted,
+        hasErrors: false,
+        validationNotes: isMissingBank ? ['Employee bank account details are missing'] : null,
+        lines: {
+          create: [
+            { name: 'Basic Salary', code: 'BASIC', category: 'BASIC', sequence: 1, amount: basic, quantity: 1, rate: basic },
+            { name: 'House Rent Allowance', code: 'HRA', category: 'ALLOWANCE', sequence: 2, amount: hra, quantity: 1, rate: hra },
+            { name: 'Transport Allowance', code: 'TRANSPORT', category: 'ALLOWANCE', sequence: 3, amount: transport, quantity: 1, rate: transport },
+            { name: 'Medical Allowance', code: 'MEDICAL', category: 'ALLOWANCE', sequence: 4, amount: medical, quantity: 1, rate: medical },
+            { name: 'Gross Salary', code: 'GROSS', category: 'GROSS', sequence: 5, amount: gross, quantity: 1, rate: gross },
+            { name: 'Provident Fund', code: 'PF', category: 'DEDUCTION', sequence: 6, amount: pf, quantity: 1, rate: pf },
+            { name: 'Professional Tax', code: 'PT', category: 'DEDUCTION', sequence: 7, amount: pt, quantity: 1, rate: pt },
+            { name: 'Income Tax (TDS)', code: 'TDS', category: 'DEDUCTION', sequence: 8, amount: tds, quantity: 1, rate: tds },
+            { name: 'Net Salary', code: 'NET', category: 'NET', sequence: 9, amount: net, quantity: 1, rate: net },
+          ]
+        }
+      }
     });
   }
 
-  console.log('\n✅ 8 historical payruns + 1 draft September payrun created\n');
+  await prisma.payrun.update({
+    where: { id: septPayrun.id },
+    data: { totalGross: currentGross, totalDeductions: currentDeductions, totalNet: currentNet }
+  });
 
-  // ============================================================
-  // SUMMARY
-  // ============================================================
-  console.log('=' .repeat(60));
-  console.log('🎉 PeoplePay360 seed complete!\n');
-  console.log('📊 Database Summary:');
-  console.log(`   Departments: 4`);
-  console.log(`   Employees: ${allEmployees.length + 1}`);
-  console.log(`   Working Schedules: 2`);
-  console.log(`   Salary Structures: 2`);
-  console.log(`   Salary Rules: 19`);
-  console.log(`   Time Off Types: 4`);
-  console.log(`   Historical Payruns: 8 (PAID) + 1 (DRAFT - Sep 2026)`);
+  console.log('✅ 4 Historical PAID Payruns and 1 Current COMPUTED Payrun created with flagged test payslips\n');
+
+  // ------------------------------------------------------------
+  // 12. AUDIT LOG (15-20 entries)
+  // ------------------------------------------------------------
+  console.log('📋 12/12 Seeding Audit Logs...');
+
+  const auditLogs = [
+    { actionType: 'PAYRUN_CREATE', entityType: 'PAYRUN', description: 'Created Payrun for May 2026', performedBy: 'Rajesh Kumar (Payroll Manager)' },
+    { actionType: 'PAYRUN_FINALIZED', entityType: 'PAYRUN', description: 'Finalized and paid May 2026 Payrun', performedBy: 'Rajesh Kumar (Payroll Manager)' },
+    { actionType: 'STRUCTURE_UPDATE', entityType: 'SALARY_STRUCTURE', description: 'Updated rules for Mid-Level Structure', performedBy: 'Priya Sharma (HR Director)' },
+    { actionType: 'RULE_UPDATE', entityType: 'SALARY_RULE', description: 'Modified HRA percentage rule on Junior Staff Structure', performedBy: 'Priya Sharma (HR Director)' },
+    { actionType: 'EMPLOYEE_STATUS', entityType: 'EMPLOYEE', description: 'Updated employee status to INACTIVE for EMP272', performedBy: 'Priya Sharma (HR Director)' },
+    { actionType: 'CONTRACT_END', entityType: 'CONTRACT', description: 'Terminated contract for EMP292', performedBy: 'Priya Sharma (HR Director)' },
+    { actionType: 'PAYRUN_CREATE', entityType: 'PAYRUN', description: 'Created Payrun for June 2026', performedBy: 'Rajesh Kumar (Payroll Manager)' },
+    { actionType: 'PAYRUN_FINALIZED', entityType: 'PAYRUN', description: 'Finalized and paid June 2026 Payrun', performedBy: 'Rajesh Kumar (Payroll Manager)' },
+    { actionType: 'PAYRUN_CREATE', entityType: 'PAYRUN', description: 'Created Payrun for July 2026', performedBy: 'Rajesh Kumar (Payroll Manager)' },
+    { actionType: 'PAYRUN_FINALIZED', entityType: 'PAYRUN', description: 'Finalized and paid July 2026 Payrun', performedBy: 'Rajesh Kumar (Payroll Manager)' },
+    { actionType: 'POLICY_OVERRIDE', entityType: 'WORKING_DAYS_POLICY', description: 'Created August 2026 festival month 21-day override policy', performedBy: 'Priya Sharma (HR Director)' },
+    { actionType: 'PAYRUN_CREATE', entityType: 'PAYRUN', description: 'Created Payrun for August 2026', performedBy: 'Rajesh Kumar (Payroll Manager)' },
+    { actionType: 'PAYRUN_FINALIZED', entityType: 'PAYRUN', description: 'Finalized and paid August 2026 Payrun', performedBy: 'Rajesh Kumar (Payroll Manager)' },
+    { actionType: 'HOLIDAY_APPROVE', entityType: 'HOLIDAY_SUGGESTION', description: 'Approved Janmashtami as Company Paid Holiday', performedBy: 'Priya Sharma (HR Director)' },
+    { actionType: 'PAYRUN_CREATE', entityType: 'PAYRUN', description: 'Created Payrun for September 2026', performedBy: 'Rajesh Kumar (Payroll Manager)' },
+    { actionType: 'PAYRUN_COMPUTE', entityType: 'PAYRUN', description: 'Executed computation for September 2026 Payrun', performedBy: 'Rajesh Kumar (Payroll Manager)' },
+  ];
+
+  for (const log of auditLogs) {
+    await prisma.auditLog.create({ data: log });
+  }
+
+  console.log('✅ 16 Audit Logs created\n');
+
+  // ------------------------------------------------------------
+  // SUMMARY REPORT
+  // ------------------------------------------------------------
+  const counts = {
+    departments: await prisma.department.count(),
+    workingSchedules: await prisma.workingSchedule.count(),
+    salaryStructures: await prisma.salaryStructure.count(),
+    salaryRules: await prisma.salaryRule.count(),
+    users: await prisma.user.count(),
+    employees: await prisma.employee.count(),
+    contracts: await prisma.contract.count(),
+    timeOffTypes: await prisma.timeOffType.count(),
+    timeOffAllocations: await prisma.timeOffAllocation.count(),
+    timeOffRequests: await prisma.timeOffRequest.count(),
+    attendance: await prisma.attendance.count(),
+    workingDaysPolicies: await prisma.workingDaysPolicy.count(),
+    holidaySuggestions: await prisma.holidaySuggestion.count(),
+    companyHolidays: await prisma.companyHoliday.count(),
+    payruns: await prisma.payrun.count(),
+    payslips: await prisma.payslip.count(),
+    payslipLines: await prisma.payslipLine.count(),
+    auditLogs: await prisma.auditLog.count(),
+  };
+
+  console.log('============================================================');
+  console.log('🎉 PeoplePay360 Database Seeding Successfully Completed!');
+  console.log('============================================================');
+  console.log('📊 Summary of Seeded Data:');
+  console.log(`   • Departments:          ${counts.departments}`);
+  console.log(`   • Working Schedules:    ${counts.workingSchedules}`);
+  console.log(`   • Salary Structures:    ${counts.salaryStructures}`);
+  console.log(`   • Salary Rules:         ${counts.salaryRules}`);
+  console.log(`   • Users:                ${counts.users}`);
+  console.log(`   • Employees:            ${counts.employees}`);
+  console.log(`   • Contracts:            ${counts.contracts}`);
+  console.log(`   • Time Off Types:       ${counts.timeOffTypes}`);
+  console.log(`   • Leave Allocations:    ${counts.timeOffAllocations}`);
+  console.log(`   • Leave Requests:       ${counts.timeOffRequests}`);
+  console.log(`   • Attendance Records:   ${counts.attendance}`);
+  console.log(`   • Working Days Policies:${counts.workingDaysPolicies}`);
+  console.log(`   • Holiday Suggestions:  ${counts.holidaySuggestions}`);
+  console.log(`   • Company Holidays:     ${counts.companyHolidays}`);
+  console.log(`   • Payruns:              ${counts.payruns}`);
+  console.log(`   • Payslips:             ${counts.payslips}`);
+  console.log(`   • Payslip Lines:        ${counts.payslipLines}`);
+  console.log(`   • Audit Logs:           ${counts.auditLogs}`);
   console.log('');
-  console.log('🔑 Demo Credentials:');
-  console.log('   admin@peoplepay360.com          → Admin@123    (ADMIN)');
-  console.log('   payrollmanager@peoplepay360.com → Pmgr@1234   (HR_PAYROLL_MANAGER)');
-  console.log('   payrolluser@peoplepay360.com    → Pay@12345   (HR_PAYROLL_USER)');
-  console.log('   hr@peoplepay360.com             → Hr@123456   (HR_MANAGER)');
-  console.log('   employee@peoplepay360.com       → Emp@12345   (EMPLOYEE)');
-  console.log('');
-  console.log('🔍 Key Demo Scenario:');
-  console.log('   Employee: Het Patel (EMP003)');
-  console.log('   Contract 1: Jan-Jun 2026 @ ₹50,000 (EXPIRED)');
-  console.log('   Contract 2: Jul-Dec 2026 @ ₹65,000 (ACTIVE)');
-  console.log('   September Payrun → System MUST select Contract 2');
-  console.log('   Salary jump (30%) → Anomaly detection triggered');
-  console.log('=' .repeat(60));
+  console.log('🔑 Role-Based Demo Login Credentials (Password: Password123!):');
+  console.log('   1. ADMIN:               admin@peoplepay360.com');
+  console.log('   2. HR PAYROLL MANAGER:  payrollmanager@peoplepay360.com');
+  console.log('   3. HR PAYROLL USER:     payrolluser@peoplepay360.com');
+  console.log('   4. HR MANAGER:          hr@peoplepay360.com');
+  console.log('   5. EMPLOYEE:            employee@peoplepay360.com');
+  console.log('============================================================\n');
 }
 
-seed()
-  .catch((err) => {
-    console.error('❌ Seed failed:', err);
+main()
+  .catch((e) => {
+    console.error('❌ Error during seeding:', e);
     process.exit(1);
   })
   .finally(async () => {
