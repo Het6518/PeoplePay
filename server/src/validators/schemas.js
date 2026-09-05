@@ -48,6 +48,7 @@ const CreateEmployeeSchema = z.object({
   panNumber: z.string().optional().nullable(),
   createUserAccount: z.boolean().optional(),
   userPassword: z.string().min(6).optional().nullable(),
+  password: z.string().min(6).optional().nullable(),
 });
 
 const UpdateEmployeeSchema = CreateEmployeeSchema.partial();

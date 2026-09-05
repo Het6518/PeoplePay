@@ -101,7 +101,12 @@ export default function EmployeeFormPage() {
       if (!payload.managerId) delete payload.managerId;
       if (!payload.workingScheduleId) delete payload.workingScheduleId;
       if (!payload.phone) delete payload.phone;
-      if (!payload.createUserAccount) delete payload.password;
+      if (payload.createUserAccount) {
+        payload.userPassword = payload.password;
+      } else {
+        delete payload.password;
+        delete payload.userPassword;
+      }
       
       // Format dates to full ISO for backend validation
       if (payload.dateOfBirth) {
