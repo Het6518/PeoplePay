@@ -6,7 +6,9 @@ import { StatusBadge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Pagination } from '../../components/ui/Pagination';
-import { Receipt, Eye, Download } from 'lucide-react';
+import { exportToCSV } from '../../utils/csvExporter';
+import { Receipt, Eye, Download, FileSpreadsheet } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function PayslipListPage() {
   const navigate = useNavigate();
@@ -26,7 +28,7 @@ export default function PayslipListPage() {
       const params = { page, limit: 20 };
       if (statusFilter) params.status = statusFilter;
       const res = await payrollApi.getPayslips(params);
-      const items = Array.isArray(res) ? res : (res?.data || []);
+      const items = Array.isArray(res) ? res : res?.data || [];
       setPayslips(items);
       setTotalPages(res?.pagination?.totalPages || res?.totalPages || 1);
     } catch (err) {
@@ -40,16 +42,34 @@ export default function PayslipListPage() {
     e.stopPropagation();
     try {
       const res = await payrollApi.downloadPDF(id);
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const url = window.URL.createObjectURL(new Blob([res.data || res]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `payslip_${id}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.parentNode.removeChild(link);
+      toast.success('PDF downloaded');
     } catch (err) {
       console.error('Failed to download PDF', err);
+      toast.error('Failed to download PDF');
     }
+  };
+
+  const handleExportCSV = () => {
+    const headers = [
+      { label: 'Employee Code', key: 'code', accessor: (r) => r.employee?.employeeCode || '-' },
+      { label: 'Employee Name', key: 'name', accessor: (r) => `${r.employee?.firstName || ''} ${r.employee?.lastName || ''}`.trim() },
+      { label: 'Payrun Name', key: 'payrun', accessor: (r) => r.payrun?.name || '-' },
+      { label: 'Period Start', key: 'periodStart', accessor: (r) => formatDate(r.periodStart) },
+      { label: 'Period End', key: 'periodEnd', accessor: (r) => formatDate(r.periodEnd) },
+      { label: 'Gross Salary (₹)', key: 'grossSalary', accessor: (r) => r.grossSalary },
+      { label: 'Deductions (₹)', key: 'totalDeductions', accessor: (r) => r.totalDeductions },
+      { label: 'Net Salary (₹)', key: 'netSalary', accessor: (r) => r.netSalary },
+      { label: 'Status', key: 'status' },
+    ];
+    exportToCSV('Payslips_List', headers, payslips);
+    toast.success('Exported Payslips to CSV!');
   };
 
   return (
@@ -59,7 +79,7 @@ export default function PayslipListPage() {
           <h1 className="text-3xl font-black tracking-tight text-stone-900">Payslips</h1>
           <p className="text-sm font-medium text-stone-500 mt-1">View employee payslips, itemized earnings, and PDF reports</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
           <select
             className="rounded-2xl border border-stone-200 bg-stone-50/50 px-4 py-2 text-xs font-semibold text-stone-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20"
             value={statusFilter}
@@ -74,6 +94,14 @@ export default function PayslipListPage() {
             <option value="VALIDATED">Validated</option>
             <option value="PAID">Paid / Final</option>
           </select>
+
+          <button
+            onClick={handleExportCSV}
+            disabled={payslips.length === 0}
+            className="btn-secondary rounded-full px-4 py-2 text-xs font-bold flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" /> Export CSV
+          </button>
         </div>
       </div>
 

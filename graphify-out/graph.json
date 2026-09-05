@@ -301,7 +301,7 @@
       "file_type": "code",
       "norm_label": "dashboardpage()",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L13"
+      "source_location": "L35"
     },
     {
       "id": "client_src_pages_employees_employeedetailpage_employeedetailpage",
@@ -421,7 +421,7 @@
       "file_type": "code",
       "norm_label": "paysliplistpage()",
       "source_file": "client/src/pages/payroll/PayslipListPage.jsx",
-      "source_location": "L11"
+      "source_location": "L13"
     },
     {
       "id": "client_src_pages_payroll_salaryruleformpage_salaryruleformpage",
@@ -457,7 +457,7 @@
       "file_type": "code",
       "norm_label": "attendancereport()",
       "source_file": "client/src/pages/reports/ReportsPage.jsx",
-      "source_location": "L175"
+      "source_location": "L286"
     },
     {
       "id": "client_src_pages_reports_reportspage_payrollreport",
@@ -469,7 +469,7 @@
       "file_type": "code",
       "norm_label": "payrollreport()",
       "source_file": "client/src/pages/reports/ReportsPage.jsx",
-      "source_location": "L48"
+      "source_location": "L59"
     },
     {
       "id": "client_src_pages_reports_reportspage_reportspage",
@@ -481,7 +481,7 @@
       "file_type": "code",
       "norm_label": "reportspage()",
       "source_file": "client/src/pages/reports/ReportsPage.jsx",
-      "source_location": "L7"
+      "source_location": "L10"
     },
     {
       "id": "client_src_pages_reports_reportspage_timeoffreport",
@@ -493,7 +493,7 @@
       "file_type": "code",
       "norm_label": "timeoffreport()",
       "source_file": "client/src/pages/reports/ReportsPage.jsx",
-      "source_location": "L277"
+      "source_location": "L447"
     },
     {
       "id": "client_src_pages_schedules_scheduleformpage_scheduleformpage",
@@ -592,6 +592,18 @@
       "source_location": "L5"
     },
     {
+      "id": "client_src_utils_csvexporter_exporttocsv",
+      "label": "exportToCSV()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "App.jsx",
+      "file_type": "code",
+      "norm_label": "exporttocsv()",
+      "source_file": "client/src/utils/csvExporter.js",
+      "source_location": "L5"
+    },
+    {
       "id": "client_src_utils_formatters_employeetypebadge",
       "label": "employeeTypeBadge()",
       "_callable": true,
@@ -676,12 +688,36 @@
       "source_location": "L78"
     },
     {
+      "id": "client_src_utils_pdfexporter_exporttopdf",
+      "label": "exportToPDF()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "App.jsx",
+      "file_type": "code",
+      "norm_label": "exporttopdf()",
+      "source_file": "client/src/utils/pdfExporter.js",
+      "source_location": "L5"
+    },
+    {
+      "id": "server_src_middleware_errorhandler_errorhandler",
+      "label": "errorHandler()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "app.js",
+      "file_type": "code",
+      "norm_label": "errorhandler()",
+      "source_file": "server/src/middleware/errorHandler.js",
+      "source_location": "L5"
+    },
+    {
       "id": "server_src_controllers_salarycontroller_createsalaryrule",
       "label": "createSalaryRule()",
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "createsalaryrule()",
       "source_file": "server/src/controllers/salaryController.js",
@@ -693,7 +729,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "createsalarystructure()",
       "source_file": "server/src/controllers/salaryController.js",
@@ -705,7 +741,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "deletesalaryrule()",
       "source_file": "server/src/controllers/salaryController.js",
@@ -717,7 +753,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "deletesalarystructure()",
       "source_file": "server/src/controllers/salaryController.js",
@@ -729,7 +765,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "getsalaryrule()",
       "source_file": "server/src/controllers/salaryController.js",
@@ -741,7 +777,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "getsalaryrules()",
       "source_file": "server/src/controllers/salaryController.js",
@@ -753,7 +789,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "getsalarystructure()",
       "source_file": "server/src/controllers/salaryController.js",
@@ -765,7 +801,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "getsalarystructures()",
       "source_file": "server/src/controllers/salaryController.js",
@@ -777,7 +813,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "reorderrules()",
       "source_file": "server/src/controllers/salaryController.js",
@@ -789,7 +825,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "updatesalaryrule()",
       "source_file": "server/src/controllers/salaryController.js",
@@ -801,11 +837,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "updatesalarystructure()",
       "source_file": "server/src/controllers/salaryController.js",
       "source_location": "L54"
+    },
+    {
+      "id": "server_src_utils_response_sendsuccess",
+      "label": "sendSuccess()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 11,
+      "community_name": "sendSuccess",
+      "file_type": "code",
+      "norm_label": "sendsuccess()",
+      "source_file": "server/src/utils/response.js",
+      "source_location": "L3"
     },
     {
       "id": "server_src_services_geofenceservice_calculatedistance",
@@ -878,18 +926,6 @@
       "norm_label": "assert()",
       "source_file": "server/tests/geofenceTest.js",
       "source_location": "L8"
-    },
-    {
-      "id": "server_src_controllers_payrollcontroller_computepayrun",
-      "label": "computePayrun()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "computepayrun()",
-      "source_file": "server/src/controllers/payrollController.js",
-      "source_location": "L157"
     },
     {
       "id": "server_src_controllers_payrollcontroller_createpayrun",
@@ -976,54 +1012,6 @@
       "source_location": "L273"
     },
     {
-      "id": "server_src_services_emailservice_createtransport",
-      "label": "createTransport()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "createtransport()",
-      "source_file": "server/src/services/emailService.js",
-      "source_location": "L7"
-    },
-    {
-      "id": "server_src_services_emailservice_formatdate",
-      "label": "formatDate()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "formatdate()",
-      "source_file": "server/src/services/emailService.js",
-      "source_location": "L26"
-    },
-    {
-      "id": "server_src_services_emailservice_formatinr",
-      "label": "formatINR()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "formatinr()",
-      "source_file": "server/src/services/emailService.js",
-      "source_location": "L22"
-    },
-    {
-      "id": "server_src_services_emailservice_sendpayslipemail",
-      "label": "sendPayslipEmail()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "sendpayslipemail()",
-      "source_file": "server/src/services/emailService.js",
-      "source_location": "L34"
-    },
-    {
       "id": "server_src_services_payrollanomaly_detectanomalies",
       "label": "detectAnomalies()",
       "_callable": true,
@@ -1034,66 +1022,6 @@
       "norm_label": "detectanomalies()",
       "source_file": "server/src/services/payrollAnomaly.js",
       "source_location": "L22"
-    },
-    {
-      "id": "server_src_services_payrollengine_calculateattendancestats",
-      "label": "calculateAttendanceStats()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "calculateattendancestats()",
-      "source_file": "server/src/services/payrollEngine.js",
-      "source_location": "L116"
-    },
-    {
-      "id": "server_src_services_payrollengine_computeemployeepayroll",
-      "label": "computeEmployeePayroll()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "computeemployeepayroll()",
-      "source_file": "server/src/services/payrollEngine.js",
-      "source_location": "L345"
-    },
-    {
-      "id": "server_src_services_payrollengine_getapplicablecontract",
-      "label": "getApplicableContract()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "getapplicablecontract()",
-      "source_file": "server/src/services/payrollEngine.js",
-      "source_location": "L67"
-    },
-    {
-      "id": "server_src_services_payrollengine_processpayrollrules",
-      "label": "processPayrollRules()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "processpayrollrules()",
-      "source_file": "server/src/services/payrollEngine.js",
-      "source_location": "L239"
-    },
-    {
-      "id": "server_src_services_payrollengine_safeevaluateformula",
-      "label": "safeEvaluateFormula()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "safeevaluateformula()",
-      "source_file": "server/src/services/payrollEngine.js",
-      "source_location": "L35"
     },
     {
       "id": "server_src_services_payrollvalidation_validatepayrun",
@@ -1113,7 +1041,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
       "norm_label": "assignlocation()",
       "source_file": "server/src/controllers/attendanceLocationController.js",
@@ -1125,7 +1053,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
       "norm_label": "createlocation()",
       "source_file": "server/src/controllers/attendanceLocationController.js",
@@ -1137,7 +1065,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
       "norm_label": "deletelocation()",
       "source_file": "server/src/controllers/attendanceLocationController.js",
@@ -1149,7 +1077,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
       "norm_label": "getauditlogs()",
       "source_file": "server/src/controllers/attendanceLocationController.js",
@@ -1161,7 +1089,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
       "norm_label": "getlocationbyid()",
       "source_file": "server/src/controllers/attendanceLocationController.js",
@@ -1173,7 +1101,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
       "norm_label": "getlocations()",
       "source_file": "server/src/controllers/attendanceLocationController.js",
@@ -1185,7 +1113,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
       "norm_label": "togglelocationstatus()",
       "source_file": "server/src/controllers/attendanceLocationController.js",
@@ -1197,71 +1125,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
       "norm_label": "updatelocation()",
       "source_file": "server/src/controllers/attendanceLocationController.js",
       "source_location": "L55"
-    },
-    {
-      "id": "server_src_controllers_contractcontroller_createcontract",
-      "label": "createContract()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "sendError",
-      "file_type": "code",
-      "norm_label": "createcontract()",
-      "source_file": "server/src/controllers/contractController.js",
-      "source_location": "L60"
-    },
-    {
-      "id": "server_src_controllers_contractcontroller_deletecontract",
-      "label": "deleteContract()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "sendError",
-      "file_type": "code",
-      "norm_label": "deletecontract()",
-      "source_file": "server/src/controllers/contractController.js",
-      "source_location": "L145"
-    },
-    {
-      "id": "server_src_controllers_contractcontroller_getcontract",
-      "label": "getContract()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "sendError",
-      "file_type": "code",
-      "norm_label": "getcontract()",
-      "source_file": "server/src/controllers/contractController.js",
-      "source_location": "L40"
-    },
-    {
-      "id": "server_src_controllers_contractcontroller_updatecontract",
-      "label": "updateContract()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "sendError",
-      "file_type": "code",
-      "norm_label": "updatecontract()",
-      "source_file": "server/src/controllers/contractController.js",
-      "source_location": "L117"
-    },
-    {
-      "id": "server_src_utils_response_senderror",
-      "label": "sendError()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "sendError",
-      "file_type": "code",
-      "norm_label": "senderror()",
-      "source_file": "server/src/utils/response.js",
-      "source_location": "L11"
     },
     {
       "id": "server_src_controllers_schedulecontroller_calculateweeklyhours",
@@ -1334,18 +1202,6 @@
       "norm_label": "updateschedule()",
       "source_file": "server/src/controllers/scheduleController.js",
       "source_location": "L73"
-    },
-    {
-      "id": "server_src_middleware_auth_authorize",
-      "label": "authorize()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 18,
-      "community_name": "authorize",
-      "file_type": "code",
-      "norm_label": "authorize()",
-      "source_file": "server/src/middleware/auth.js",
-      "source_location": "L25"
     },
     {
       "id": "server_src_middleware_auth_authenticate",
@@ -1624,6 +1480,18 @@
       "source_location": "L40"
     },
     {
+      "id": "server_src_middleware_auth_authorize",
+      "label": "authorize()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 28,
+      "community_name": "authorize",
+      "file_type": "code",
+      "norm_label": "authorize()",
+      "source_file": "server/src/middleware/auth.js",
+      "source_location": "L25"
+    },
+    {
       "id": "client_src_components_map_geofencemap_createemployeeicon",
       "label": "createEmployeeIcon()",
       "_callable": true,
@@ -1864,6 +1732,126 @@
       "source_location": "L19"
     },
     {
+      "id": "server_src_controllers_payrollcontroller_computepayrun",
+      "label": "computePayrun()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "computepayrun()",
+      "source_file": "server/src/controllers/payrollController.js",
+      "source_location": "L157"
+    },
+    {
+      "id": "server_src_services_emailservice_createtransport",
+      "label": "createTransport()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "createtransport()",
+      "source_file": "server/src/services/emailService.js",
+      "source_location": "L7"
+    },
+    {
+      "id": "server_src_services_emailservice_formatdate",
+      "label": "formatDate()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "formatdate()",
+      "source_file": "server/src/services/emailService.js",
+      "source_location": "L26"
+    },
+    {
+      "id": "server_src_services_emailservice_formatinr",
+      "label": "formatINR()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "formatinr()",
+      "source_file": "server/src/services/emailService.js",
+      "source_location": "L22"
+    },
+    {
+      "id": "server_src_services_emailservice_sendpayslipemail",
+      "label": "sendPayslipEmail()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "sendpayslipemail()",
+      "source_file": "server/src/services/emailService.js",
+      "source_location": "L34"
+    },
+    {
+      "id": "server_src_services_payrollengine_calculateattendancestats",
+      "label": "calculateAttendanceStats()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "calculateattendancestats()",
+      "source_file": "server/src/services/payrollEngine.js",
+      "source_location": "L116"
+    },
+    {
+      "id": "server_src_services_payrollengine_computeemployeepayroll",
+      "label": "computeEmployeePayroll()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "computeemployeepayroll()",
+      "source_file": "server/src/services/payrollEngine.js",
+      "source_location": "L345"
+    },
+    {
+      "id": "server_src_services_payrollengine_getapplicablecontract",
+      "label": "getApplicableContract()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "getapplicablecontract()",
+      "source_file": "server/src/services/payrollEngine.js",
+      "source_location": "L67"
+    },
+    {
+      "id": "server_src_services_payrollengine_processpayrollrules",
+      "label": "processPayrollRules()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "processpayrollrules()",
+      "source_file": "server/src/services/payrollEngine.js",
+      "source_location": "L239"
+    },
+    {
+      "id": "server_src_services_payrollengine_safeevaluateformula",
+      "label": "safeEvaluateFormula()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "safeevaluateformula()",
+      "source_file": "server/src/services/payrollEngine.js",
+      "source_location": "L35"
+    },
+    {
       "id": "server_src_controllers_dashboardcontroller_getalerts",
       "label": "getAlerts()",
       "_callable": true,
@@ -2032,6 +2020,54 @@
       "source_location": "L3"
     },
     {
+      "id": "server_src_controllers_contractcontroller_createcontract",
+      "label": "createContract()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "contractController.js",
+      "file_type": "code",
+      "norm_label": "createcontract()",
+      "source_file": "server/src/controllers/contractController.js",
+      "source_location": "L60"
+    },
+    {
+      "id": "server_src_controllers_contractcontroller_deletecontract",
+      "label": "deleteContract()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "contractController.js",
+      "file_type": "code",
+      "norm_label": "deletecontract()",
+      "source_file": "server/src/controllers/contractController.js",
+      "source_location": "L145"
+    },
+    {
+      "id": "server_src_controllers_contractcontroller_getcontract",
+      "label": "getContract()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "contractController.js",
+      "file_type": "code",
+      "norm_label": "getcontract()",
+      "source_file": "server/src/controllers/contractController.js",
+      "source_location": "L40"
+    },
+    {
+      "id": "server_src_controllers_contractcontroller_updatecontract",
+      "label": "updateContract()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "contractController.js",
+      "file_type": "code",
+      "norm_label": "updatecontract()",
+      "source_file": "server/src/controllers/contractController.js",
+      "source_location": "L117"
+    },
+    {
       "id": "server_src_controllers_authcontroller_getme",
       "label": "getMe()",
       "_callable": true,
@@ -2078,18 +2114,6 @@
       "norm_label": "createerror()",
       "source_file": "server/src/middleware/errorHandler.js",
       "source_location": "L56"
-    },
-    {
-      "id": "server_src_middleware_errorhandler_errorhandler",
-      "label": "errorHandler()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 6,
-      "community_name": "authController.js",
-      "file_type": "code",
-      "norm_label": "errorhandler()",
-      "source_file": "server/src/middleware/errorHandler.js",
-      "source_location": "L5"
     },
     {
       "id": "server_src_controllers_admincontroller_createdepartment",
@@ -2277,7 +2301,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "approveallocation()",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -2289,7 +2313,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "approvetimeoffrequest()",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -2301,7 +2325,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "canceltimeoffrequest()",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -2313,7 +2337,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "createallocation()",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -2325,7 +2349,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "createtimeoffrequest()",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -2337,7 +2361,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "createtimeofftype()",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -2349,7 +2373,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "deletetimeofftype()",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -2361,7 +2385,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "gettimeoffrequest()",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -2373,7 +2397,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "gettimeofftypes()",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -2385,7 +2409,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "refuseallocation()",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -2397,7 +2421,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "rejecttimeoffrequest()",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -2409,7 +2433,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "updateallocation()",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -2421,23 +2445,23 @@
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "updatetimeofftype()",
       "source_file": "server/src/controllers/timeOffController.js",
       "source_location": "L38"
     },
     {
-      "id": "server_src_utils_response_sendsuccess",
-      "label": "sendSuccess()",
+      "id": "server_src_utils_response_senderror",
+      "label": "sendError()",
       "_callable": true,
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
-      "norm_label": "sendsuccess()",
+      "norm_label": "senderror()",
       "source_file": "server/src/utils/response.js",
-      "source_location": "L3"
+      "source_location": "L11"
     },
     {
       "id": "client_src_app",
@@ -2724,17 +2748,6 @@
       "norm_label": "dashboardpage.jsx",
       "source_file": "client/src/pages/DashboardPage.jsx",
       "source_location": "L1"
-    },
-    {
-      "id": "client_src_pages_dashboardpage_colors",
-      "label": "COLORS",
-      "_origin": "ast",
-      "community": 0,
-      "community_name": "App.jsx",
-      "file_type": "code",
-      "norm_label": "colors",
-      "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L11"
     },
     {
       "id": "client_src_pages_employees_employeedetailpage",
@@ -3133,6 +3146,17 @@
       "source_location": "L15"
     },
     {
+      "id": "client_src_utils_csvexporter",
+      "label": "csvExporter.js",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "App.jsx",
+      "file_type": "code",
+      "norm_label": "csvexporter.js",
+      "source_file": "client/src/utils/csvExporter.js",
+      "source_location": "L1"
+    },
+    {
       "id": "client_src_utils_formatters",
       "label": "formatters.js",
       "_origin": "ast",
@@ -3141,6 +3165,17 @@
       "file_type": "code",
       "norm_label": "formatters.js",
       "source_file": "client/src/utils/formatters.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "client_src_utils_pdfexporter",
+      "label": "pdfExporter.js",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "App.jsx",
+      "file_type": "code",
+      "norm_label": "pdfexporter.js",
+      "source_file": "client/src/utils/pdfExporter.js",
       "source_location": "L1"
     },
     {
@@ -3797,7 +3832,7 @@
       "label": "salaryController.js",
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "salarycontroller.js",
       "source_file": "server/src/controllers/salaryController.js",
@@ -3808,7 +3843,7 @@
       "label": "{ CreateSalaryStructureSchema, UpdateSalaryStructureSchema, CreateSalaryRuleSchema, UpdateSalaryRuleSchema }",
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "{ createsalarystructureschema, updatesalarystructureschema, createsalaryruleschema, updatesalaryruleschema }",
       "source_file": "server/src/controllers/salaryController.js",
@@ -3819,7 +3854,7 @@
       "label": "prisma",
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "prisma",
       "source_file": "server/src/controllers/salaryController.js",
@@ -3830,33 +3865,11 @@
       "label": "{ sendSuccess, sendError, sendPaginated }",
       "_origin": "ast",
       "community": 11,
-      "community_name": "salaryController.js",
+      "community_name": "sendSuccess",
       "file_type": "code",
       "norm_label": "{ sendsuccess, senderror, sendpaginated }",
       "source_file": "server/src/controllers/salaryController.js",
       "source_location": "L3"
-    },
-    {
-      "id": "server_src_validators_schemas_createsalaryruleschema",
-      "label": "CreateSalaryRuleSchema",
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "salaryController.js",
-      "file_type": "code",
-      "norm_label": "createsalaryruleschema",
-      "source_file": "server/src/validators/schemas.js",
-      "source_location": "L176"
-    },
-    {
-      "id": "server_src_validators_schemas_updatesalarystructureschema",
-      "label": "UpdateSalaryStructureSchema",
-      "_origin": "ast",
-      "community": 11,
-      "community_name": "salaryController.js",
-      "file_type": "code",
-      "norm_label": "updatesalarystructureschema",
-      "source_file": "server/src/validators/schemas.js",
-      "source_location": "L170"
     },
     {
       "id": "server_src_services_geofenceservice",
@@ -4255,94 +4268,6 @@
       "source_location": "L5"
     },
     {
-      "id": "server_src_services_emailservice",
-      "label": "emailService.js",
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "emailservice.js",
-      "source_file": "server/src/services/emailService.js",
-      "source_location": "L1"
-    },
-    {
-      "id": "server_src_services_emailservice_nodemailer",
-      "label": "nodemailer",
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "nodemailer",
-      "source_file": "server/src/services/emailService.js",
-      "source_location": "L5"
-    },
-    {
-      "id": "server_src_services_payrollengine",
-      "label": "payrollEngine.js",
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "payrollengine.js",
-      "source_file": "server/src/services/payrollEngine.js",
-      "source_location": "L1"
-    },
-    {
-      "id": "server_src_services_payrollengine_create_all",
-      "label": "{ create, all }",
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "{ create, all }",
-      "source_file": "server/src/services/payrollEngine.js",
-      "source_location": "L14"
-    },
-    {
-      "id": "server_src_services_payrollengine_math",
-      "label": "math",
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "math",
-      "source_file": "server/src/services/payrollEngine.js",
-      "source_location": "L17"
-    },
-    {
-      "id": "server_src_services_payrollvalidation",
-      "label": "payrollValidation.js",
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "payrollvalidation.js",
-      "source_file": "server/src/services/payrollValidation.js",
-      "source_location": "L1"
-    },
-    {
-      "id": "server_src_services_payrollvalidation_getapplicablecontract",
-      "label": "{ getApplicableContract }",
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "{ getapplicablecontract }",
-      "source_file": "server/src/services/payrollValidation.js",
-      "source_location": "L9"
-    },
-    {
-      "id": "server_src_services_payrollvalidation_prisma",
-      "label": "prisma",
-      "_origin": "ast",
-      "community": 14,
-      "community_name": "payrollController.js",
-      "file_type": "code",
-      "norm_label": "prisma",
-      "source_file": "server/src/services/payrollValidation.js",
-      "source_location": "L8"
-    },
-    {
       "id": "server_src_validators_schemas_createpayrunschema",
       "label": "CreatePayrunSchema",
       "_origin": "ast",
@@ -4358,7 +4283,7 @@
       "label": "attendanceLocationController.js",
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
       "norm_label": "attendancelocationcontroller.js",
       "source_file": "server/src/controllers/attendanceLocationController.js",
@@ -4369,7 +4294,7 @@
       "label": "attendanceLocationService",
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
       "norm_label": "attendancelocationservice",
       "source_file": "server/src/controllers/attendanceLocationController.js",
@@ -4380,7 +4305,7 @@
       "label": "{\n  CreateAttendanceLocationSchema,\n  UpdateAttendanceLocationSchema,\n  AssignAttendanceLocationSchema,\n}",
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
       "norm_label": "{\n  createattendancelocationschema,\n  updateattendancelocationschema,\n  assignattendancelocationschema,\n}",
       "source_file": "server/src/controllers/attendanceLocationController.js",
@@ -4391,88 +4316,44 @@
       "label": "{ sendSuccess, sendError }",
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
       "norm_label": "{ sendsuccess, senderror }",
       "source_file": "server/src/controllers/attendanceLocationController.js",
       "source_location": "L7"
     },
     {
-      "id": "server_src_controllers_contractcontroller",
-      "label": "contractController.js",
+      "id": "server_src_validators_schemas_assignattendancelocationschema",
+      "label": "AssignAttendanceLocationSchema",
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
-      "norm_label": "contractcontroller.js",
-      "source_file": "server/src/controllers/contractController.js",
-      "source_location": "L1"
-    },
-    {
-      "id": "server_src_controllers_contractcontroller_createcontractschema_updatecontractschema",
-      "label": "{ CreateContractSchema, UpdateContractSchema }",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "sendError",
-      "file_type": "code",
-      "norm_label": "{ createcontractschema, updatecontractschema }",
-      "source_file": "server/src/controllers/contractController.js",
-      "source_location": "L2"
-    },
-    {
-      "id": "server_src_controllers_contractcontroller_prisma",
-      "label": "prisma",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "sendError",
-      "file_type": "code",
-      "norm_label": "prisma",
-      "source_file": "server/src/controllers/contractController.js",
-      "source_location": "L1"
-    },
-    {
-      "id": "server_src_controllers_contractcontroller_sendsuccess_senderror_sendpaginated",
-      "label": "{ sendSuccess, sendError, sendPaginated }",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "sendError",
-      "file_type": "code",
-      "norm_label": "{ sendsuccess, senderror, sendpaginated }",
-      "source_file": "server/src/controllers/contractController.js",
-      "source_location": "L3"
-    },
-    {
-      "id": "server_src_utils_response",
-      "label": "response.js",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "sendError",
-      "file_type": "code",
-      "norm_label": "response.js",
-      "source_file": "server/src/utils/response.js",
-      "source_location": "L1"
-    },
-    {
-      "id": "server_src_validators_schemas_createcontractschema",
-      "label": "CreateContractSchema",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "sendError",
-      "file_type": "code",
-      "norm_label": "createcontractschema",
+      "norm_label": "assignattendancelocationschema",
       "source_file": "server/src/validators/schemas.js",
-      "source_location": "L59"
+      "source_location": "L236"
     },
     {
-      "id": "server_src_validators_schemas_updatecontractschema",
-      "label": "UpdateContractSchema",
+      "id": "server_src_validators_schemas_createattendancelocationschema",
+      "label": "CreateAttendanceLocationSchema",
       "_origin": "ast",
       "community": 15,
-      "community_name": "sendError",
+      "community_name": "attendanceLocationController.js",
       "file_type": "code",
-      "norm_label": "updatecontractschema",
+      "norm_label": "createattendancelocationschema",
       "source_file": "server/src/validators/schemas.js",
-      "source_location": "L71"
+      "source_location": "L214"
+    },
+    {
+      "id": "server_src_validators_schemas_updateattendancelocationschema",
+      "label": "UpdateAttendanceLocationSchema",
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "attendanceLocationController.js",
+      "file_type": "code",
+      "norm_label": "updateattendancelocationschema",
+      "source_file": "server/src/validators/schemas.js",
+      "source_location": "L222"
     },
     {
       "id": "client_package",
@@ -4596,22 +4477,11 @@
       "source_location": "L91"
     },
     {
-      "id": "server_src_middleware_auth_hr_roles",
-      "label": "HR_ROLES",
-      "_origin": "ast",
-      "community": 18,
-      "community_name": "authorize",
-      "file_type": "code",
-      "norm_label": "hr_roles",
-      "source_file": "server/src/middleware/auth.js",
-      "source_location": "L38"
-    },
-    {
       "id": "server_src_routes_attendanceroutes",
       "label": "attendanceRoutes.js",
       "_origin": "ast",
       "community": 18,
-      "community_name": "authorize",
+      "community_name": "attendanceRoutes.js",
       "file_type": "code",
       "norm_label": "attendanceroutes.js",
       "source_file": "server/src/routes/attendanceRoutes.js",
@@ -4622,7 +4492,7 @@
       "label": "{ authenticate, authorize, HR_ROLES }",
       "_origin": "ast",
       "community": 18,
-      "community_name": "authorize",
+      "community_name": "attendanceRoutes.js",
       "file_type": "code",
       "norm_label": "{ authenticate, authorize, hr_roles }",
       "source_file": "server/src/routes/attendanceRoutes.js",
@@ -4633,7 +4503,7 @@
       "label": "ctrl",
       "_origin": "ast",
       "community": 18,
-      "community_name": "authorize",
+      "community_name": "attendanceRoutes.js",
       "file_type": "code",
       "norm_label": "ctrl",
       "source_file": "server/src/routes/attendanceRoutes.js",
@@ -4644,7 +4514,7 @@
       "label": "express",
       "_origin": "ast",
       "community": 18,
-      "community_name": "authorize",
+      "community_name": "attendanceRoutes.js",
       "file_type": "code",
       "norm_label": "express",
       "source_file": "server/src/routes/attendanceRoutes.js",
@@ -4655,65 +4525,10 @@
       "label": "router",
       "_origin": "ast",
       "community": 18,
-      "community_name": "authorize",
+      "community_name": "attendanceRoutes.js",
       "file_type": "code",
       "norm_label": "router",
       "source_file": "server/src/routes/attendanceRoutes.js",
-      "source_location": "L2"
-    },
-    {
-      "id": "server_src_routes_timeoffroutes",
-      "label": "timeOffRoutes.js",
-      "_origin": "ast",
-      "community": 18,
-      "community_name": "authorize",
-      "file_type": "code",
-      "norm_label": "timeoffroutes.js",
-      "source_file": "server/src/routes/timeOffRoutes.js",
-      "source_location": "L1"
-    },
-    {
-      "id": "server_src_routes_timeoffroutes_authenticate_authorize_hr_roles",
-      "label": "{ authenticate, authorize, HR_ROLES }",
-      "_origin": "ast",
-      "community": 18,
-      "community_name": "authorize",
-      "file_type": "code",
-      "norm_label": "{ authenticate, authorize, hr_roles }",
-      "source_file": "server/src/routes/timeOffRoutes.js",
-      "source_location": "L3"
-    },
-    {
-      "id": "server_src_routes_timeoffroutes_ctrl",
-      "label": "ctrl",
-      "_origin": "ast",
-      "community": 18,
-      "community_name": "authorize",
-      "file_type": "code",
-      "norm_label": "ctrl",
-      "source_file": "server/src/routes/timeOffRoutes.js",
-      "source_location": "L4"
-    },
-    {
-      "id": "server_src_routes_timeoffroutes_express",
-      "label": "express",
-      "_origin": "ast",
-      "community": 18,
-      "community_name": "authorize",
-      "file_type": "code",
-      "norm_label": "express",
-      "source_file": "server/src/routes/timeOffRoutes.js",
-      "source_location": "L1"
-    },
-    {
-      "id": "server_src_routes_timeoffroutes_router",
-      "label": "router",
-      "_origin": "ast",
-      "community": 18,
-      "community_name": "authorize",
-      "file_type": "code",
-      "norm_label": "router",
-      "source_file": "server/src/routes/timeOffRoutes.js",
       "source_location": "L2"
     },
     {
@@ -5443,11 +5258,77 @@
       "source_location": "L2"
     },
     {
+      "id": "server_src_middleware_auth_hr_roles",
+      "label": "HR_ROLES",
+      "_origin": "ast",
+      "community": 28,
+      "community_name": "authorize",
+      "file_type": "code",
+      "norm_label": "hr_roles",
+      "source_file": "server/src/middleware/auth.js",
+      "source_location": "L38"
+    },
+    {
+      "id": "server_src_routes_attendancelocationroutes",
+      "label": "attendanceLocationRoutes.js",
+      "_origin": "ast",
+      "community": 28,
+      "community_name": "authorize",
+      "file_type": "code",
+      "norm_label": "attendancelocationroutes.js",
+      "source_file": "server/src/routes/attendanceLocationRoutes.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "server_src_routes_attendancelocationroutes_authenticate_authorize_hr_roles",
+      "label": "{ authenticate, authorize, HR_ROLES }",
+      "_origin": "ast",
+      "community": 28,
+      "community_name": "authorize",
+      "file_type": "code",
+      "norm_label": "{ authenticate, authorize, hr_roles }",
+      "source_file": "server/src/routes/attendanceLocationRoutes.js",
+      "source_location": "L3"
+    },
+    {
+      "id": "server_src_routes_attendancelocationroutes_ctrl",
+      "label": "ctrl",
+      "_origin": "ast",
+      "community": 28,
+      "community_name": "authorize",
+      "file_type": "code",
+      "norm_label": "ctrl",
+      "source_file": "server/src/routes/attendanceLocationRoutes.js",
+      "source_location": "L4"
+    },
+    {
+      "id": "server_src_routes_attendancelocationroutes_express",
+      "label": "express",
+      "_origin": "ast",
+      "community": 28,
+      "community_name": "authorize",
+      "file_type": "code",
+      "norm_label": "express",
+      "source_file": "server/src/routes/attendanceLocationRoutes.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "server_src_routes_attendancelocationroutes_router",
+      "label": "router",
+      "_origin": "ast",
+      "community": 28,
+      "community_name": "authorize",
+      "file_type": "code",
+      "norm_label": "router",
+      "source_file": "server/src/routes/attendanceLocationRoutes.js",
+      "source_location": "L2"
+    },
+    {
       "id": "server_src_routes_scheduleroutes",
       "label": "scheduleRoutes.js",
       "_origin": "ast",
       "community": 28,
-      "community_name": "scheduleRoutes.js",
+      "community_name": "authorize",
       "file_type": "code",
       "norm_label": "scheduleroutes.js",
       "source_file": "server/src/routes/scheduleRoutes.js",
@@ -5458,7 +5339,7 @@
       "label": "{ authenticate, authorize, HR_ROLES }",
       "_origin": "ast",
       "community": 28,
-      "community_name": "scheduleRoutes.js",
+      "community_name": "authorize",
       "file_type": "code",
       "norm_label": "{ authenticate, authorize, hr_roles }",
       "source_file": "server/src/routes/scheduleRoutes.js",
@@ -5469,7 +5350,7 @@
       "label": "ctrl",
       "_origin": "ast",
       "community": 28,
-      "community_name": "scheduleRoutes.js",
+      "community_name": "authorize",
       "file_type": "code",
       "norm_label": "ctrl",
       "source_file": "server/src/routes/scheduleRoutes.js",
@@ -5480,7 +5361,7 @@
       "label": "express",
       "_origin": "ast",
       "community": 28,
-      "community_name": "scheduleRoutes.js",
+      "community_name": "authorize",
       "file_type": "code",
       "norm_label": "express",
       "source_file": "server/src/routes/scheduleRoutes.js",
@@ -5491,7 +5372,7 @@
       "label": "router",
       "_origin": "ast",
       "community": 28,
-      "community_name": "scheduleRoutes.js",
+      "community_name": "authorize",
       "file_type": "code",
       "norm_label": "router",
       "source_file": "server/src/routes/scheduleRoutes.js",
@@ -5652,59 +5533,92 @@
       "source_location": "L19"
     },
     {
-      "id": "server_src_routes_attendancelocationroutes",
-      "label": "attendanceLocationRoutes.js",
+      "id": "server_src_services_emailservice",
+      "label": "emailService.js",
       "_origin": "ast",
       "community": 32,
-      "community_name": "attendanceLocationRoutes.js",
+      "community_name": "payrollEngine.js",
       "file_type": "code",
-      "norm_label": "attendancelocationroutes.js",
-      "source_file": "server/src/routes/attendanceLocationRoutes.js",
+      "norm_label": "emailservice.js",
+      "source_file": "server/src/services/emailService.js",
       "source_location": "L1"
     },
     {
-      "id": "server_src_routes_attendancelocationroutes_authenticate_authorize_hr_roles",
-      "label": "{ authenticate, authorize, HR_ROLES }",
+      "id": "server_src_services_emailservice_nodemailer",
+      "label": "nodemailer",
       "_origin": "ast",
       "community": 32,
-      "community_name": "attendanceLocationRoutes.js",
+      "community_name": "payrollEngine.js",
       "file_type": "code",
-      "norm_label": "{ authenticate, authorize, hr_roles }",
-      "source_file": "server/src/routes/attendanceLocationRoutes.js",
-      "source_location": "L3"
+      "norm_label": "nodemailer",
+      "source_file": "server/src/services/emailService.js",
+      "source_location": "L5"
     },
     {
-      "id": "server_src_routes_attendancelocationroutes_ctrl",
-      "label": "ctrl",
+      "id": "server_src_services_payrollengine",
+      "label": "payrollEngine.js",
       "_origin": "ast",
       "community": 32,
-      "community_name": "attendanceLocationRoutes.js",
+      "community_name": "payrollEngine.js",
       "file_type": "code",
-      "norm_label": "ctrl",
-      "source_file": "server/src/routes/attendanceLocationRoutes.js",
-      "source_location": "L4"
-    },
-    {
-      "id": "server_src_routes_attendancelocationroutes_express",
-      "label": "express",
-      "_origin": "ast",
-      "community": 32,
-      "community_name": "attendanceLocationRoutes.js",
-      "file_type": "code",
-      "norm_label": "express",
-      "source_file": "server/src/routes/attendanceLocationRoutes.js",
+      "norm_label": "payrollengine.js",
+      "source_file": "server/src/services/payrollEngine.js",
       "source_location": "L1"
     },
     {
-      "id": "server_src_routes_attendancelocationroutes_router",
-      "label": "router",
+      "id": "server_src_services_payrollengine_create_all",
+      "label": "{ create, all }",
       "_origin": "ast",
       "community": 32,
-      "community_name": "attendanceLocationRoutes.js",
+      "community_name": "payrollEngine.js",
       "file_type": "code",
-      "norm_label": "router",
-      "source_file": "server/src/routes/attendanceLocationRoutes.js",
-      "source_location": "L2"
+      "norm_label": "{ create, all }",
+      "source_file": "server/src/services/payrollEngine.js",
+      "source_location": "L14"
+    },
+    {
+      "id": "server_src_services_payrollengine_math",
+      "label": "math",
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "math",
+      "source_file": "server/src/services/payrollEngine.js",
+      "source_location": "L17"
+    },
+    {
+      "id": "server_src_services_payrollvalidation",
+      "label": "payrollValidation.js",
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "payrollvalidation.js",
+      "source_file": "server/src/services/payrollValidation.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "server_src_services_payrollvalidation_getapplicablecontract",
+      "label": "{ getApplicableContract }",
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "{ getapplicablecontract }",
+      "source_file": "server/src/services/payrollValidation.js",
+      "source_location": "L9"
+    },
+    {
+      "id": "server_src_services_payrollvalidation_prisma",
+      "label": "prisma",
+      "_origin": "ast",
+      "community": 32,
+      "community_name": "payrollEngine.js",
+      "file_type": "code",
+      "norm_label": "prisma",
+      "source_file": "server/src/services/payrollValidation.js",
+      "source_location": "L8"
     },
     {
       "id": "client_package_dependencies_react_hot_toast",
@@ -6184,17 +6098,6 @@
       "source_location": "L156"
     },
     {
-      "id": "server_src_validators_schemas_assignattendancelocationschema",
-      "label": "AssignAttendanceLocationSchema",
-      "_origin": "ast",
-      "community": 42,
-      "community_name": "schemas.js",
-      "file_type": "code",
-      "norm_label": "assignattendancelocationschema",
-      "source_file": "server/src/validators/schemas.js",
-      "source_location": "L236"
-    },
-    {
       "id": "server_src_validators_schemas_createallocationschema",
       "label": "CreateAllocationSchema",
       "_origin": "ast",
@@ -6206,15 +6109,15 @@
       "source_location": "L132"
     },
     {
-      "id": "server_src_validators_schemas_createattendancelocationschema",
-      "label": "CreateAttendanceLocationSchema",
+      "id": "server_src_validators_schemas_createsalaryruleschema",
+      "label": "CreateSalaryRuleSchema",
       "_origin": "ast",
       "community": 42,
       "community_name": "schemas.js",
       "file_type": "code",
-      "norm_label": "createattendancelocationschema",
+      "norm_label": "createsalaryruleschema",
       "source_file": "server/src/validators/schemas.js",
-      "source_location": "L214"
+      "source_location": "L176"
     },
     {
       "id": "server_src_validators_schemas_createsalarystructureschema",
@@ -6272,17 +6175,6 @@
       "source_location": "L141"
     },
     {
-      "id": "server_src_validators_schemas_updateattendancelocationschema",
-      "label": "UpdateAttendanceLocationSchema",
-      "_origin": "ast",
-      "community": 42,
-      "community_name": "schemas.js",
-      "file_type": "code",
-      "norm_label": "updateattendancelocationschema",
-      "source_file": "server/src/validators/schemas.js",
-      "source_location": "L222"
-    },
-    {
       "id": "server_src_validators_schemas_updatesalaryruleschema",
       "label": "UpdateSalaryRuleSchema",
       "_origin": "ast",
@@ -6292,6 +6184,17 @@
       "norm_label": "updatesalaryruleschema",
       "source_file": "server/src/validators/schemas.js",
       "source_location": "L191"
+    },
+    {
+      "id": "server_src_validators_schemas_updatesalarystructureschema",
+      "label": "UpdateSalaryStructureSchema",
+      "_origin": "ast",
+      "community": 42,
+      "community_name": "schemas.js",
+      "file_type": "code",
+      "norm_label": "updatesalarystructureschema",
+      "source_file": "server/src/validators/schemas.js",
+      "source_location": "L170"
     },
     {
       "id": "server_src_validators_schemas_updatetimeofftypeschema",
@@ -6325,6 +6228,127 @@
       "norm_label": "{ z }",
       "source_file": "server/src/validators/schemas.js",
       "source_location": "L1"
+    },
+    {
+      "id": "server_src_controllers_contractcontroller",
+      "label": "contractController.js",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "contractController.js",
+      "file_type": "code",
+      "norm_label": "contractcontroller.js",
+      "source_file": "server/src/controllers/contractController.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "server_src_controllers_contractcontroller_createcontractschema_updatecontractschema",
+      "label": "{ CreateContractSchema, UpdateContractSchema }",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "contractController.js",
+      "file_type": "code",
+      "norm_label": "{ createcontractschema, updatecontractschema }",
+      "source_file": "server/src/controllers/contractController.js",
+      "source_location": "L2"
+    },
+    {
+      "id": "server_src_controllers_contractcontroller_prisma",
+      "label": "prisma",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "contractController.js",
+      "file_type": "code",
+      "norm_label": "prisma",
+      "source_file": "server/src/controllers/contractController.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "server_src_controllers_contractcontroller_sendsuccess_senderror_sendpaginated",
+      "label": "{ sendSuccess, sendError, sendPaginated }",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "contractController.js",
+      "file_type": "code",
+      "norm_label": "{ sendsuccess, senderror, sendpaginated }",
+      "source_file": "server/src/controllers/contractController.js",
+      "source_location": "L3"
+    },
+    {
+      "id": "server_src_validators_schemas_createcontractschema",
+      "label": "CreateContractSchema",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "contractController.js",
+      "file_type": "code",
+      "norm_label": "createcontractschema",
+      "source_file": "server/src/validators/schemas.js",
+      "source_location": "L59"
+    },
+    {
+      "id": "server_src_validators_schemas_updatecontractschema",
+      "label": "UpdateContractSchema",
+      "_origin": "ast",
+      "community": 43,
+      "community_name": "contractController.js",
+      "file_type": "code",
+      "norm_label": "updatecontractschema",
+      "source_file": "server/src/validators/schemas.js",
+      "source_location": "L71"
+    },
+    {
+      "id": "server_src_routes_timeoffroutes",
+      "label": "timeOffRoutes.js",
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "timeOffRoutes.js",
+      "file_type": "code",
+      "norm_label": "timeoffroutes.js",
+      "source_file": "server/src/routes/timeOffRoutes.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "server_src_routes_timeoffroutes_authenticate_authorize_hr_roles",
+      "label": "{ authenticate, authorize, HR_ROLES }",
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "timeOffRoutes.js",
+      "file_type": "code",
+      "norm_label": "{ authenticate, authorize, hr_roles }",
+      "source_file": "server/src/routes/timeOffRoutes.js",
+      "source_location": "L3"
+    },
+    {
+      "id": "server_src_routes_timeoffroutes_ctrl",
+      "label": "ctrl",
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "timeOffRoutes.js",
+      "file_type": "code",
+      "norm_label": "ctrl",
+      "source_file": "server/src/routes/timeOffRoutes.js",
+      "source_location": "L4"
+    },
+    {
+      "id": "server_src_routes_timeoffroutes_express",
+      "label": "express",
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "timeOffRoutes.js",
+      "file_type": "code",
+      "norm_label": "express",
+      "source_file": "server/src/routes/timeOffRoutes.js",
+      "source_location": "L1"
+    },
+    {
+      "id": "server_src_routes_timeoffroutes_router",
+      "label": "router",
+      "_origin": "ast",
+      "community": 44,
+      "community_name": "timeOffRoutes.js",
+      "file_type": "code",
+      "norm_label": "router",
+      "source_file": "server/src/routes/timeOffRoutes.js",
+      "source_location": "L2"
     },
     {
       "id": "client_package_dependencies",
@@ -6657,6 +6681,17 @@
       "source_location": "L2"
     },
     {
+      "id": "server_src_utils_response",
+      "label": "response.js",
+      "_origin": "ast",
+      "community": 6,
+      "community_name": "authController.js",
+      "file_type": "code",
+      "norm_label": "response.js",
+      "source_file": "server/src/utils/response.js",
+      "source_location": "L1"
+    },
+    {
       "id": "server_src_validators_schemas_loginschema",
       "label": "LoginSchema",
       "_origin": "ast",
@@ -6914,7 +6949,7 @@
       "label": "timeOffController.js",
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "timeoffcontroller.js",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -6925,7 +6960,7 @@
       "label": "{\n  CreateTimeOffTypeSchema,\n  UpdateTimeOffTypeSchema,\n  CreateAllocationSchema,\n  UpdateAllocationSchema,\n  CreateTimeOffRequestSchema,\n  ApproveRejectRequestSchema,\n}",
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "{\n  createtimeofftypeschema,\n  updatetimeofftypeschema,\n  createallocationschema,\n  updateallocationschema,\n  createtimeoffrequestschema,\n  approverejectrequestschema,\n}",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -6936,7 +6971,7 @@
       "label": "prisma",
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "prisma",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -6947,7 +6982,7 @@
       "label": "{ sendSuccess, sendError, sendPaginated }",
       "_origin": "ast",
       "community": 9,
-      "community_name": "sendSuccess",
+      "community_name": "sendError",
       "file_type": "code",
       "norm_label": "{ sendsuccess, senderror, sendpaginated }",
       "source_file": "server/src/controllers/timeOffController.js",
@@ -7113,18 +7148,6 @@
     },
     {
       "source": "client_src_pages_dashboardpage_dashboardpage",
-      "target": "client_src_utils_formatters_formatinr",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L131",
-      "weight": 1.0
-    },
-    {
-      "source": "client_src_pages_dashboardpage_dashboardpage",
       "target": "client_src_utils_formatters_formatdate",
       "relation": "calls",
       "_origin": "ast",
@@ -7132,7 +7155,31 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L274",
+      "source_location": "L280",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_dashboardpage_dashboardpage",
+      "target": "client_src_utils_formatters_formatinr",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "client/src/pages/DashboardPage.jsx",
+      "source_location": "L342",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_dashboardpage_dashboardpage",
+      "target": "client_src_contexts_authcontext_useauth",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "client/src/pages/DashboardPage.jsx",
+      "source_location": "L36",
       "weight": 1.0
     },
     {
@@ -7293,18 +7340,6 @@
     },
     {
       "source": "client_src_pages_payroll_paysliplistpage_paysliplistpage",
-      "target": "client_src_utils_formatters_formatdate",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "client/src/pages/payroll/PayslipListPage.jsx",
-      "source_location": "L120",
-      "weight": 1.0
-    },
-    {
-      "source": "client_src_pages_payroll_paysliplistpage_paysliplistpage",
       "target": "client_src_utils_formatters_formatinr",
       "relation": "calls",
       "_origin": "ast",
@@ -7312,7 +7347,31 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "client/src/pages/payroll/PayslipListPage.jsx",
-      "source_location": "L122",
+      "source_location": "L150",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_payroll_paysliplistpage_paysliplistpage",
+      "target": "client_src_utils_formatters_formatdate",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "client/src/pages/payroll/PayslipListPage.jsx",
+      "source_location": "L64",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_payroll_paysliplistpage_paysliplistpage",
+      "target": "client_src_utils_csvexporter_exporttocsv",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "client/src/pages/payroll/PayslipListPage.jsx",
+      "source_location": "L71",
       "weight": 1.0
     },
     {
@@ -7328,15 +7387,39 @@
       "weight": 1.0
     },
     {
-      "source": "client_src_pages_reports_reportspage_payrollreport",
-      "target": "client_src_utils_formatters_formatdate",
+      "source": "client_src_pages_reports_reportspage_attendancereport",
+      "target": "client_src_utils_csvexporter_exporttocsv",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "client/src/pages/reports/ReportsPage.jsx",
-      "source_location": "L154",
+      "source_location": "L321",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_reports_reportspage_attendancereport",
+      "target": "client_src_utils_pdfexporter_exporttopdf",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "client/src/pages/reports/ReportsPage.jsx",
+      "source_location": "L340",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_reports_reportspage_payrollreport",
+      "target": "client_src_utils_csvexporter_exporttocsv",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "client/src/pages/reports/ReportsPage.jsx",
+      "source_location": "L106",
       "weight": 1.0
     },
     {
@@ -7348,7 +7431,31 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "client/src/pages/reports/ReportsPage.jsx",
-      "source_location": "L156",
+      "source_location": "L116",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_reports_reportspage_payrollreport",
+      "target": "client_src_utils_pdfexporter_exporttopdf",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "client/src/pages/reports/ReportsPage.jsx",
+      "source_location": "L126",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_reports_reportspage_payrollreport",
+      "target": "client_src_utils_formatters_formatdate",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "client/src/pages/reports/ReportsPage.jsx",
+      "source_location": "L99",
       "weight": 1.0
     },
     {
@@ -7360,7 +7467,31 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "client/src/pages/reports/ReportsPage.jsx",
-      "source_location": "L378",
+      "source_location": "L478",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_reports_reportspage_timeoffreport",
+      "target": "client_src_utils_csvexporter_exporttocsv",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "client/src/pages/reports/ReportsPage.jsx",
+      "source_location": "L483",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_reports_reportspage_timeoffreport",
+      "target": "client_src_utils_pdfexporter_exporttopdf",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "client/src/pages/reports/ReportsPage.jsx",
+      "source_location": "L500",
       "weight": 1.0
     },
     {
@@ -10504,7 +10635,31 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L8",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_dashboardpage",
+      "target": "client_src_services_apiservices_employeeapi",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/DashboardPage.jsx",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_dashboardpage",
+      "target": "client_src_services_apiservices_payrollapi",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/DashboardPage.jsx",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -10516,7 +10671,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L9",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
@@ -10528,7 +10683,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L9",
+      "source_location": "L30",
       "weight": 1.0
     },
     {
@@ -10540,7 +10695,43 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L9",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_dashboardpage",
+      "target": "client_src_contexts_authcontext_useauth",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/DashboardPage.jsx",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_dashboardpage",
+      "target": "client_src_components_ui_badge_statusbadge",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/DashboardPage.jsx",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_dashboardpage",
+      "target": "client_src_components_ui_loadingspinner_loadingspinner",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/DashboardPage.jsx",
+      "source_location": "L33",
       "weight": 1.0
     },
     {
@@ -11108,6 +11299,18 @@
       "weight": 1.0
     },
     {
+      "source": "client_src_pages_payroll_paysliplistpage",
+      "target": "client_src_utils_csvexporter_exporttocsv",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/payroll/PayslipListPage.jsx",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
       "source": "client_src_pages_payroll_salaryruleformpage",
       "target": "client_src_services_apiservices_salaryapi",
       "relation": "imports",
@@ -11181,6 +11384,18 @@
     },
     {
       "source": "client_src_pages_reports_reportspage",
+      "target": "client_src_services_apiservices_timeoffapi",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/reports/ReportsPage.jsx",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_reports_reportspage",
       "target": "client_src_utils_formatters_formatdate",
       "relation": "imports",
       "_origin": "ast",
@@ -11213,6 +11428,30 @@
       "context": "import",
       "source_file": "client/src/pages/reports/ReportsPage.jsx",
       "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_reports_reportspage",
+      "target": "client_src_utils_csvexporter_exporttocsv",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/reports/ReportsPage.jsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_reports_reportspage",
+      "target": "client_src_utils_pdfexporter_exporttopdf",
+      "relation": "imports",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/reports/ReportsPage.jsx",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -13624,7 +13863,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L8",
+      "source_location": "L29",
       "weight": 1.0
     },
     {
@@ -13636,7 +13875,43 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L9",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_dashboardpage",
+      "target": "client_src_contexts_authcontext",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/DashboardPage.jsx",
+      "source_location": "L31",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_dashboardpage",
+      "target": "client_src_components_ui_badge",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/DashboardPage.jsx",
+      "source_location": "L32",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_dashboardpage",
+      "target": "client_src_components_ui_loadingspinner",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/DashboardPage.jsx",
+      "source_location": "L33",
       "weight": 1.0
     },
     {
@@ -14177,6 +14452,18 @@
       "context": "import",
       "source_file": "client/src/pages/payroll/PayslipListPage.jsx",
       "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_payroll_paysliplistpage",
+      "target": "client_src_utils_csvexporter",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/payroll/PayslipListPage.jsx",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -14297,6 +14584,30 @@
       "context": "import",
       "source_file": "client/src/pages/reports/ReportsPage.jsx",
       "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_reports_reportspage",
+      "target": "client_src_utils_csvexporter",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/reports/ReportsPage.jsx",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_reports_reportspage",
+      "target": "client_src_utils_pdfexporter",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "client/src/pages/reports/ReportsPage.jsx",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -16474,24 +16785,13 @@
     },
     {
       "source": "client_src_pages_dashboardpage",
-      "target": "client_src_pages_dashboardpage_colors",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L11",
-      "weight": 1.0
-    },
-    {
-      "source": "client_src_pages_dashboardpage",
       "target": "client_src_pages_dashboardpage_dashboardpage",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "client/src/pages/DashboardPage.jsx",
-      "source_location": "L13",
+      "source_location": "L35",
       "weight": 1.0
     },
     {
@@ -16612,7 +16912,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "client/src/pages/payroll/PayslipListPage.jsx",
-      "source_location": "L11",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -16661,13 +16961,24 @@
     },
     {
       "source": "client_src_pages_reports_reportspage",
+      "target": "client_src_pages_reports_reportspage_reportspage",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "client/src/pages/reports/ReportsPage.jsx",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_pages_reports_reportspage",
       "target": "client_src_pages_reports_reportspage_attendancereport",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "client/src/pages/reports/ReportsPage.jsx",
-      "source_location": "L175",
+      "source_location": "L286",
       "weight": 1.0
     },
     {
@@ -16678,7 +16989,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "client/src/pages/reports/ReportsPage.jsx",
-      "source_location": "L277",
+      "source_location": "L447",
       "weight": 1.0
     },
     {
@@ -16689,18 +17000,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "client/src/pages/reports/ReportsPage.jsx",
-      "source_location": "L48",
-      "weight": 1.0
-    },
-    {
-      "source": "client_src_pages_reports_reportspage",
-      "target": "client_src_pages_reports_reportspage_reportspage",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "client/src/pages/reports/ReportsPage.jsx",
-      "source_location": "L7",
+      "source_location": "L59",
       "weight": 1.0
     },
     {
@@ -16957,6 +17257,17 @@
       "weight": 1.0
     },
     {
+      "source": "client_src_utils_csvexporter",
+      "target": "client_src_utils_csvexporter_exporttocsv",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "client/src/utils/csvExporter.js",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
       "source": "client_src_utils_formatters",
       "target": "client_src_utils_formatters_formatdate",
       "relation": "contains",
@@ -17031,6 +17342,17 @@
       "confidence_score": 1.0,
       "source_file": "client/src/utils/formatters.js",
       "source_location": "L89",
+      "weight": 1.0
+    },
+    {
+      "source": "client_src_utils_pdfexporter",
+      "target": "client_src_utils_pdfexporter_exporttopdf",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "client/src/utils/pdfExporter.js",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -20995,5 +21317,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "05c17d46d0daa5511780eee632f5f74c07e6698e"
+  "built_at_commit": "7eca5e8f1de68e46a78a90e327072d5cb7115807"
 }

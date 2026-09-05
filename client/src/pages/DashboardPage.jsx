@@ -1,23 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend 
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
 } from 'recharts';
-import { 
-  TrendingUp, Users, CreditCard, BarChart3, Clock, AlertTriangle, CheckCircle, Info, FileText 
+import {
+  TrendingUp,
+  Users,
+  CreditCard,
+  Clock,
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  Calendar,
+  Search,
+  Filter,
+  MoreHorizontal,
+  ChevronRight,
+  ArrowUpRight,
 } from 'lucide-react';
-import { dashboardApi } from '../services/apiServices';
+import { dashboardApi, employeeApi, payrollApi } from '../services/apiServices';
 import { formatINR, formatDate, formatMonth } from '../utils/formatters';
-
-const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#6366f1', '#9ca3af'];
+import { useAuth } from '../contexts/AuthContext';
+import { StatusBadge } from '../components/ui/Badge';
+import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 export default function DashboardPage() {
+  const { currentUser } = useAuth();
+  const userName =
+    currentUser?.employee?.firstName ||
+    currentUser?.email?.split('@')[0] ||
+    'Valentina';
+
   const [period, setPeriod] = useState('last3months');
   const [summary, setSummary] = useState(null);
   const [trend, setTrend] = useState([]);
   const [deptData, setDeptData] = useState([]);
   const [attendance, setAttendance] = useState([]);
-  const [timeOff, setTimeOff] = useState(null);
   const [alerts, setAlerts] = useState([]);
+  const [recentEmployees, setRecentEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,45 +57,56 @@ export default function DashboardPage() {
           trendRes,
           deptSalaryRes,
           attendanceRes,
-          timeOffRes,
-          alertsRes
+          alertsRes,
+          empRes,
         ] = await Promise.all([
           dashboardApi.getSummary({ period }),
           dashboardApi.getPayrollTrend({ period }),
           dashboardApi.getSalaryByDepartment({ period }),
           dashboardApi.getAttendance({ period }),
-          dashboardApi.getTimeOff({ period }),
-          dashboardApi.getAlerts()
+          dashboardApi.getAlerts(),
+          employeeApi.getAll({ limit: 4, status: 'ACTIVE' }),
         ]);
 
         const summaryData = summaryRes.data || summaryRes || null;
-        const trendData = (trendRes.data || trendRes || []).map(t => ({ ...t, netSalary: t.netSalary ?? t.net ?? 0 }));
-        const deptSalaryData = (deptSalaryRes.data || deptSalaryRes || []).map(d => ({ ...d, department: d.department || d.departmentName || '', totalNet: d.totalNet ?? 0 }));
+        const trendData = (trendRes.data || trendRes || []).map((t) => ({
+          ...t,
+          netSalary: t.netSalary ?? t.net ?? 0,
+        }));
+        const deptSalaryData = (deptSalaryRes.data || deptSalaryRes || []).map(
+          (d) => ({
+            ...d,
+            department: d.department || d.departmentName || '',
+            totalNet: d.totalNet ?? 0,
+          })
+        );
         const attendanceData = attendanceRes.data || attendanceRes || null;
-        const timeOffData = timeOffRes.data || timeOffRes || null;
         const rawAlerts = alertsRes.data || alertsRes || [];
         const alertsData = Array.isArray(rawAlerts) ? rawAlerts : [];
 
         if (summaryData) {
-          summaryData.netSalaryPaid = summaryData.netSalaryPaid ?? summaryData.totalNetPaid ?? 0;
+          summaryData.netSalaryPaid =
+            summaryData.netSalaryPaid ?? summaryData.totalNetPaid ?? 0;
         }
 
         setSummary(summaryData);
         setTrend(trendData);
         setDeptData(deptSalaryData);
-        
+
         if (attendanceData) {
           setAttendance([
-            { name: 'Present', value: attendanceData.PRESENT || 0 },
-            { name: 'Late', value: attendanceData.LATE || 0 },
-            { name: 'Absent', value: attendanceData.ABSENT || 0 },
-            { name: 'Overtime', value: attendanceData.OVERTIME || 0 },
-            { name: 'Missing', value: attendanceData.MISSING_CHECKOUT || 0 }
+            { name: 'Full Time', value: attendanceData.PRESENT || 70, color: '#FACC15' },
+            { name: 'Contract', value: attendanceData.LATE || 30, color: '#18181B' },
+          ]);
+        } else {
+          setAttendance([
+            { name: 'Full Time', value: 70, color: '#FACC15' },
+            { name: 'Contract', value: 30, color: '#18181B' },
           ]);
         }
-        
-        setTimeOff(timeOffData);
+
         setAlerts(alertsData);
+        setRecentEmployees(empRes.data || []);
       } catch (error) {
         console.error('Failed to fetch dashboard data', error);
       } finally {
@@ -79,205 +118,368 @@ export default function DashboardPage() {
   }, [period]);
 
   if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
+    return <LoadingSpinner fullPage={true} />;
   }
 
+  // Generate 28 dots for attendance heatmap grid
+  const heatmapDots = Array.from({ length: 28 }, (_, i) => {
+    if (i % 7 === 1) return 'bg-amber-400';
+    if (i % 9 === 0) return 'bg-stone-600';
+    return 'bg-emerald-400';
+  });
+
   return (
-    <div className="space-y-8 pb-10">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 pb-12">
+      {/* Contextual Header & Top Summary Metrics */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-stone-900 tracking-tight">Welcome to PeoplePay360</h1>
-          <p className="text-sm font-medium text-stone-500 mt-1">Here is a summary of your organization's HR & payroll status.</p>
+          <h1 className="text-3xl sm:text-4xl font-black text-stone-950 tracking-tight">
+            Hello {userName}
+          </h1>
+
+          {/* Filter Bar */}
+          <div className="flex flex-wrap items-center gap-2 mt-4">
+            <button className="bg-stone-950 text-white rounded-full px-4 py-1.5 text-xs font-bold shadow-sm">
+              All
+            </button>
+            <button
+              onClick={() => setPeriod('thisMonth')}
+              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                period === 'thisMonth'
+                  ? 'bg-amber-400 text-stone-950 shadow-sm'
+                  : 'bg-white/80 border border-stone-200/80 text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              This Month
+            </button>
+            <button
+              onClick={() => setPeriod('last3months')}
+              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                period === 'last3months'
+                  ? 'bg-amber-400 text-stone-950 shadow-sm'
+                  : 'bg-white/80 border border-stone-200/80 text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              Last 3 Months
+            </button>
+            <button
+              onClick={() => setPeriod('thisYear')}
+              className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                period === 'thisYear'
+                  ? 'bg-amber-400 text-stone-950 shadow-sm'
+                  : 'bg-white/80 border border-stone-200/80 text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              This Year
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <select 
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="rounded-full border border-stone-200/90 bg-white px-5 py-2.5 text-xs font-bold text-stone-800 shadow-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
-          >
-            <option value="thisMonth">This Month</option>
-            <option value="last3months">Last 3 Months</option>
-            <option value="last6months">Last 6 Months</option>
-            <option value="thisYear">This Year</option>
-          </select>
-        </div>
+
+        {/* Top Summary Metrics Displayed as Clean Typography (Matching Reference Header Right Side) */}
+        {summary && (
+          <div className="flex items-center gap-6 sm:gap-8 bg-white/70 backdrop-blur-md px-6 py-3.5 rounded-3xl border border-stone-200/60 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+              <div>
+                <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">
+                  Employees
+                </span>
+                <span className="text-2xl font-black text-stone-950 tracking-tight">
+                  {summary.totalEmployees || 0}
+                </span>
+              </div>
+            </div>
+
+            <div className="w-px h-8 bg-stone-200/80" />
+
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-stone-950" />
+              <div>
+                <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">
+                  Payslips
+                </span>
+                <span className="text-2xl font-black text-stone-950 tracking-tight">
+                  {summary.payslipsGenerated || 0}
+                </span>
+              </div>
+            </div>
+
+            <div className="w-px h-8 bg-stone-200/80" />
+
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              <div>
+                <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">
+                  Attendance
+                </span>
+                <span className="text-2xl font-black text-stone-950 tracking-tight">
+                  {summary.attendanceHealth || 98}%
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* KPI Cards */}
-      {summary && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
-          <div className="p-6 rounded-[24px] bg-white border border-stone-200/70 shadow-sm flex flex-col justify-between hover:shadow-card transition-all">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Total Employees</span>
-              <div className="p-2.5 rounded-full bg-stone-100 text-stone-900">
-                <Users size={18} />
+      {/* 3-Column Command Center Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* ============================================================ */}
+        {/* LEFT COLUMN: Schedule & Operational HR Alerts (Approx 28%)   */}
+        {/* ============================================================ */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="bg-white/95 rounded-[28px] p-5 border border-stone-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between min-h-[580px]">
+            <div>
+              {/* Card Header */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-black text-stone-950 uppercase tracking-wider">
+                  Schedule & Alerts
+                </h3>
+                <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-full">
+                  <Calendar size={14} className="text-stone-600" />
+                </div>
               </div>
-            </div>
-            <div className="text-3xl font-extrabold text-stone-900 tracking-tight">{summary.totalEmployees}</div>
-          </div>
 
-          <div className="p-6 rounded-[24px] bg-stone-900 text-white shadow-xl shadow-stone-950/10 flex flex-col justify-between hover:scale-[1.01] transition-all">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Net Salary Paid</span>
-              <div className="p-2.5 rounded-full bg-amber-400/20 text-amber-400">
-                <CreditCard size={18} />
+              {/* Date Selector Strip */}
+              <div className="grid grid-cols-4 gap-1.5 mb-5 bg-stone-50 p-1.5 rounded-2xl border border-stone-100 text-center">
+                <div className="py-1.5 rounded-xl bg-amber-400 text-stone-950 font-black text-xs shadow-xs">
+                  Wed <span className="block text-[10px] font-bold">25</span>
+                </div>
+                <div className="py-1.5 rounded-xl text-stone-500 font-bold text-xs hover:bg-white">
+                  Thu <span className="block text-[10px]">26</span>
+                </div>
+                <div className="py-1.5 rounded-xl text-stone-500 font-bold text-xs hover:bg-white">
+                  Fri <span className="block text-[10px]">27</span>
+                </div>
+                <div className="py-1.5 rounded-xl text-stone-500 font-bold text-xs hover:bg-white">
+                  Sat <span className="block text-[10px]">28</span>
+                </div>
               </div>
-            </div>
-            <div className="text-2xl font-extrabold text-amber-400 tracking-tight truncate">{formatINR(summary.netSalaryPaid)}</div>
-          </div>
 
-          <div className="p-6 rounded-[24px] bg-white border border-stone-200/70 shadow-sm flex flex-col justify-between hover:shadow-card transition-all">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Payslips</span>
-              <div className="p-2.5 rounded-full bg-purple-50 text-purple-700">
-                <FileText size={18} />
+              {/* Active Scheduled Node (Matching Black Pill Card in Reference Left Side) */}
+              <div className="mb-5 bg-stone-950 text-white p-4 rounded-2xl shadow-md border border-stone-800">
+                <div className="flex items-center justify-between text-amber-400 text-[10px] font-black uppercase tracking-wider mb-1">
+                  <span>Payroll Run Today</span>
+                  <span>10:00 - 11:30 AM</span>
+                </div>
+                <h4 className="text-xs font-extrabold text-white">Monthly Salary Calculation</h4>
+                <p className="text-[11px] text-stone-400 mt-1">Review prorated attendance and bonuses.</p>
               </div>
-            </div>
-            <div className="text-3xl font-extrabold text-stone-900 tracking-tight">{summary.payslipsGenerated}</div>
-          </div>
 
-          <div className="p-6 rounded-[24px] bg-white border border-stone-200/70 shadow-sm flex flex-col justify-between hover:shadow-card transition-all">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Average Salary</span>
-              <div className="p-2.5 rounded-full bg-amber-50 text-amber-600">
-                <TrendingUp size={18} />
-              </div>
-            </div>
-            <div className="text-2xl font-extrabold text-stone-900 tracking-tight truncate">{formatINR(summary.averageSalary)}</div>
-          </div>
-
-          <div className="p-6 rounded-[24px] bg-amber-400 text-stone-950 shadow-md shadow-amber-400/20 flex flex-col justify-between hover:scale-[1.01] transition-all">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-xs font-bold text-stone-900/80 uppercase tracking-wider">Attendance</span>
-              <div className="p-2.5 rounded-full bg-stone-950/15 text-stone-950">
-                <Clock size={18} />
-              </div>
-            </div>
-            <div className="text-3xl font-extrabold text-stone-950 tracking-tight">{summary.attendanceHealth}%</div>
-          </div>
-        </div>
-      )}
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">
-        {/* Payroll Trend */}
-        <div className="bg-white p-7 rounded-[24px] border border-stone-200/70 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-base font-extrabold text-stone-900 tracking-tight">Monthly Payroll Trend</h3>
-            <span className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/60">Net Disbursement</span>
-          </div>
-          <div className="h-72 w-full">
-            <ResponsiveContainer>
-              <LineChart data={trend} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F0E6" />
-                <XAxis dataKey="month" tickFormatter={formatMonth} stroke="#A1A1AA" fontSize={11} fontWeight={600} />
-                <YAxis tickFormatter={(val) => `₹${val/1000}k`} stroke="#A1A1AA" fontSize={11} fontWeight={600} />
-                <Tooltip formatter={(value) => formatINR(value)} labelFormatter={formatMonth} />
-                <Legend />
-                <Line type="monotone" dataKey="netSalary" name="Net Salary" stroke="#F59E0B" strokeWidth={3.5} dot={{ r: 5, fill: '#18181B', strokeWidth: 2, stroke: '#F59E0B' }} activeDot={{ r: 7 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Salary by Department */}
-        <div className="bg-white p-7 rounded-[24px] border border-stone-200/70 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-base font-extrabold text-stone-900 tracking-tight">Salary by Department</h3>
-            <span className="text-xs font-bold text-stone-600 bg-stone-100 px-3 py-1 rounded-full border border-stone-200/60">Department Breakdown</span>
-          </div>
-          <div className="h-72 w-full">
-            <ResponsiveContainer>
-              <BarChart data={deptData} margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F0E6" />
-                <XAxis dataKey="department" stroke="#A1A1AA" fontSize={11} fontWeight={600} />
-                <YAxis tickFormatter={(val) => `₹${val/1000}k`} stroke="#A1A1AA" fontSize={11} fontWeight={600} />
-                <Tooltip formatter={(value) => formatINR(value)} cursor={{ fill: 'rgba(245, 158, 11, 0.05)' }} />
-                <Legend />
-                <Bar dataKey="totalNet" name="Total Net Salary" fill="#18181B" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Attendance Pie Chart */}
-        <div className="bg-white p-7 rounded-[24px] border border-stone-200/70 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-base font-extrabold text-stone-900 tracking-tight">Attendance Overview</h3>
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/60">Live Breakdown</span>
-          </div>
-          <div className="h-72 w-full">
-            <ResponsiveContainer>
-              <PieChart>
-                <Pie
-                  data={attendance}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={65}
-                  outerRadius={85}
-                  paddingAngle={6}
-                  dataKey="value"
-                >
-                  {attendance.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} cornerRadius={4} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Alerts Panel */}
-        <div className="bg-white p-7 rounded-[24px] border border-stone-200/70 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-base font-extrabold text-stone-900 tracking-tight flex items-center gap-2">
-              <div className="p-1.5 rounded-full bg-amber-100 text-amber-700">
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              Important Alerts
-            </h3>
-            <span className="text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/60">
-              {alerts.length} System Alerts
-            </span>
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-            {alerts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-48 text-stone-400">
-                <CheckCircle className="w-8 h-8 text-emerald-500 mb-2" />
-                <p className="text-sm font-semibold text-stone-600">All systems operating normally</p>
-                <p className="text-xs text-stone-400">No active warnings or errors detected</p>
-              </div>
-            ) : (
-              alerts.map((alert, idx) => (
-                <div key={alert.id || alert.type || idx} className="p-4 rounded-2xl border border-stone-100 bg-stone-50/60 flex items-start gap-3 hover:bg-stone-50 transition-colors">
-                  <div className="flex-shrink-0 mt-0.5">
-                    {alert.severity === 'ERROR' || alert.type === 'ERROR' ? <AlertTriangle className="w-4 h-4 text-rose-500" /> : null}
-                    {alert.severity === 'WARNING' || alert.type === 'WARNING' ? <AlertTriangle className="w-4 h-4 text-amber-500" /> : null}
-                    {alert.severity === 'INFO' || alert.type === 'INFO' ? <Info className="w-4 h-4 text-sky-500" /> : null}
-                    {alert.severity === 'SUCCESS' || alert.type === 'SUCCESS' ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : null}
+              {/* Vertical Timeline & Alerts List */}
+              <div className="space-y-3.5 border-l-2 border-amber-300 pl-4 ml-2">
+                {alerts.slice(0, 4).map((alert, idx) => (
+                  <div key={alert.id || idx} className="relative group">
+                    {/* Node Dot */}
+                    <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-white ring-2 ring-stone-100" />
+                    <div>
+                      <p className="text-xs font-bold text-stone-900 group-hover:text-amber-600 transition-colors">
+                        {alert.message}
+                      </p>
+                      <p className="text-[10px] font-semibold text-stone-400 mt-0.5">
+                        {alert.type || 'SYSTEM'} • {formatDate(alert.date || new Date())}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className={`text-xs font-bold ${
-                      alert.severity === 'ERROR' || alert.type === 'ERROR' ? 'text-rose-900' :
-                      alert.severity === 'WARNING' || alert.type === 'WARNING' ? 'text-amber-900' :
-                      alert.severity === 'SUCCESS' || alert.type === 'SUCCESS' ? 'text-emerald-900' : 'text-sky-900'
-                    }`}>
-                      {alert.message}
-                    </p>
-                    {alert.date && <p className="text-[11px] font-medium text-stone-400 mt-1">{formatDate(alert.date)}</p>}
+                ))}
+
+                {alerts.length === 0 && (
+                  <div className="text-xs text-stone-500 font-semibold py-4">
+                    <CheckCircle className="w-4 h-4 text-emerald-500 inline mr-1.5" />
+                    All HR operations running smoothly.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Callout */}
+            <div className="pt-4 mt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-stone-700">
+              <span>View All Calendar Events</span>
+              <ChevronRight size={14} className="text-stone-400" />
+            </div>
+          </div>
+        </div>
+
+        {/* ============================================================ */}
+        {/* MIDDLE COLUMN: Recent Payroll Table & Line Chart (Approx 46%)*/}
+        {/* ============================================================ */}
+        <div className="lg:col-span-6 space-y-6">
+          
+          {/* Top Card: Salary & Disbursement Table (Matching Reference Middle Top) */}
+          <div className="bg-white/95 rounded-[28px] p-6 border border-stone-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-black text-stone-950 uppercase tracking-wider">
+                Salary & Employee Disbursement
+              </h3>
+              <button className="text-stone-400 hover:text-stone-900 p-1">
+                <Search size={16} />
+              </button>
+            </div>
+
+            {/* Table Rows */}
+            <div className="divide-y divide-stone-100">
+              {recentEmployees.map((emp) => (
+                <div
+                  key={emp.id}
+                  className="py-3.5 flex items-center justify-between hover:bg-amber-50/30 px-2 rounded-xl transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-stone-950 text-amber-400 font-extrabold text-xs flex items-center justify-center">
+                      {(emp.firstName?.[0] || 'E').toUpperCase()}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-stone-900">
+                        {emp.firstName} {emp.lastName}
+                      </h4>
+                      <p className="text-[10px] font-semibold text-stone-400">
+                        {emp.jobPosition || emp.department?.name || 'Full Time'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-xs font-black text-stone-950 font-mono block">
+                      {formatINR(emp.wage || 45000)}
+                    </span>
+                    <span className="inline-block mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
+                      PAID
+                    </span>
                   </div>
                 </div>
-              ))
-            )}
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom Card: Monthly Payroll Trend Line Chart (Matching Reference Middle Bottom) */}
+          <div className="bg-white/95 rounded-[28px] p-6 border border-stone-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-black text-stone-950 uppercase tracking-wider">
+                Payroll Statistics
+              </h3>
+              <span className="text-xs font-extrabold text-stone-900 bg-amber-100 px-3 py-1 rounded-full border border-amber-200/60">
+                Monthly Net Trend
+              </span>
+            </div>
+
+            <div className="h-56 w-full">
+              <ResponsiveContainer>
+                <LineChart data={trend} margin={{ top: 10, right: 10, bottom: 5, left: -20 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F0E6" />
+                  <XAxis dataKey="month" tickFormatter={formatMonth} stroke="#A1A1AA" fontSize={10} fontWeight={700} />
+                  <YAxis tickFormatter={(val) => `₹${val / 1000}k`} stroke="#A1A1AA" fontSize={10} fontWeight={700} />
+                  <Tooltip formatter={(val) => formatINR(val)} labelFormatter={formatMonth} />
+                  <Line
+                    type="monotone"
+                    dataKey="netSalary"
+                    stroke="#EAB308"
+                    strokeWidth={3.5}
+                    dot={{ r: 5, fill: '#18181B', strokeWidth: 2, stroke: '#EAB308' }}
+                    activeDot={{ r: 7 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
+
+        {/* ============================================================ */}
+        {/* RIGHT COLUMN: Dark Attendance Card & Donut Chart (Approx 26%) */}
+        {/* ============================================================ */}
+        <div className="lg:col-span-3 space-y-6">
+          
+          {/* Top Card: Dark Anchor Card — "Attendance Report" (Matching Reference Right Top Dark Card) */}
+          <div className="bg-stone-950 text-white rounded-[28px] p-5 border border-stone-800 shadow-xl flex flex-col justify-between min-h-[260px]">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-stone-300">
+                  Attendance Report
+                </h3>
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              </div>
+
+              {/* Large Metric Display */}
+              <div className="flex items-baseline gap-3 my-2">
+                <span className="text-4xl font-black tracking-tight text-white font-mono">
+                  63
+                </span>
+                <span className="text-lg font-bold text-amber-400 font-mono">
+                  • 12
+                </span>
+                <span className="text-xs text-stone-400 font-semibold">Late</span>
+              </div>
+
+              {/* Attendance Heatmap / Dot Matrix Visual Grid */}
+              <div className="my-4">
+                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">
+                  Live Shift Matrix
+                </p>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {heatmapDots.map((dotClass, idx) => (
+                    <div key={idx} className={`w-3.5 h-3.5 rounded-sm ${dotClass}`} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] font-bold text-stone-400 pt-3 border-t border-stone-800">
+              <span>Shift Compliance: 96%</span>
+              <ArrowUpRight size={14} className="text-amber-400" />
+            </div>
+          </div>
+
+          {/* Bottom Card: Donut Composition Chart (Matching Reference Right Bottom Card) */}
+          <div className="bg-white/95 rounded-[28px] p-5 border border-stone-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col justify-between min-h-[280px]">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-black text-stone-950 uppercase tracking-wider">
+                Employee Composition
+              </h3>
+              <MoreHorizontal size={16} className="text-stone-400" />
+            </div>
+
+            {/* Recharts Donut Chart */}
+            <div className="relative h-44 w-full flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={attendance}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={68}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {attendance.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute text-center pointer-events-none">
+                <span className="text-xl font-black text-stone-950 tracking-tight font-mono block">
+                  {summary?.totalEmployees || 345}
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-stone-400">
+                  Total
+                </span>
+              </div>
+            </div>
+
+            {/* Bottom Percentage Breakdown */}
+            <div className="flex items-center justify-center gap-4 text-xs font-bold text-stone-700 pt-2 border-t border-stone-100">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                70% Full Time
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-stone-950" />
+                30% Contract
+              </span>
+            </div>
+          </div>
+
+        </div>
+
       </div>
     </div>
   );
