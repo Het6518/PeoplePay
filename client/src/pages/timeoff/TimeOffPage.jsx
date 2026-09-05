@@ -44,8 +44,10 @@ function RequestsTab() {
 
   useEffect(() => {
     fetchTypes();
-    fetchBalance();
-  }, []);
+    if (isEmployee) {
+      fetchBalance();
+    }
+  }, [isEmployee]);
 
   useEffect(() => {
     setPage(1);
@@ -118,8 +120,8 @@ function RequestsTab() {
 
   return (
     <div className="space-y-6">
-      {/* Leave Entitlement & Balance Banner */}
-      {leaveBalance && (
+      {/* Leave Entitlement & Balance Banner (Visible ONLY to Employee) */}
+      {isEmployee && leaveBalance && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 bg-stone-950 text-white rounded-[24px] shadow-sm border border-stone-800">
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">Annual Leave Quota</span>

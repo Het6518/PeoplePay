@@ -118,21 +118,31 @@ export default function ContractListPage() {
     setPage(1);
   };
 
-  const openNewModal = () => {
+  const openNewModal = (targetEmpId) => {
     setEditingId(null);
+    const empId = targetEmpId || filters.employeeId || employeeIdParam || '';
+    const emp = employees.find(e => e.id === empId);
     setFormData({
-      employeeId: filters.employeeId || '',
-      departmentId: '',
-      position: '',
+      employeeId: empId,
+      departmentId: emp?.departmentId || emp?.department?.id || '',
+      position: emp?.jobPosition || '',
       wage: '',
       salaryStructureId: salaryStructures[0]?.id || '',
       annualLeaveQuota: 24,
-      startDate: new Date().toISOString().split('T')[0],
+      startDate: emp?.joiningDate ? emp.joiningDate.split('T')[0] : new Date().toISOString().split('T')[0],
       endDate: '',
       status: 'ACTIVE'
     });
     setIsModalOpen(true);
   };
+
+  useEffect(() => {
+    const isNew = searchParams.get('new') === 'true' || searchParams.get('create') === 'true';
+    const empId = searchParams.get('employeeId');
+    if (isNew && employees.length > 0 && salaryStructures.length > 0) {
+      openNewModal(empId);
+    }
+  }, [searchParams, employees, salaryStructures]);
 
   const openEditModal = (contract) => {
     setEditingId(contract.id);
@@ -152,7 +162,18 @@ export default function ContractListPage() {
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'employeeId') {
+      const emp = employees.find(e => e.id === value);
+      setFormData(prev => ({
+        ...prev,
+        employeeId: value,
+        departmentId: emp?.departmentId || emp?.department?.id || prev.departmentId,
+        position: emp?.jobPosition || prev.position,
+        startDate: emp?.joiningDate ? emp.joiningDate.split('T')[0] : prev.startDate,
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {

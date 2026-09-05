@@ -127,8 +127,13 @@ export default function EmployeeFormPage() {
         navigate(`/employees/${id}`);
       } else {
         const res = await employeeApi.create(payload);
-        toast.success('Employee created successfully');
-        navigate(`/employees/${res.data.id}`);
+        const newEmpId = res?.data?.id || res?.id;
+        toast.success('Employee created successfully! Please set up their contract.');
+        if (newEmpId) {
+          navigate(`/contracts?employeeId=${newEmpId}&new=true`);
+        } else {
+          navigate('/contracts?new=true');
+        }
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error saving employee');

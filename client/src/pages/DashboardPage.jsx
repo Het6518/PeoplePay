@@ -59,14 +59,21 @@ export default function DashboardPage() {
       setPendingLeaveRequests(Array.isArray(pendingLeaveData) ? pendingLeaveData : []);
 
       // Dynamic Employee Composition (Full Time vs Contract vs Part Time)
-      const ftCount = summaryData?.fullTimeCount || 0;
-      const ptCount = (summaryData?.contractCount || 0) + (summaryData?.partTimeCount || 0);
-      const totalEmp = summaryData?.totalEmployees || 1;
+      const ftCount = summaryData?.fullTimeCount ?? 0;
+      const ptCount = (summaryData?.contractCount ?? 0) + (summaryData?.partTimeCount ?? 0);
 
-      setAttendanceChart([
-        { name: 'Full Time', value: ftCount || Math.max(1, Math.round(totalEmp * 0.75)), color: '#FACC15' },
-        { name: 'Contract & Part Time', value: ptCount || Math.max(0, Math.round(totalEmp * 0.25)), color: '#18181B' },
-      ]);
+      const chartItems = [];
+      if (ftCount > 0) {
+        chartItems.push({ name: 'Full Time', value: ftCount, color: '#FACC15' });
+      }
+      if (ptCount > 0) {
+        chartItems.push({ name: 'Contract & Part Time', value: ptCount, color: '#18181B' });
+      }
+      if (chartItems.length === 0) {
+        chartItems.push({ name: 'No Data', value: 1, color: '#E7E5E4' });
+      }
+
+      setAttendanceChart(chartItems);
     } catch (error) {
       console.error('Failed to fetch dashboard data', error);
     } finally {
@@ -433,7 +440,7 @@ export default function DashboardPage() {
                     cy="50%"
                     innerRadius={50}
                     outerRadius={68}
-                    paddingAngle={4}
+                    paddingAngle={attendanceChart.length > 1 ? 4 : 0}
                     dataKey="value"
                   >
                     {attendanceChart.map((entry, index) => (
