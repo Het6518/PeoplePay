@@ -39,10 +39,21 @@ import SalaryRuleFormPage from './pages/payroll/SalaryRuleFormPage';
 import ReportsPage from './pages/reports/ReportsPage';
 import UsersPage from './pages/admin/UsersPage';
 
+import { useAuth } from './contexts/AuthContext';
+
 const HR_ROLES = ['HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'];
 const PAYROLL_ROLES = ['HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'];
 const ADMIN_ROLES = ['ADMIN'];
 const ALL_ROLES = ['EMPLOYEE', 'HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'];
+
+function DefaultRedirect() {
+  const { currentUser } = useAuth();
+  const empId = currentUser?.employeeId || currentUser?.employee?.id;
+  if (currentUser?.role === 'EMPLOYEE' && empId) {
+    return <Navigate to={`/employees/${empId}`} replace />;
+  }
+  return <Navigate to="/dashboard" replace />;
+}
 
 function AppRoutes() {
   return (
@@ -55,7 +66,7 @@ function AppRoutes() {
           <ProtectedRoute>
             <AppLayout>
               <Routes>
-                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/dashboard" element={<ProtectedRoute roles={HR_ROLES}><DashboardPage /></ProtectedRoute>} />
 
                 {/* Employees */}
                 <Route path="/employees" element={<EmployeeListPage />} />
@@ -98,8 +109,8 @@ function AppRoutes() {
                 <Route path="/admin/users" element={<ProtectedRoute roles={ADMIN_ROLES}><UsersPage /></ProtectedRoute>} />
 
                 {/* Default redirect */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/" element={<DefaultRedirect />} />
+                <Route path="*" element={<DefaultRedirect />} />
               </Routes>
             </AppLayout>
           </ProtectedRoute>

@@ -14,6 +14,10 @@ export function ProtectedRoute({ children, roles }) {
   }
 
   if (roles && !roles.includes(currentUser?.role)) {
+    const empId = currentUser?.employeeId || currentUser?.employee?.id;
+    if (currentUser?.role === 'EMPLOYEE' && empId) {
+      return <Navigate to={`/employees/${empId}`} replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
 

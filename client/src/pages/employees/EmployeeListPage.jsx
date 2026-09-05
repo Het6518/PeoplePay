@@ -12,6 +12,16 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export default function EmployeeListPage() {
   const navigate = useNavigate();
+  const { currentUser, isHR } = useAuth();
+  const isHROrAdmin = isHR();
+  
+  useEffect(() => {
+    const empId = currentUser?.employeeId || currentUser?.employee?.id;
+    if (currentUser?.role === 'EMPLOYEE' && empId) {
+      navigate(`/employees/${empId}`, { replace: true });
+    }
+  }, [currentUser]);
+
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,9 +78,6 @@ export default function EmployeeListPage() {
     setFilters(prev => ({ ...prev, [name]: value }));
     setPage(1);
   };
-
-  const { currentUser, isHR } = useAuth();
-  const isHROrAdmin = isHR();
 
   return (
     <div className="space-y-6">

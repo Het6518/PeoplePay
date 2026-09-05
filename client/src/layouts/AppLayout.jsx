@@ -88,9 +88,15 @@ export function AppLayout({ children }) {
     navigate('/login');
   };
 
+  const isEmployeeRole = currentUser?.role === 'EMPLOYEE';
+  const empId = currentUser?.employeeId || currentUser?.employee?.id;
+  const employeeProfilePath = isEmployeeRole && empId 
+    ? `/employees/${empId}` 
+    : '/employees';
+
   const navItems = [
-    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', always: true },
-    { to: '/employees', icon: Users, label: 'Employees', show: true },
+    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', show: !isEmployeeRole },
+    { to: employeeProfilePath, icon: isEmployeeRole ? UserCircle : Users, label: isEmployeeRole ? 'My Profile' : 'Employees', show: true },
     { to: '/contracts', icon: FileText, label: 'Contracts', show: isHR() },
     { to: '/schedules', icon: Calendar, label: 'Schedules', show: isHR() },
     { to: '/attendance', icon: Clock, label: 'Attendance', show: true },
@@ -119,7 +125,7 @@ export function AppLayout({ children }) {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.filter((i) => i.always || i.show).map((item) => (
+        {navItems.filter((i) => i.show).map((item) => (
           <SidebarItem key={item.to} {...item} end={item.to === '/dashboard'} />
         ))}
         <PayrollMenu currentUser={currentUser} isPayroll={isPayroll()} />
