@@ -59,16 +59,37 @@ export default function ContractListPage() {
 
   const fetchOptions = async () => {
     try {
-      const [empRes, deptRes, structRes] = await Promise.all([
+      const [empResult, deptResult, structResult] = await Promise.allSettled([
         employeeApi.getAll({ limit: 500 }),
         departmentApi.getAll(),
         salaryApi.getStructures()
       ]);
-      setEmployees(empRes.data || []);
-      setDepartments(deptRes.data || []);
-      setSalaryStructures(structRes.data || (Array.isArray(structRes) ? structRes : []));
+
+      if (empResult.status === 'fulfilled') {
+        const val = empResult.value;
+        const list = Array.isArray(val) ? val : (val?.data || []);
+        setEmployees(list);
+      } else {
+        console.error('Failed to fetch employees for contract form:', empResult.reason);
+      }
+
+      if (deptResult.status === 'fulfilled') {
+        const val = deptResult.value;
+        const list = Array.isArray(val) ? val : (val?.data || []);
+        setDepartments(list);
+      } else {
+        console.error('Failed to fetch departments for contract form:', deptResult.reason);
+      }
+
+      if (structResult.status === 'fulfilled') {
+        const val = structResult.value;
+        const list = Array.isArray(val) ? val : (val?.data || []);
+        setSalaryStructures(list);
+      } else {
+        console.error('Failed to fetch salary structures for contract form:', structResult.reason);
+      }
     } catch (error) {
-      console.error('Error fetching options:', error);
+      console.error('Error fetching contract form options:', error);
     }
   };
 
@@ -287,7 +308,11 @@ export default function ContractListPage() {
             <label className="label">Employee *</label>
             <select required name="employeeId" value={formData.employeeId} onChange={handleFormChange} disabled={editingId} className="input">
               <option value="">Select Employee</option>
-              {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>)}
+              {employees.map(emp => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.firstName} {emp.lastName || ''} {emp.employeeCode ? `(${emp.employeeCode})` : ''}
+                </option>
+              ))}
             </select>
           </div>
           

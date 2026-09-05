@@ -107,7 +107,8 @@ const getEmployee = async (req, res, next) => {
 const createEmployee = async (req, res, next) => {
   try {
     const data = CreateEmployeeSchema.parse(req.body);
-    const { createUserAccount, userPassword, ...employeeData } = data;
+    const { createUserAccount, userPassword, password, ...employeeData } = data;
+    const initialPassword = userPassword || password;
 
     // Check unique constraints
     const existing = await prisma.employee.findFirst({
@@ -128,12 +129,12 @@ const createEmployee = async (req, res, next) => {
     let userId = null;
 
     // Optionally create a user account
-    if (createUserAccount && userPassword) {
+    if (createUserAccount && initialPassword) {
       const existingUser = await prisma.user.findUnique({ where: { email: employeeData.email } });
       if (existingUser) {
         return sendError(res, 'A user account with this email already exists.', 409);
       }
-      const passwordHash = await bcrypt.hash(userPassword, 12);
+      const passwordHash = await bcrypt.hash(initialPassword, 12);
       const user = await prisma.user.create({
         data: { email: employeeData.email, passwordHash, role: 'EMPLOYEE' },
       });
