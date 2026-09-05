@@ -1,6 +1,8 @@
 const prisma = require('../config/prisma');
-const { CreateAttendanceSchema, CorrectAttendanceSchema } = require('../validators/schemas');
+const { CreateAttendanceSchema, CorrectAttendanceSchema, CheckInSchema, CheckOutSchema } = require('../validators/schemas');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
+const geofenceService = require('../services/geofenceService');
+const attendanceLocationService = require('../services/attendanceLocationService');
 
 // Calculate worked hours from checkIn/checkOut and break
 function calculateWorkedHours(checkIn, checkOut, breakMinutes = 0) {
@@ -28,11 +30,14 @@ function determineStatus(workedHours, checkIn, scheduleDay) {
     if (lateMinutes > 10) return 'LATE';
   }
 
-  if (scheduleDay) {
+  if (scheduleDay && scheduleDay.endTime) {
     const [endH, endM] = scheduleDay.endTime.split(':').map(Number);
-    const expectedHours = ((endH * 60 + endM) - 
-      scheduleDay.startTime.split(':').reduce((a, v, i) => a + (i === 0 ? Number(v) * 60 : Number(v)), 0) - 
-      scheduleDay.breakMinutes) / 60;
+    const expectedHours =
+      (endH * 60 +
+        endM -
+        scheduleDay.startTime.split(':').reduce((a, v, i) => a + (i === 0 ? Number(v) * 60 : Number(v)), 0) -
+        scheduleDay.breakMinutes) /
+      60;
     if (workedHours > expectedHours + 1) return 'OVERTIME';
   }
 
@@ -73,9 +78,15 @@ const getAttendance = async (req, res, next) => {
         include: {
           employee: {
             select: {
-              id: true, firstName: true, lastName: true, employeeCode: true,
+              id: true,
+              firstName: true,
+              lastName: true,
+              employeeCode: true,
               department: { select: { id: true, name: true } },
             },
+          },
+          attendanceLocation: {
+            select: { id: true, name: true, latitude: true, longitude: true, radiusMeters: true },
           },
         },
       }),
@@ -95,6 +106,7 @@ const getAttendanceRecord = async (req, res, next) => {
       where: { id: req.params.id },
       include: {
         employee: { select: { id: true, firstName: true, lastName: true, employeeCode: true } },
+        attendanceLocation: true,
       },
     });
     if (!record) return sendError(res, 'Attendance record not found.', 404);
@@ -104,7 +116,7 @@ const getAttendanceRecord = async (req, res, next) => {
   }
 };
 
-// POST /api/attendance
+// POST /api/attendance (Manual / HR Creation)
 const createAttendance = async (req, res, next) => {
   try {
     const data = CreateAttendanceSchema.parse(req.body);
@@ -123,6 +135,8 @@ const createAttendance = async (req, res, next) => {
     const checkOut = data.checkOut ? new Date(data.checkOut) : null;
     const workedHours = calculateWorkedHours(checkIn, checkOut);
 
+    const location = await attendanceLocationService.getEmployeeAttendanceLocation(data.employeeId);
+
     const record = await prisma.attendance.create({
       data: {
         employeeId: data.employeeId,
@@ -132,6 +146,7 @@ const createAttendance = async (req, res, next) => {
         workedHours,
         status: checkIn ? (checkOut ? 'PRESENT' : 'MISSING_CHECKOUT') : 'ABSENT',
         notes: data.notes,
+        attendanceLocationId: location?.id || null,
       },
     });
 
@@ -141,11 +156,35 @@ const createAttendance = async (req, res, next) => {
   }
 };
 
-// POST /api/attendance/checkin
+// POST /api/attendance/checkin (GPS Geofenced)
 const checkIn = async (req, res, next) => {
   try {
     const employeeId = req.user.employeeId;
     if (!employeeId) return sendError(res, 'No employee profile linked to your account.', 400);
+
+    const { latitude, longitude, accuracy } = CheckInSchema.parse(req.body);
+
+    // Get employee's designated/default office location
+    const location = await attendanceLocationService.getEmployeeAttendanceLocation(employeeId);
+    if (!location) {
+      return sendError(
+        res,
+        'No active office attendance location configured. Please contact HR or Admin.',
+        400
+      );
+    }
+
+    // Backend independent Haversine geofence evaluation
+    const geofenceResult = geofenceService.evaluateGeofence(latitude, longitude, accuracy, location);
+
+    if (!geofenceResult.insideGeofence) {
+      return res.status(400).json({
+        success: false,
+        message: geofenceResult.message,
+        code: geofenceResult.code,
+        geofenceDetails: geofenceResult,
+      });
+    }
 
     const nowStr = new Date().toISOString();
     const today = new Date(nowStr.split('T')[0] + 'T00:00:00.000Z');
@@ -160,34 +199,48 @@ const checkIn = async (req, res, next) => {
 
     const now = new Date();
 
+    const attendanceData = {
+      checkIn: now,
+      status: 'PRESENT',
+      checkInLatitude: Number(latitude),
+      checkInLongitude: Number(longitude),
+      checkInAccuracy: Number(accuracy) || 0,
+      checkInDistanceMeters: geofenceResult.distanceMeters,
+      checkInAllowedRadiusMeters: geofenceResult.allowedRadiusMeters,
+      attendanceLocationId: location.id,
+    };
+
+    let record;
     if (existing) {
-      const updated = await prisma.attendance.update({
+      record = await prisma.attendance.update({
         where: { id: existing.id },
-        data: { checkIn: now, status: 'PRESENT' },
+        data: attendanceData,
+        include: { attendanceLocation: true },
       });
-      return sendSuccess(res, updated);
+    } else {
+      record = await prisma.attendance.create({
+        data: {
+          employeeId,
+          date: today,
+          ...attendanceData,
+        },
+        include: { attendanceLocation: true },
+      });
     }
 
-    const record = await prisma.attendance.create({
-      data: {
-        employeeId,
-        date: today,
-        checkIn: now,
-        status: 'PRESENT',
-      },
-    });
-
-    return sendSuccess(res, record, 201);
+    return sendSuccess(res, { record, geofenceDetails: geofenceResult }, 200);
   } catch (err) {
     next(err);
   }
 };
 
-// POST /api/attendance/checkout
+// POST /api/attendance/checkout (GPS Geofenced)
 const checkOut = async (req, res, next) => {
   try {
     const employeeId = req.user.employeeId;
     if (!employeeId) return sendError(res, 'No employee profile linked to your account.', 400);
+
+    const { latitude, longitude, accuracy } = CheckOutSchema.parse(req.body);
 
     const nowStr = new Date().toISOString();
     const today = new Date(nowStr.split('T')[0] + 'T00:00:00.000Z');
@@ -199,6 +252,21 @@ const checkOut = async (req, res, next) => {
     if (!record) return sendError(res, 'No check-in record found for today. Please check in first.', 400);
     if (record.checkOut) return sendError(res, 'You have already checked out today.', 409);
     if (!record.checkIn) return sendError(res, 'Please check in before checking out.', 400);
+
+    // Get employee's office location
+    const location = await attendanceLocationService.getEmployeeAttendanceLocation(employeeId);
+
+    // Backend independent Haversine geofence evaluation for checkout
+    const geofenceResult = geofenceService.evaluateGeofence(latitude, longitude, accuracy, location);
+
+    if (!geofenceResult.insideGeofence) {
+      return res.status(400).json({
+        success: false,
+        message: geofenceResult.message,
+        code: geofenceResult.code,
+        geofenceDetails: geofenceResult,
+      });
+    }
 
     const now = new Date();
     // Get employee working schedule for status determination
@@ -214,10 +282,20 @@ const checkOut = async (req, res, next) => {
 
     const updated = await prisma.attendance.update({
       where: { id: record.id },
-      data: { checkOut: now, workedHours, status },
+      data: {
+        checkOut: now,
+        workedHours,
+        status,
+        checkOutLatitude: Number(latitude),
+        checkOutLongitude: Number(longitude),
+        checkOutAccuracy: Number(accuracy) || 0,
+        checkOutDistanceMeters: geofenceResult.distanceMeters,
+        checkOutAllowedRadiusMeters: geofenceResult.allowedRadiusMeters,
+      },
+      include: { attendanceLocation: true },
     });
 
-    return sendSuccess(res, updated);
+    return sendSuccess(res, { record: updated, geofenceDetails: geofenceResult });
   } catch (err) {
     next(err);
   }
@@ -254,6 +332,7 @@ const correctAttendance = async (req, res, next) => {
         correctedAt: new Date(),
         notes: data.notes,
       },
+      include: { attendanceLocation: true },
     });
 
     return sendSuccess(res, updated);
@@ -266,16 +345,23 @@ const correctAttendance = async (req, res, next) => {
 const getTodayAttendance = async (req, res, next) => {
   try {
     const employeeId = req.user.employeeId;
-    if (!employeeId) return sendSuccess(res, null);
+    if (!employeeId) return sendSuccess(res, { record: null, location: null });
 
     const nowStr = new Date().toISOString();
     const today = new Date(nowStr.split('T')[0] + 'T00:00:00.000Z');
 
-    const record = await prisma.attendance.findUnique({
-      where: { employeeId_date: { employeeId, date: today } },
-    });
+    const [record, location] = await Promise.all([
+      prisma.attendance.findUnique({
+        where: { employeeId_date: { employeeId, date: today } },
+        include: { attendanceLocation: true },
+      }),
+      attendanceLocationService.getEmployeeAttendanceLocation(employeeId),
+    ]);
 
-    return sendSuccess(res, record || null);
+    return sendSuccess(res, {
+      record: record || null,
+      location: location || null,
+    });
   } catch (err) {
     next(err);
   }

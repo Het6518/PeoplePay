@@ -49,6 +49,8 @@ async function seed() {
   // CLEANUP (order matters due to FK constraints)
   // ============================================================
   console.log('🧹 Cleaning existing data...');
+  await prisma.attendanceLocationAudit.deleteMany();
+  await prisma.attendanceLocation.deleteMany();
   await prisma.payslipLine.deleteMany();
   await prisma.payslip.deleteMany();
   await prisma.payrun.deleteMany();
@@ -65,6 +67,31 @@ async function seed() {
   await prisma.workingScheduleDay.deleteMany();
   await prisma.workingSchedule.deleteMany();
   console.log('✅ Cleanup complete\n');
+
+  // ============================================================
+  // ATTENDANCE LOCATIONS
+  // ============================================================
+  console.log('📍 Creating geofenced attendance locations...');
+  const headOffice = await prisma.attendanceLocation.create({
+    data: {
+      name: 'Head Office',
+      latitude: 23.0225,
+      longitude: 72.5714,
+      radiusMeters: 500,
+      isActive: true,
+    },
+  });
+
+  const branchOffice = await prisma.attendanceLocation.create({
+    data: {
+      name: 'Branch Office',
+      latitude: 19.0760,
+      longitude: 72.8777,
+      radiusMeters: 300,
+      isActive: true,
+    },
+  });
+  console.log('✅ 2 attendance locations created\n');
 
   // ============================================================
   // DEPARTMENTS

@@ -50,9 +50,20 @@ export const attendanceApi = {
   getById: (id) => api.get(`/attendance/${id}`),
   getToday: () => api.get('/attendance/today'),
   create: (data) => api.post('/attendance', data),
-  checkIn: () => api.post('/attendance/checkin'),
-  checkOut: () => api.post('/attendance/checkout'),
+  checkIn: (data) => api.post('/attendance/checkin', data),
+  checkOut: (data) => api.post('/attendance/checkout', data),
   correct: (id, data) => api.patch(`/attendance/${id}/correct`, data),
+};
+
+export const attendanceLocationApi = {
+  getAll: (params) => api.get('/attendance-locations', { params }),
+  getById: (id) => api.get(`/attendance-locations/${id}`),
+  create: (data) => api.post('/attendance-locations', data),
+  update: (id, data) => api.put(`/attendance-locations/${id}`, data),
+  toggleStatus: (id, isActive) => api.patch(`/attendance-locations/${id}/toggle`, { isActive }),
+  delete: (id) => api.delete(`/attendance-locations/${id}`),
+  assign: (employeeId, locationId) => api.post('/attendance-locations/assign', { employeeId, locationId }),
+  getAuditLogs: (params) => api.get('/attendance-locations/audits', { params }),
 };
 
 export const timeOffApi = {

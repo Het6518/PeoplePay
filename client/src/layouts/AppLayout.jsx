@@ -120,6 +120,7 @@ export function AppLayout({ children }) {
 
   const bottomNavItems = [
     { to: '/reports', label: 'Reports', show: isHR() },
+    { to: '/admin/attendance-location', label: 'Geofences', show: isHR() },
     { to: '/admin/users', label: 'Admin', show: isAdmin() },
   ];
 

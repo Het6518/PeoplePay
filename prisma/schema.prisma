@@ -5,6 +5,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator server_client {
+  provider = "prisma-client-js"
+  output   = "../server/node_modules/.prisma/client"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -48,6 +53,7 @@ enum AttendanceStatus {
   OVERTIME
   MISSING_CHECKOUT
   MANUAL_CORRECTION
+  OUTSIDE_GEOFENCE
 }
 
 enum TimeOffUnit {
@@ -117,9 +123,47 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  employee Employee?
+  employee         Employee?
+  createdLocations AttendanceLocation[] @relation("LocationCreatedBy")
 
   @@index([email])
+}
+
+// ============================================================
+// ATTENDANCE LOCATION (GEOFENCING)
+// ============================================================
+
+model AttendanceLocation {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  latitude     Float
+  longitude    Float
+  radiusMeters Float    @default(500)
+  isActive     Boolean  @default(true)
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  createdBy   User?        @relation("LocationCreatedBy", fields: [createdById], references: [id])
+  employees   Employee[]
+  attendances Attendance[]
+
+  @@index([isActive])
+}
+
+model AttendanceLocationAudit {
+  id            String   @id @default(cuid())
+  locationId    String
+  locationName  String
+  changedById   String
+  changedByName String?
+  changeType    String // "CREATE", "UPDATE", "STATUS_TOGGLE", "DELETE", "ASSIGN"
+  oldValues     Json?
+  newValues     Json?
+  createdAt     DateTime @default(now())
+
+  @@index([locationId])
+  @@index([createdAt])
 }
 
 // ============================================================
@@ -142,25 +186,25 @@ model Department {
 // ============================================================
 
 model WorkingSchedule {
-  id           String       @id @default(cuid())
-  name         String
-  type         ScheduleType @default(FIXED)
-  weeklyHours  Float        @default(0)
-  isActive     Boolean      @default(true)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id          String       @id @default(cuid())
+  name        String
+  type        ScheduleType @default(FIXED)
+  weeklyHours Float        @default(0)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   days      WorkingScheduleDay[]
   employees Employee[]
 }
 
 model WorkingScheduleDay {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   scheduleId   String
-  dayOfWeek    Int    // 0=Sun, 1=Mon, ..., 6=Sat
+  dayOfWeek    Int // 0=Sun, 1=Mon, ..., 6=Sat
   startTime    String // "09:00"
   endTime      String // "18:00"
-  breakMinutes Int    @default(60)
+  breakMinutes Int     @default(60)
   isWorkday    Boolean @default(true)
 
   schedule WorkingSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
@@ -173,46 +217,49 @@ model WorkingScheduleDay {
 // ============================================================
 
 model Employee {
-  id                String         @id @default(cuid())
-  employeeCode      String         @unique
-  firstName         String
-  lastName          String
-  email             String         @unique
-  phone             String?
-  dateOfBirth       DateTime?
-  joiningDate       DateTime
-  departmentId      String?
-  managerId         String?
-  jobPosition       String?
-  employeeType      EmployeeType   @default(FULL_TIME)
-  status            EmployeeStatus @default(ACTIVE)
-  userId            String?        @unique
-  workingScheduleId String?
-  bankAccountName   String?
-  bankAccountNumber String?
-  bankName          String?
-  panNumber         String?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  id                   String         @id @default(cuid())
+  employeeCode         String         @unique
+  firstName            String
+  lastName             String
+  email                String         @unique
+  phone                String?
+  dateOfBirth          DateTime?
+  joiningDate          DateTime
+  departmentId         String?
+  managerId            String?
+  jobPosition          String?
+  employeeType         EmployeeType   @default(FULL_TIME)
+  status               EmployeeStatus @default(ACTIVE)
+  userId               String?        @unique
+  workingScheduleId    String?
+  attendanceLocationId String?
+  bankAccountName      String?
+  bankAccountNumber    String?
+  bankName             String?
+  panNumber            String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   // Relations
-  department      Department?      @relation(fields: [departmentId], references: [id])
-  manager         Employee?        @relation("ManagerToEmployee", fields: [managerId], references: [id])
-  subordinates    Employee[]       @relation("ManagerToEmployee")
-  user            User?            @relation(fields: [userId], references: [id])
-  workingSchedule WorkingSchedule? @relation(fields: [workingScheduleId], references: [id])
+  department         Department?         @relation(fields: [departmentId], references: [id])
+  manager            Employee?           @relation("ManagerToEmployee", fields: [managerId], references: [id])
+  subordinates       Employee[]          @relation("ManagerToEmployee")
+  user               User?               @relation(fields: [userId], references: [id])
+  workingSchedule    WorkingSchedule?    @relation(fields: [workingScheduleId], references: [id])
+  attendanceLocation AttendanceLocation? @relation(fields: [attendanceLocationId], references: [id])
 
   contracts          Contract[]
   attendance         Attendance[]
   timeOffRequests    TimeOffRequest[]
   timeOffAllocations TimeOffAllocation[]
   payslips           Payslip[]
-  createdPayruns     Payrun[]           @relation("PayrunCreatedBy")
+  createdPayruns     Payrun[]            @relation("PayrunCreatedBy")
 
   @@index([departmentId])
   @@index([status])
   @@index([employeeType])
   @@index([workingScheduleId])
+  @@index([attendanceLocationId])
 }
 
 // ============================================================
@@ -220,18 +267,18 @@ model Employee {
 // ============================================================
 
 model Contract {
-  id                 String         @id @default(cuid())
-  employeeId         String
-  startDate          DateTime
-  endDate            DateTime?
-  departmentId       String?
-  position           String?
-  wage               Float
-  salaryStructureId  String?
-  status             ContractStatus @default(DRAFT)
-  notes              String?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  id                String         @id @default(cuid())
+  employeeId        String
+  startDate         DateTime
+  endDate           DateTime?
+  departmentId      String?
+  position          String?
+  wage              Float
+  salaryStructureId String?
+  status            ContractStatus @default(DRAFT)
+  notes             String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   employee        Employee         @relation(fields: [employeeId], references: [id], onDelete: Restrict)
   department      Department?      @relation(fields: [departmentId], references: [id])
@@ -249,28 +296,41 @@ model Contract {
 // ============================================================
 
 model Attendance {
-  id               String           @id @default(cuid())
-  employeeId       String
-  date             DateTime         @db.Date
-  checkIn          DateTime?
-  checkOut         DateTime?
-  workedHours      Float?
-  status           AttendanceStatus @default(PRESENT)
-  isManualCorrection Boolean        @default(false)
-  correctedById    String?
-  correctedByName  String?
-  correctionReason String?
-  correctedAt      DateTime?
-  notes            String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  id                          String             @id @default(cuid())
+  employeeId                  String
+  date                        DateTime           @db.Date
+  checkIn                     DateTime?
+  checkOut                    DateTime?
+  workedHours                 Float?
+  status                      AttendanceStatus   @default(PRESENT)
+  isManualCorrection          Boolean            @default(false)
+  correctedById               String?
+  correctedByName             String?
+  correctionReason            String?
+  correctedAt                 DateTime?
+  notes                       String?
+  checkInLatitude             Float?
+  checkInLongitude            Float?
+  checkInAccuracy             Float?
+  checkOutLatitude            Float?
+  checkOutLongitude           Float?
+  checkOutAccuracy            Float?
+  checkInDistanceMeters       Float?
+  checkOutDistanceMeters      Float?
+  checkInAllowedRadiusMeters  Float?
+  checkOutAllowedRadiusMeters Float?
+  attendanceLocationId        String?
+  createdAt                   DateTime           @default(now())
+  updatedAt                   DateTime           @updatedAt
 
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  employee           Employee            @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  attendanceLocation AttendanceLocation? @relation(fields: [attendanceLocationId], references: [id])
 
   @@unique([employeeId, date])
   @@index([employeeId])
   @@index([date])
   @@index([status])
+  @@index([attendanceLocationId])
 }
 
 // ============================================================
@@ -278,17 +338,17 @@ model Attendance {
 // ============================================================
 
 model TimeOffType {
-  id                  String      @id @default(cuid())
-  name                String
-  unit                TimeOffUnit @default(DAYS)
-  requiresAllocation  Boolean     @default(true)
-  requiresApproval    Boolean     @default(true)
-  payrollIntegration  Boolean     @default(false)
-  description         String?
-  isActive            Boolean     @default(true)
-  color               String?     @default("#6366f1")
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  id                 String      @id @default(cuid())
+  name               String
+  unit               TimeOffUnit @default(DAYS)
+  requiresAllocation Boolean     @default(true)
+  requiresApproval   Boolean     @default(true)
+  payrollIntegration Boolean     @default(false)
+  description        String?
+  isActive           Boolean     @default(true)
+  color              String?     @default("#6366f1")
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   allocations TimeOffAllocation[]
   requests    TimeOffRequest[]
@@ -328,23 +388,23 @@ model TimeOffAllocation {
 // ============================================================
 
 model TimeOffRequest {
-  id            String               @id @default(cuid())
-  employeeId    String
-  timeOffTypeId String
-  startDate     DateTime             @db.Date
-  endDate       DateTime             @db.Date
-  duration      Float
-  reason        String?
-  status        TimeOffRequestStatus @default(PENDING)
-  approvedById  String?
-  approvedByName String?
-  approvedAt    DateTime?
-  rejectedById  String?
-  rejectedByName String?
-  rejectedAt    DateTime?
+  id              String               @id @default(cuid())
+  employeeId      String
+  timeOffTypeId   String
+  startDate       DateTime             @db.Date
+  endDate         DateTime             @db.Date
+  duration        Float
+  reason          String?
+  status          TimeOffRequestStatus @default(PENDING)
+  approvedById    String?
+  approvedByName  String?
+  approvedAt      DateTime?
+  rejectedById    String?
+  rejectedByName  String?
+  rejectedAt      DateTime?
   rejectionReason String?
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 
   employee    Employee    @relation(fields: [employeeId], references: [id], onDelete: Restrict)
   timeOffType TimeOffType @relation(fields: [timeOffTypeId], references: [id])
@@ -386,8 +446,8 @@ model SalaryRule {
   computationType   SalaryRuleComputationType @default(FIXED)
   fixedAmount       Float?
   percentage        Float?
-  percentageBase    String?                   // code of the rule to base the % on
-  formula           String?                   // safe formula string e.g. "GROSS - PF - TAX"
+  percentageBase    String? // code of the rule to base the % on
+  formula           String? // safe formula string e.g. "GROSS - PF - TAX"
   description       String?
   isActive          Boolean                   @default(true)
   createdAt         DateTime                  @default(now())

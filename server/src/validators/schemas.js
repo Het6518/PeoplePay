@@ -207,6 +207,37 @@ const SelectEmployeesSchema = z.object({
   employeeIds: z.array(z.string()).min(1, 'At least one employee must be selected'),
 });
 
+// ============================================================
+// ATTENDANCE LOCATION (GEOFENCE)
+// ============================================================
+
+const CreateAttendanceLocationSchema = z.object({
+  name: z.string().min(1, 'Location name is required').max(100),
+  latitude: z.coerce.number().min(-90, 'Latitude must be >= -90').max(90, 'Latitude must be <= 90'),
+  longitude: z.coerce.number().min(-180, 'Longitude must be >= -180').max(180, 'Longitude must be <= 180'),
+  radiusMeters: z.coerce.number().positive('Radius must be a positive number (meters)'),
+  isActive: z.boolean().optional(),
+});
+
+const UpdateAttendanceLocationSchema = CreateAttendanceLocationSchema.partial();
+
+const CheckInSchema = z.object({
+  latitude: z.coerce.number().min(-90, 'Latitude must be >= -90').max(90, 'Latitude must be <= 90'),
+  longitude: z.coerce.number().min(-180, 'Longitude must be >= -180').max(180, 'Longitude must be <= 180'),
+  accuracy: z.coerce.number().min(0).optional().default(0),
+});
+
+const CheckOutSchema = z.object({
+  latitude: z.coerce.number().min(-90, 'Latitude must be >= -90').max(90, 'Latitude must be <= 90'),
+  longitude: z.coerce.number().min(-180, 'Longitude must be >= -180').max(180, 'Longitude must be <= 180'),
+  accuracy: z.coerce.number().min(0).optional().default(0),
+});
+
+const AssignAttendanceLocationSchema = z.object({
+  employeeId: z.string().min(1, 'Employee is required'),
+  locationId: z.string().optional().nullable(),
+});
+
 module.exports = {
   LoginSchema,
   RegisterSchema,
@@ -231,4 +262,9 @@ module.exports = {
   UpdateSalaryRuleSchema,
   CreatePayrunSchema,
   SelectEmployeesSchema,
+  CreateAttendanceLocationSchema,
+  UpdateAttendanceLocationSchema,
+  CheckInSchema,
+  CheckOutSchema,
+  AssignAttendanceLocationSchema,
 };

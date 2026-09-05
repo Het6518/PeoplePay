@@ -38,6 +38,7 @@ import SalaryRuleFormPage from './pages/payroll/SalaryRuleFormPage';
 // Reports & Admin
 import ReportsPage from './pages/reports/ReportsPage';
 import UsersPage from './pages/admin/UsersPage';
+import AttendanceLocationPage from './pages/admin/AttendanceLocationPage';
 
 import { useAuth } from './contexts/AuthContext';
 
@@ -84,6 +85,7 @@ function AppRoutes() {
 
                 {/* Attendance */}
                 <Route path="/attendance" element={<AttendancePage />} />
+                <Route path="/admin/attendance-location" element={<ProtectedRoute roles={HR_ROLES}><AttendanceLocationPage /></ProtectedRoute>} />
 
                 {/* Time Off */}
                 <Route path="/time-off" element={<TimeOffPage />} />
