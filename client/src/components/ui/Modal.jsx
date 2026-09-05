@@ -9,7 +9,7 @@ const SIZES = {
 };
 
 /**
- * Full-screen modal dialog.
+ * Full-screen modal dialog optimized for mobile viewports.
  *
  * @param {{
  *   open: boolean,
@@ -48,7 +48,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -62,16 +62,16 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
 
       {/* Panel */}
       <div
-        className={`relative bg-white rounded-[28px] border border-stone-200/80 shadow-2xl w-full ${sizeClass} max-h-[90vh] flex flex-col animate-fadeIn`}
+        className={`relative bg-white rounded-[24px] sm:rounded-[28px] border border-stone-200/80 shadow-2xl w-full ${sizeClass} max-h-[92vh] sm:max-h-[90vh] flex flex-col animate-fadeIn`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-7 py-5 border-b border-stone-100 flex-shrink-0">
-          <h2 id="modal-title" className="text-lg font-extrabold text-stone-900 tracking-tight">
+        <div className="flex items-center justify-between px-5 sm:px-7 py-4 sm:py-5 border-b border-stone-100 flex-shrink-0">
+          <h2 id="modal-title" className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight">
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-stone-100 text-stone-500 hover:text-stone-900 transition-colors"
+            className="p-1.5 sm:p-2 rounded-full hover:bg-stone-100 text-stone-500 hover:text-stone-900 transition-colors"
             aria-label="Close dialog"
           >
             <X size={18} />
@@ -79,7 +79,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }) {
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1 px-7 py-6">{children}</div>
+        <div className="overflow-y-auto flex-1 px-5 sm:px-7 py-5 sm:py-6">{children}</div>
       </div>
     </div>
   );

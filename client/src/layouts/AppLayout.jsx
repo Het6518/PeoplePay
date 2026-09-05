@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Banknote, ChevronDown, LogOut, Menu,
+  Banknote, ChevronDown, LogOut, Menu, X, User
 } from 'lucide-react';
 
 const HR_ROLES = ['HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'];
@@ -16,7 +16,7 @@ const payrollSubItems = [
   { to: '/payroll/salary-rules', label: 'Salary Rules', roles: PAYROLL_ROLES },
 ];
 
-function NavItem({ to, label, end = false, onClick }) {
+function NavItem({ to, label, end = false, onClick, fullWidth = false }) {
   return (
     <NavLink
       to={to}
@@ -24,6 +24,8 @@ function NavItem({ to, label, end = false, onClick }) {
       onClick={onClick}
       className={({ isActive }) =>
         `inline-flex h-10 items-center rounded-full px-5 text-xs lg:text-sm font-semibold transition-all ${
+          fullWidth ? 'w-full justify-start text-left' : ''
+        } ${
           isActive
             ? 'bg-stone-900 text-white shadow-sm'
             : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
@@ -131,20 +133,20 @@ export function AppLayout({ children }) {
       <div className="pointer-events-none absolute left-1/2 top-0 -z-10 h-72 w-full max-w-7xl -translate-x-1/2 rounded-full bg-gradient-to-b from-amber-200/25 via-amber-100/10 to-transparent blur-3xl" />
 
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-stone-200/70 bg-white/80 px-4 py-3 backdrop-blur-md shadow-sm">
-        <div className="mx-auto flex max-w-7xl items-center gap-4">
+      <header className="sticky top-0 z-40 border-b border-stone-200/70 bg-white/90 px-3 sm:px-4 py-3 backdrop-blur-md shadow-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
           {/* Logo */}
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-stone-900 text-amber-400 shadow-sm">
               <Banknote size={19} />
             </div>
-            <div className="hidden min-w-0 sm:block">
-              <h1 className="truncate text-base font-extrabold leading-none tracking-tight text-stone-900">PeoplePay</h1>
-              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-600">360 Suite</p>
+            <div className="min-w-0">
+              <h1 className="truncate text-sm sm:text-base font-extrabold leading-none tracking-tight text-stone-900">PeoplePay</h1>
+              <p className="mt-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-600">360 Suite</p>
             </div>
           </div>
 
-          {/* Navigation Pill Container */}
+          {/* Desktop Navigation Pill Container */}
           <nav className="hidden flex-1 items-center justify-center lg:flex">
             <div className="flex items-center gap-1 rounded-full border border-stone-200/80 bg-white p-1 shadow-sm">
               {visibleNavItems.map((item) => (
@@ -158,7 +160,7 @@ export function AppLayout({ children }) {
           </nav>
 
           {/* Right Action Bar */}
-          <div className="ml-auto flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <span className="hidden rounded-full border border-amber-200/80 bg-amber-50 px-3.5 py-1 text-xs font-bold text-amber-900 sm:inline-flex">
               {currentUser?.role?.replace(/_/g, ' ')}
             </span>
@@ -172,32 +174,47 @@ export function AppLayout({ children }) {
             >
               <LogOut size={16} />
             </button>
-          </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-200/80 bg-white text-stone-700 shadow-sm lg:hidden"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            <Menu size={18} />
-          </button>
+            {/* Mobile Menu Toggle Button */}
+            <button
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-200/80 bg-white text-stone-700 shadow-sm hover:bg-stone-50 lg:hidden"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label="Toggle Navigation"
+            >
+              {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+          </div>
         </div>
 
-        {/* Mobile Navigation Panel */}
+        {/* Mobile Navigation Drawer */}
         {mobileOpen && (
           <>
-            <button
-              className="fixed inset-0 z-[-1] cursor-default bg-black/20 backdrop-blur-xs lg:hidden"
+            <div
+              className="fixed inset-0 z-30 bg-stone-900/40 backdrop-blur-xs lg:hidden"
               onClick={() => setMobileOpen(false)}
-              aria-label="Close navigation"
             />
-            <div className="absolute left-4 right-4 top-[68px] rounded-[24px] border border-stone-200/80 bg-white p-3 shadow-2xl lg:hidden animate-fadeIn">
-              <div className="grid gap-1">
+            <div className="absolute left-3 right-3 top-[64px] z-40 rounded-[28px] border border-stone-200/90 bg-white p-4 shadow-2xl lg:hidden animate-fadeIn space-y-3 max-h-[85vh] overflow-y-auto">
+              {/* Mobile User Info Badge */}
+              <div className="flex items-center justify-between pb-3 border-b border-stone-100 px-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-full bg-amber-400 text-stone-950 font-bold text-xs flex items-center justify-center shadow-sm">
+                    {userInitial}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-stone-900 truncate max-w-[180px]">{currentUser?.email}</p>
+                    <p className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">{currentUser?.role?.replace(/_/g, ' ')}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile Menu Items */}
+              <div className="space-y-1">
                 {visibleNavItems.map((item) => (
                   <NavItem
                     key={item.to}
                     {...item}
                     end={item.to === '/dashboard'}
+                    fullWidth
                     onClick={() => setMobileOpen(false)}
                   />
                 ))}
@@ -208,13 +225,17 @@ export function AppLayout({ children }) {
                   onNavigate={() => setMobileOpen(false)}
                 />
                 {visibleBottomNavItems.map((item) => (
-                  <NavItem key={item.to} {...item} onClick={() => setMobileOpen(false)} />
+                  <NavItem key={item.to} {...item} fullWidth onClick={() => setMobileOpen(false)} />
                 ))}
+              </div>
+
+              <div className="pt-2 border-t border-stone-100">
                 <button
                   onClick={handleLogout}
-                  className="inline-flex h-10 items-center rounded-full px-5 text-xs font-semibold text-rose-600 transition-all hover:bg-rose-50"
+                  className="flex h-10 w-full items-center gap-2 rounded-full px-5 text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all"
                 >
-                  Logout
+                  <LogOut size={15} />
+                  <span>Logout</span>
                 </button>
               </div>
             </div>
@@ -223,7 +244,7 @@ export function AppLayout({ children }) {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         <div className="mx-auto max-w-7xl animate-fadeIn">
           {children}
         </div>
