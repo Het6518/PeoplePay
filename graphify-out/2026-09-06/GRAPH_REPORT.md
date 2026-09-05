@@ -1,7 +1,7 @@
 # Graph Report - peoplepay360  (2026-09-06)
 
 ## Corpus Check
-- 106 files · ~69,240 words
+- 106 files · ~69,155 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary

@@ -3,6 +3,7 @@ import { Download, Calendar, Filter, RefreshCw, FileSpreadsheet, FileText, Check
 import { reportApi, departmentApi, timeOffApi } from '../../services/apiServices';
 import { formatINR, formatDate } from '../../utils/formatters';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { Pagination } from '../../components/ui/Pagination';
 import { exportToCSV } from '../../utils/csvExporter';
 import { exportToPDF } from '../../utils/pdfExporter';
 import toast from 'react-hot-toast';
@@ -65,6 +66,7 @@ function PayrollReport() {
     periodEnd: '',
     departmentId: '',
   });
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     departmentApi
@@ -244,7 +246,7 @@ function PayrollReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 bg-white">
-              {payslips.map((ps) => (
+              {payslips.slice((page - 1) * 10, page * 10).map((ps) => (
                 <tr key={ps.id} className="hover:bg-amber-50/20 transition-colors">
                   <td className="px-4 py-3.5 text-xs font-semibold text-stone-900">
                     {ps.employee ? `${ps.employee.firstName} ${ps.employee.lastName}` : '-'}
@@ -276,6 +278,16 @@ function PayrollReport() {
           </table>
         </div>
       )}
+
+      {payslips.length > 10 && (
+        <div className="pt-4">
+          <Pagination
+            page={page}
+            totalPages={Math.ceil(payslips.length / 10)}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -287,6 +299,7 @@ function AttendanceReport() {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
   const [filters, setFilters] = useState({ periodStart: '', periodEnd: '' });
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     handleGenerate();
@@ -297,6 +310,7 @@ function AttendanceReport() {
     try {
       const res = await reportApi.getAttendance(filters);
       setReportData(res.data || res);
+      setPage(1);
     } catch (err) {
       toast.error('Failed to load attendance report');
     } finally {
@@ -416,7 +430,7 @@ function AttendanceReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 bg-white">
-              {summary.map((row, idx) => (
+              {summary.slice((page - 1) * 10, page * 10).map((row, idx) => (
                 <tr key={idx} className="hover:bg-amber-50/20 transition-colors">
                   <td className="px-4 py-3.5 text-xs font-semibold text-stone-900">
                     {row.employee ? `${row.employee.firstName} ${row.employee.lastName}` : '-'}
@@ -437,6 +451,16 @@ function AttendanceReport() {
           </table>
         </div>
       )}
+
+      {summary.length > 10 && (
+        <div className="pt-4">
+          <Pagination
+            page={page}
+            totalPages={Math.ceil(summary.length / 10)}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -448,6 +472,7 @@ function TimeOffReport() {
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
   const [filters, setFilters] = useState({ periodStart: '', periodEnd: '' });
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     handleGenerate();
@@ -458,6 +483,7 @@ function TimeOffReport() {
     try {
       const res = await reportApi.getTimeOff(filters);
       setReportData(res.data || res);
+      setPage(1);
     } catch (err) {
       toast.error('Failed to load time off report');
     } finally {
@@ -586,7 +612,7 @@ function TimeOffReport() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 bg-white">
-              {requests.map((r) => (
+              {requests.slice((page - 1) * 10, page * 10).map((r) => (
                 <tr key={r.id} className="hover:bg-amber-50/20 transition-colors">
                   <td className="px-4 py-3.5 text-xs font-semibold text-stone-900">
                     {r.employee ? `${r.employee.firstName} ${r.employee.lastName}` : '-'}
@@ -620,6 +646,16 @@ function TimeOffReport() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {requests.length > 10 && (
+        <div className="pt-4">
+          <Pagination
+            page={page}
+            totalPages={Math.ceil(requests.length / 10)}
+            onPageChange={setPage}
+          />
         </div>
       )}
     </div>

@@ -42,7 +42,7 @@ export default function PayrunListPage() {
   const fetchPayruns = async () => {
     setLoading(true);
     try {
-      const params = { page, limit: 15 };
+      const params = { page, limit: 10 };
       if (filter !== 'ALL') params.status = filter;
 
       const response = await payrollApi.getPayruns(params);

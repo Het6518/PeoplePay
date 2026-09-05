@@ -17,6 +17,7 @@ import { attendanceLocationApi, employeeApi } from '../../services/apiServices';
 import { Modal } from '../../components/ui/Modal';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { Pagination } from '../../components/ui/Pagination';
 import { StatusBadge } from '../../components/ui/Badge';
 import { GeofenceMap } from '../../components/map/GeofenceMap';
 import toast from 'react-hot-toast';
@@ -27,6 +28,7 @@ export default function AttendanceLocationPage() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('locations'); // 'locations' | 'audits'
+  const [page, setPage] = useState(1);
 
   // Modal states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -263,7 +265,7 @@ export default function AttendanceLocationPage() {
         <div className="space-y-6">
           {/* Location Cards Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {locations.map((loc) => (
+            {locations.slice((page - 1) * 10, page * 10).map((loc) => (
               <div
                 key={loc.id}
                 className={`bg-white rounded-2xl p-5 shadow-sm border transition-all ${
@@ -354,6 +356,16 @@ export default function AttendanceLocationPage() {
               </div>
             ))}
           </div>
+
+          {locations.length > 10 && (
+            <div className="pt-4">
+              <Pagination
+                page={page}
+                totalPages={Math.ceil(locations.length / 10)}
+                onPageChange={setPage}
+              />
+            </div>
+          )}
 
           {locations.length === 0 && (
             <div className="text-center py-12 bg-white rounded-2xl border border-slate-200">

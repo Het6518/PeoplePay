@@ -6,6 +6,7 @@ import { employeeApi, payrollApi } from '../../services/apiServices';
 import { getInitials, formatDate, formatINR } from '../../utils/formatters';
 import { StatusBadge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { Pagination } from '../../components/ui/Pagination';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function EmployeeDetailPage() {
@@ -15,6 +16,7 @@ export default function EmployeeDetailPage() {
   const [loading, setLoading] = useState(true);
   const [payslips, setPayslips] = useState([]);
   const [payslipsLoading, setPayslipsLoading] = useState(false);
+  const [payslipPage, setPayslipPage] = useState(1);
 
   const { currentUser, isHR, isPayroll } = useAuth();
   const canEdit = isHR();
@@ -372,7 +374,7 @@ export default function EmployeeDetailPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100 bg-white">
-                    {payslips.map(ps => (
+                    {payslips.slice((payslipPage - 1) * 10, payslipPage * 10).map(ps => (
                       <tr key={ps.id} className="hover:bg-stone-50/60 transition-colors">
                         <td className="py-3.5 whitespace-nowrap">
                           <div className="text-xs font-bold text-stone-900">{ps.payrun?.name || 'Payrun Batch'}</div>
@@ -404,6 +406,16 @@ export default function EmployeeDetailPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+            
+            {payslips.length > 10 && (
+              <div className="pt-4 border-t border-stone-100">
+                <Pagination
+                  page={payslipPage}
+                  totalPages={Math.ceil(payslips.length / 10)}
+                  onPageChange={setPayslipPage}
+                />
               </div>
             )}
           </div>

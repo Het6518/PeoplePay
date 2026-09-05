@@ -25,7 +25,7 @@ export default function PayslipListPage() {
   const fetchPayslips = async () => {
     setLoading(true);
     try {
-      const params = { page, limit: 20 };
+      const params = { page, limit: 10 };
       if (statusFilter) params.status = statusFilter;
       const res = await payrollApi.getPayslips(params);
       const items = Array.isArray(res) ? res : res?.data || [];

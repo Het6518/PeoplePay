@@ -60,11 +60,11 @@ export default function EmployeeListPage() {
       const response = await employeeApi.getAll({
         ...filters,
         page,
-        limit: 20
+        limit: 10
       });
       setEmployees(response.data || []);
-      setTotalPages(response.pagination?.totalPages || 1);
-      setTotalCount(response.pagination?.total || (response.data?.length || 0));
+      setTotalPages(response.totalPages || response.pagination?.totalPages || 1);
+      setTotalCount(response.total || response.pagination?.total || (response.data?.length || 0));
     } catch (error) {
       toast.error('Failed to fetch employees');
       setEmployees([]);

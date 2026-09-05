@@ -29,7 +29,7 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await userApi.getAll({ page, limit: 15 });
+      const res = await userApi.getAll({ page, limit: 10 });
       setUsers(res.data || []);
       setTotalPages(res.totalPages || res.pagination?.totalPages || 1);
     } catch (err) {

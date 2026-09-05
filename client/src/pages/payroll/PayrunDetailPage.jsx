@@ -9,6 +9,7 @@ import { formatINR, formatDate } from '../../utils/formatters';
 import { useAuth } from '../../contexts/AuthContext';
 import { StatusBadge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { Pagination } from '../../components/ui/Pagination';
 import toast from 'react-hot-toast';
 
 const StatusStepper = ({ currentStatus }) => {
@@ -58,6 +59,7 @@ export default function PayrunDetailPage() {
   const [payrun, setPayrun] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [page, setPage] = useState(1);
 
   const fetchPayrun = async () => {
     try {
@@ -247,7 +249,7 @@ export default function PayrunDetailPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100 bg-white">
-              {payrun.payslips?.map((p) => {
+              {(payrun.payslips || []).slice((page - 1) * 10, page * 10).map((p) => {
                 const empName = p.employeeName || `${p.employee?.firstName || ''} ${p.employee?.lastName || ''}`.trim() || 'Employee';
                 const empCode = p.employeeCode || p.employee?.employeeCode || '';
                 const deptName = p.department || p.employee?.department?.name || '-';
@@ -308,6 +310,16 @@ export default function PayrunDetailPage() {
             </tbody>
           </table>
         </div>
+        
+        {payrun.payslips?.length > 10 && (
+          <div className="p-4 border-t border-stone-100">
+            <Pagination
+              page={page}
+              totalPages={Math.ceil((payrun.payslips?.length || 0) / 10)}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

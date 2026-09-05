@@ -69,7 +69,7 @@ const deleteTimeOffType = async (req, res, next) => {
 
 const getAllocations = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, employeeId, timeOffTypeId, status } = req.query;
+    const { page = 1, limit = 10, employeeId, timeOffTypeId, status } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where = {};
@@ -185,7 +185,7 @@ const refuseAllocation = async (req, res, next) => {
 
 const getTimeOffRequests = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, employeeId, timeOffTypeId, status, startDate, endDate } = req.query;
+    const { page = 1, limit = 10, employeeId, timeOffTypeId, status, startDate, endDate } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where = {};

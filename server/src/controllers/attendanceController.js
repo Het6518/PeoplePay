@@ -47,7 +47,7 @@ function determineStatus(workedHours, checkIn, scheduleDay) {
 // GET /api/attendance
 const getAttendance = async (req, res, next) => {
   try {
-    const { page = 1, limit = 30, employeeId, departmentId, status, startDate, endDate, search } = req.query;
+    const { page = 1, limit = 10, employeeId, departmentId, status, startDate, endDate, search } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where = {};

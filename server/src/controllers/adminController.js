@@ -77,7 +77,7 @@ const deleteDepartment = async (req, res, next) => {
 
 const getUsers = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, search, role } = req.query;
+    const { page = 1, limit = 10, search, role } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where = {};

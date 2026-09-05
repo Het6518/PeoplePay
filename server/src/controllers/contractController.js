@@ -5,7 +5,7 @@ const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
 // GET /api/contracts
 const getContracts = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, employeeId, status, search } = req.query;
+    const { page = 1, limit = 10, employeeId, status, search } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where = {};

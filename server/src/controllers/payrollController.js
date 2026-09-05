@@ -14,7 +14,7 @@ const { logAuditAction } = require('../utils/auditLogger');
 
 const getPayruns = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status, search } = req.query;
+    const { page = 1, limit = 10, status, search } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where = {};
@@ -643,7 +643,7 @@ const sendPayslips = async (req, res, next) => {
 
 const getPayslips = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, employeeId, payrunId, status, periodStart, periodEnd } = req.query;
+    const { page = 1, limit = 10, employeeId, payrunId, status, periodStart, periodEnd } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where = {};

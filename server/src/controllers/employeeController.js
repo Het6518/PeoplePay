@@ -76,7 +76,7 @@ const EMPLOYEE_SELECT = {
 // GET /api/employees
 const getEmployees = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, search, departmentId, status, employeeType } = req.query;
+    const { page = 1, limit = 10, search, departmentId, status, employeeType } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
     const where = {};

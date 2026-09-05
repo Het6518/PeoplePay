@@ -29,13 +29,24 @@ const sendError = (res, message, statusCode = 400, errors = []) => {
 };
 
 const sendPaginated = (res, data, page, limit, total) => {
+  const numPage = Number(page) || 1;
+  const numLimit = Number(limit) || 10;
+  const numTotal = Number(total) || 0;
+  const totalPages = Math.ceil(numTotal / numLimit) || 1;
+
   return res.status(200).json({
     success: true,
     data,
-    page: Number(page),
-    limit: Number(limit),
-    total,
-    totalPages: Math.ceil(total / limit),
+    page: numPage,
+    limit: numLimit,
+    total: numTotal,
+    totalPages,
+    pagination: {
+      page: numPage,
+      limit: numLimit,
+      total: numTotal,
+      totalPages,
+    },
   });
 };
 

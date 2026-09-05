@@ -19,7 +19,17 @@ api.interceptors.response.use((response) => {
   if (response.data && response.data.success !== undefined && response.data.data !== undefined) {
     const orig = response.data;
     response.data = orig.data;
-    if (orig.pagination) response.pagination = orig.pagination;
+    const pagination = orig.pagination || {
+      page: Number(orig.page || 1),
+      limit: Number(orig.limit || 10),
+      total: Number(orig.total || (Array.isArray(orig.data) ? orig.data.length : 0)),
+      totalPages: Number(orig.totalPages || (orig.total && orig.limit ? Math.ceil(orig.total / orig.limit) : 1)),
+    };
+    response.pagination = pagination;
+    response.totalPages = pagination.totalPages;
+    response.total = pagination.total;
+    response.page = pagination.page;
+    response.limit = pagination.limit;
   }
   return response;
 });

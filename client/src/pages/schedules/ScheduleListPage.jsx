@@ -4,10 +4,12 @@ import { Plus, Edit, Eye, Trash2, Calendar, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { scheduleApi } from '../../services/apiServices';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { Pagination } from '../../components/ui/Pagination';
 
 export default function ScheduleListPage() {
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     fetchSchedules();
@@ -67,7 +69,7 @@ export default function ScheduleListPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100 bg-white">
-                {schedules.map((schedule) => (
+                {schedules.slice((page - 1) * 10, page * 10).map((schedule) => (
                   <tr key={schedule.id} className="hover:bg-stone-50/60 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-stone-900">{schedule.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">
@@ -96,6 +98,16 @@ export default function ScheduleListPage() {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+        
+        {schedules.length > 10 && (
+          <div className="p-4 border-t border-stone-100">
+            <Pagination
+              page={page}
+              totalPages={Math.ceil(schedules.length / 10)}
+              onPageChange={setPage}
+            />
           </div>
         )}
       </div>

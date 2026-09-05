@@ -94,7 +94,7 @@ export default function AttendancePage() {
       const response = await attendanceApi.getAll({
         ...filters,
         page,
-        limit: 20,
+        limit: 10,
       });
       setRecords(response.data || []);
       setTotalPages(response.totalPages || response.pagination?.totalPages || 1);

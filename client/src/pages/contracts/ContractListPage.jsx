@@ -100,10 +100,10 @@ export default function ContractListPage() {
       const response = await contractApi.getAll({
         ...filters,
         page,
-        limit: 15
+        limit: 10
       });
       setContracts(response.data || []);
-      setTotalPages(response.pagination?.totalPages || 1);
+      setTotalPages(response.totalPages || response.pagination?.totalPages || 1);
     } catch (error) {
       toast.error('Failed to fetch contracts');
       setContracts([]);
