@@ -88,6 +88,12 @@ export default function PayslipDetailPage() {
     const totalDays = currentPayslip?.totalWorkingDays ?? 0;
     const contractWage = currentPayslip?.contract?.wage;
 
+    if (rule.code === 'OT' || rule.name?.toLowerCase().includes('overtime')) {
+      const hours = currentPayslip?.overtimeHours || rule.quantity || 0;
+      const rate = rule.rate || currentPayslip?.overtimeRate || 0;
+      return `${hours} hrs @ ${formatINR(rate)}/hr = ${formatINR(rule.amount)}`;
+    }
+
     if (rule.code === 'BASIC' || rule.category === 'BASIC') {
       if (contractWage) {
         if (totalDays > 0) {
@@ -191,7 +197,7 @@ export default function PayslipDetailPage() {
         </div>
 
         {/* Info Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-2xl bg-stone-50/70 border border-stone-200/60">
+        <div className={`grid grid-cols-2 ${(payslip.overtimeHours > 0 || payslip.overtimeAmount > 0) ? 'sm:grid-cols-5' : 'sm:grid-cols-4'} gap-4 p-4 rounded-2xl bg-stone-50/70 border border-stone-200/60`}>
           <div>
             <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 block">Department</span>
             <span className="text-xs font-bold text-stone-800 mt-0.5 block">{department}</span>
@@ -208,6 +214,14 @@ export default function PayslipDetailPage() {
             <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 block">Worked Days</span>
             <span className="text-xs font-bold text-amber-600 mt-0.5 block">{payslip.workedDays ?? '-'} / {payslip.totalWorkingDays ?? '-'} days</span>
           </div>
+          {(payslip.overtimeHours > 0 || payslip.overtimeAmount > 0) && (
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 block">Overtime Pay</span>
+              <span className="text-xs font-bold text-primary-600 mt-0.5 block">
+                {payslip.overtimeHours || 0} hrs ({formatINR(payslip.overtimeAmount || 0)})
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Breakdown Tables */}

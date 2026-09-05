@@ -19,6 +19,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const attendanceLocationRoutes = require('./routes/attendanceLocationRoutes');
 const holidayRoutes = require('./routes/holidayRoutes');
 const workingDaysRoutes = require('./routes/workingDaysRoutes');
+const overtimeRoutes = require('./routes/overtimeRoutes');
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/contracts', contractRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/overtime', overtimeRoutes);
 app.use('/api/attendance-locations', attendanceLocationRoutes);
 app.use('/api/time-off', timeOffRoutes);
 app.use('/api/salary', salaryRoutes);

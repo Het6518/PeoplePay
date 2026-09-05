@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  Banknote, ChevronDown, LogOut, Search, Bell, Settings, User
+  Banknote, ChevronDown, LogOut, Search, Settings, User
 } from 'lucide-react';
 
 const HR_ROLES = ['HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'];
@@ -109,11 +109,12 @@ export function AppLayout({ children }) {
     : '/employees';
 
   const navItems = [
-    { to: '/dashboard', label: 'Dashboard', show: !isEmployeeRole },
+    { to: '/dashboard', label: 'Dashboard', show: !isEmployeeRole, end: true },
     { to: employeeProfilePath, label: isEmployeeRole ? 'My Profile' : 'People', show: true },
     { to: '/contracts', label: 'Contracts', show: isHR() },
     { to: '/schedules', label: 'Schedule', show: isHR() },
-    { to: '/attendance', label: 'Attendance', show: true },
+    { to: '/attendance', label: 'Attendance', show: true, end: true },
+    { to: '/attendance/overtime', label: 'Overtime', show: true, end: true },
     { to: '/time-off', label: 'Leave', show: true },
   ];
 
@@ -151,7 +152,7 @@ export function AppLayout({ children }) {
           <nav className="hidden flex-1 items-center justify-center lg:flex">
             <div className="flex items-center gap-1 rounded-full border border-stone-200/80 bg-white/90 p-1.5 shadow-sm backdrop-blur-md">
               {visibleNavItems.map((item) => (
-                <NavItem key={item.to} {...item} end={item.to === '/dashboard'} />
+                <NavItem key={item.to} {...item} />
               ))}
               <PayrollMenu currentUser={currentUser} isPayroll={isPayroll()} />
               {visibleBottomNavItems.map((item) => (
@@ -162,11 +163,6 @@ export function AppLayout({ children }) {
 
           {/* Right Top Actions */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            <button className="hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-white/80 border border-stone-200/80 text-stone-600 shadow-sm hover:bg-stone-100 hover:text-stone-900 transition-all relative">
-              <Bell size={16} />
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-500" />
-            </button>
-
             <span className="hidden rounded-full border border-amber-300/80 bg-amber-100/70 px-3 py-1 text-xs font-extrabold text-stone-900 sm:inline-flex">
               {currentUser?.role?.replace(/_/g, ' ')}
             </span>

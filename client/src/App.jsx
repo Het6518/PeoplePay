@@ -22,6 +22,7 @@ import ScheduleFormPage from './pages/schedules/ScheduleFormPage';
 
 // Attendance
 import AttendancePage from './pages/attendance/AttendancePage';
+import OvertimePage from './pages/attendance/OvertimePage';
 
 // Time Off
 import TimeOffPage from './pages/timeoff/TimeOffPage';
@@ -85,6 +86,7 @@ function AppRoutes() {
 
                 {/* Attendance */}
                 <Route path="/attendance" element={<AttendancePage />} />
+                <Route path="/attendance/overtime" element={<OvertimePage />} />
                 <Route path="/admin/attendance-location" element={<ProtectedRoute roles={ADMIN_ROLES}><AttendanceLocationPage /></ProtectedRoute>} />
 
                 {/* Time Off */}

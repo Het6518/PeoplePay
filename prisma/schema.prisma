@@ -56,6 +56,13 @@ enum AttendanceStatus {
   OUTSIDE_GEOFENCE
 }
 
+enum OvertimeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 enum TimeOffUnit {
   DAYS
   HOURS
@@ -199,13 +206,17 @@ model Department {
 // ============================================================
 
 model WorkingSchedule {
-  id          String       @id @default(cuid())
-  name        String
-  type        ScheduleType @default(FIXED)
-  weeklyHours Float        @default(0)
-  isActive    Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id                         String       @id @default(cuid())
+  name                       String
+  type                       ScheduleType @default(FIXED)
+  weeklyHours                Float        @default(0)
+  overtimeMultiplier         Float        @default(1.5)
+  weekendOvertimeMultiplier  Float        @default(2.0)
+  holidayOvertimeMultiplier  Float        @default(2.0)
+  overtimeRequiresApproval   Boolean      @default(true)
+  isActive                   Boolean      @default(true)
+  createdAt                  DateTime     @default(now())
+  updatedAt                  DateTime     @updatedAt
 
   days      WorkingScheduleDay[]
   employees Employee[]
@@ -263,6 +274,7 @@ model Employee {
 
   contracts          Contract[]
   attendance         Attendance[]
+  overtimes          Overtime[]
   timeOffRequests    TimeOffRequest[]
   timeOffAllocations TimeOffAllocation[]
   payslips           Payslip[]
@@ -339,6 +351,7 @@ model Attendance {
 
   employee           Employee            @relation(fields: [employeeId], references: [id], onDelete: Restrict)
   attendanceLocation AttendanceLocation? @relation(fields: [attendanceLocationId], references: [id])
+  overtime           Overtime?
 
   @@unique([employeeId, date])
   @@index([employeeId])
@@ -524,6 +537,8 @@ model Payslip {
   totalWorkingDays  Float         @default(0)
   leaveDays         Float         @default(0)
   overtimeHours     Float         @default(0)
+  overtimeRate      Float         @default(0)
+  overtimeAmount    Float         @default(0)
   status            PayslipStatus @default(DRAFT)
   grossSalary       Float         @default(0)
   totalDeductions   Float         @default(0)
@@ -555,6 +570,53 @@ model Payslip {
   @@index([status])
   @@index([periodStart])
   @@index([periodEnd])
+}
+
+// ============================================================
+// OVERTIME
+// ============================================================
+
+model Overtime {
+  id                 String         @id @default(cuid())
+  employeeId         String
+  attendanceId       String?        @unique
+  date               DateTime       @db.Date
+  expectedHours      Float          @default(8)
+  actualHours        Float          @default(0)
+  overtimeHours      Float          @default(0)
+  hourlyRate         Float          @default(0)
+  multiplier         Float          @default(1.5)
+  overtimeRate       Float          @default(0)
+  overtimeAmount     Float          @default(0)
+  status             OvertimeStatus @default(PENDING)
+  reason             String?
+
+  // Approval audit
+  approvedById       String?
+  approvedByName     String?
+  approvedAt         DateTime?
+  rejectedById       String?
+  rejectedByName     String?
+  rejectedAt         DateTime?
+  rejectionReason    String?
+
+  // Correction audit
+  isManualCorrection Boolean        @default(false)
+  correctedById      String?
+  correctedByName    String?
+  correctionReason   String?
+  correctedAt        DateTime?
+  originalHours      Float?
+
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  employee           Employee       @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  attendance         Attendance?    @relation(fields: [attendanceId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId])
+  @@index([date])
+  @@index([status])
 }
 
 // ============================================================

@@ -55,6 +55,15 @@ export const attendanceApi = {
   correct: (id, data) => api.patch(`/attendance/${id}/correct`, data),
 };
 
+export const overtimeApi = {
+  getAll: (params) => api.get('/overtime', { params }),
+  getMyOvertime: (params) => api.get('/overtime/me', { params }),
+  getSummary: (params) => api.get('/overtime/summary', { params }),
+  approve: (id) => api.post(`/overtime/${id}/approve`),
+  reject: (id, data) => api.post(`/overtime/${id}/reject`, data),
+  correct: (id, data) => api.patch(`/overtime/${id}/correct`, data),
+};
+
 export const attendanceLocationApi = {
   getAll: (params) => api.get('/attendance-locations', { params }),
   getById: (id) => api.get(`/attendance-locations/${id}`),
@@ -119,6 +128,7 @@ export const payrollApi = {
   validatePayrun: (id) => api.post(`/payruns/${id}/validate`),
   markPaid: (id) => api.post(`/payruns/${id}/mark-paid`),
   sendPayslips: (id) => api.post(`/payruns/${id}/send-payslips`),
+  getPayslipDispatchStatus: (id) => api.get(`/payruns/${id}/send-payslips/status`),
 
   // Payslips
   getPayslips: (params) => api.get('/payslips', { params }),

@@ -6,6 +6,7 @@ const { validatePayrun } = require('../services/payrollValidation');
 const { detectAnomalies } = require('../services/payrollAnomaly');
 const pdfService = require('../services/pdfService');
 const emailService = require('../services/emailService');
+const payslipQueue = require('../services/payslipQueue');
 const { logAuditAction } = require('../utils/auditLogger');
 
 // ============================================================
@@ -394,6 +395,8 @@ const computePayrun = async (req, res, next) => {
             totalWorkingDays: result.totalWorkingDays,
             leaveDays: result.leaveDays,
             overtimeHours: result.overtimeHours,
+            overtimeRate: result.overtimeRate || 0,
+            overtimeAmount: result.overtimeAmount || 0,
             grossSalary: result.grossSalary,
             totalDeductions: result.totalDeductions,
             netSalary: result.netSalary,
@@ -546,92 +549,30 @@ const markPayrunPaid = async (req, res, next) => {
 // POST /api/payruns/:id/send-payslips
 const sendPayslips = async (req, res, next) => {
   try {
-    const payrun = await prisma.payrun.findUnique({
-      where: { id: req.params.id },
-      include: {
-        payslips: {
-          include: {
-            employee: { select: { id: true, firstName: true, lastName: true, email: true, employeeCode: true } },
-            lines: { orderBy: { sequence: 'asc' } },
-            salaryStructure: { select: { name: true } },
-            contract: { select: { position: true } },
-          },
-        },
-      },
-    });
-
-    if (!payrun) return sendError(res, 'Payrun not found.', 404);
-    if (!['PAID', 'VALIDATED'].includes(payrun.status)) {
-      return sendError(res, 'Payrun must be validated or paid before sending payslips.', 400);
+    const dispatchJob = await payslipQueue.enqueuePayslipDispatch(req.params.id);
+    return sendSuccess(res, dispatchJob, 202);
+  } catch (err) {
+    if (err.message === 'Payrun not found') {
+      return sendError(res, err.message, 404);
     }
-
-    const results = [];
-
-    for (const payslip of payrun.payslips) {
-      const employee = payslip.employee;
-      if (!employee.email) {
-        results.push({
-          employeeId: employee.id,
-          employeeName: `${employee.firstName} ${employee.lastName}`,
-          email: null,
-          status: 'SKIPPED',
-          error: 'No email address',
-        });
-        continue;
-      }
-
-      try {
-        // Generate PDF buffer
-        const pdfBuffer = await pdfService.generatePayslipPDF(payslip, payrun);
-
-        // Send email
-        await emailService.sendPayslipEmail({
-          to: employee.email,
-          employeeName: `${employee.firstName} ${employee.lastName}`,
-          payslip,
-          payrun,
-          pdfBuffer,
-        });
-
-        // Update payslip
-        await prisma.payslip.update({
-          where: { id: payslip.id },
-          data: { emailSent: true, emailSentAt: new Date(), emailError: null },
-        });
-
-        results.push({
-          employeeId: employee.id,
-          employeeName: `${employee.firstName} ${employee.lastName}`,
-          email: employee.email,
-          status: 'SENT',
-        });
-      } catch (err) {
-        await prisma.payslip.update({
-          where: { id: payslip.id },
-          data: { emailError: err.message },
-        });
-
-        results.push({
-          employeeId: employee.id,
-          employeeName: `${employee.firstName} ${employee.lastName}`,
-          email: employee.email,
-          status: 'FAILED',
-          error: err.message,
-        });
-      }
+    if (err.message.includes('must be validated or paid')) {
+      return sendError(res, err.message, 400);
     }
+    next(err);
+  }
+};
 
-    const sent = results.filter((r) => r.status === 'SENT').length;
-    const failed = results.filter((r) => r.status === 'FAILED').length;
-    const skipped = results.filter((r) => r.status === 'SKIPPED').length;
-
-    return sendSuccess(res, {
-      message: `${sent} payslip(s) sent successfully, ${failed} failed, ${skipped} skipped.`,
-      results,
-      sent,
-      failed,
-      skipped,
-    });
+// GET /api/payruns/:id/send-payslips/status
+const getPayslipDispatchStatus = async (req, res, next) => {
+  try {
+    const job = await payslipQueue.getLatestJobForPayrun(req.params.id);
+    if (!job) {
+      return sendSuccess(res, {
+        status: 'IDLE',
+        message: 'No dispatch job currently running for this payrun.',
+      });
+    }
+    return sendSuccess(res, job);
   } catch (err) {
     next(err);
   }
@@ -757,6 +698,7 @@ module.exports = {
   validatePayrunAction,
   markPayrunPaid,
   sendPayslips,
+  getPayslipDispatchStatus,
   getPayslips,
   getPayslip,
   downloadPayslipPDF,

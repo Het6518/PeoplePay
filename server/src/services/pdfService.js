@@ -103,7 +103,7 @@ function generatePayslipPDF(payslip, payrun) {
         .text(`Payrun: ${payrun.name}`, col2, y + 22)
         .text(`Period: ${formatDate(payrun.periodStart)} – ${formatDate(payrun.periodEnd)}`, col2, y + 34)
         .text(`Worked Days: ${payslip.workedDays} / ${payslip.totalWorkingDays}`, col2, y + 46)
-        .text(`Leave Days: ${payslip.leaveDays || 0}`, col2, y + 58)
+        .text(`Leave Days: ${payslip.leaveDays || 0}  •  OT: ${payslip.overtimeHours || 0} hrs`, col2, y + 58)
         .text(`Status: ${payslip.status}`, col2, y + 70);
 
       y += infoBoxH + 15;
@@ -126,6 +126,11 @@ function generatePayslipPDF(payslip, payrun) {
         const totalDays = payslip.totalWorkingDays ?? 0;
         const wage = payslip.contract?.wage;
 
+        if (line.code === 'OT' || line.name.toLowerCase().includes('overtime')) {
+          const hours = payslip.overtimeHours || line.quantity || 0;
+          const rate = line.rate || payslip.overtimeRate || 0;
+          return `(${hours} hrs @ ${formatINR(rate)}/hr)`;
+        }
         if (line.category === 'BASIC' || line.code === 'BASIC') {
           if (wage && totalDays > 0) {
             return `(${formatINR(wage)} × ${workedDays}/${totalDays} days)`;

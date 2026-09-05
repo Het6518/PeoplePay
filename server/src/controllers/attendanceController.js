@@ -3,6 +3,7 @@ const { CreateAttendanceSchema, CorrectAttendanceSchema, CheckInSchema, CheckOut
 const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
 const geofenceService = require('../services/geofenceService');
 const attendanceLocationService = require('../services/attendanceLocationService');
+const overtimeService = require('../services/overtimeService');
 
 // Calculate worked hours from checkIn/checkOut and break
 function calculateWorkedHours(checkIn, checkOut, breakMinutes = 0) {
@@ -159,6 +160,13 @@ const createAttendance = async (req, res, next) => {
         attendanceLocationId: location?.id || null,
       },
     });
+
+    // Auto-sync overtime calculation
+    try {
+      await overtimeService.syncAttendanceOvertime(record.id);
+    } catch (otErr) {
+      console.error('Overtime sync error on createAttendance:', otErr.message);
+    }
 
     return sendSuccess(res, record, 201);
   } catch (err) {
@@ -320,6 +328,13 @@ const checkOut = async (req, res, next) => {
       include: { attendanceLocation: true },
     });
 
+    // Auto-sync overtime calculation
+    try {
+      await overtimeService.syncAttendanceOvertime(updated.id);
+    } catch (otErr) {
+      console.error('Overtime sync error on checkOut:', otErr.message);
+    }
+
     return sendSuccess(res, { record: updated, geofenceDetails: geofenceResult });
   } catch (err) {
     next(err);
@@ -359,6 +374,13 @@ const correctAttendance = async (req, res, next) => {
       },
       include: { attendanceLocation: true },
     });
+
+    // Auto-sync overtime calculation
+    try {
+      await overtimeService.syncAttendanceOvertime(updated.id);
+    } catch (otErr) {
+      console.error('Overtime sync error on correctAttendance:', otErr.message);
+    }
 
     return sendSuccess(res, updated);
   } catch (err) {

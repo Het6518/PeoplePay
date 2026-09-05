@@ -109,6 +109,7 @@ async function main() {
   await prisma.timeOffRequest.deleteMany();
   await prisma.timeOffAllocation.deleteMany();
   await prisma.timeOffType.deleteMany();
+  await prisma.overtime.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.contract.deleteMany();
   await prisma.employee.deleteMany();

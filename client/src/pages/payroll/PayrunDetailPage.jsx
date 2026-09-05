@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   FileText, Play, CheckCircle, CreditCard, AlertTriangle, 
-  Info, Loader2, Users, DollarSign, ArrowLeft, Send
+  Info, Loader2, Users, DollarSign, ArrowLeft, Send, Mail, Check, XCircle
 } from 'lucide-react';
 import { payrollApi } from '../../services/apiServices';
 import { formatINR, formatDate } from '../../utils/formatters';
@@ -10,6 +10,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { StatusBadge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { Pagination } from '../../components/ui/Pagination';
+import { Modal } from '../../components/ui/Modal';
 import toast from 'react-hot-toast';
 
 const StatusStepper = ({ currentStatus }) => {
@@ -61,6 +62,11 @@ export default function PayrunDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [page, setPage] = useState(1);
 
+  // Background email dispatch state
+  const [dispatchJob, setDispatchJob] = useState(null);
+  const [showDispatchModal, setShowDispatchModal] = useState(false);
+  const pollTimerRef = useRef(null);
+
   const fetchPayrun = async () => {
     try {
       const res = await payrollApi.getPayrun(id);
@@ -95,9 +101,73 @@ export default function PayrunDetailPage() {
     }
   };
 
+  // Check for any ongoing background dispatch job
+  const checkJobStatus = async () => {
+    try {
+      const res = await payrollApi.getPayslipDispatchStatus(id);
+      const job = res?.data || res;
+      if (job && job.jobId) {
+        setDispatchJob(job);
+        return job;
+      }
+    } catch (e) {
+      // Ignore initial 404 or inactive jobs
+    }
+    return null;
+  };
+
   useEffect(() => {
     fetchPayrun();
+    checkJobStatus();
+
+    return () => {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+      }
+    };
   }, [id]);
+
+  // Polling hook when dispatchJob is active
+  useEffect(() => {
+    if (!dispatchJob || (dispatchJob.status !== 'QUEUED' && dispatchJob.status !== 'PROCESSING')) {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (pollTimerRef.current) return;
+
+    pollTimerRef.current = setInterval(async () => {
+      try {
+        const res = await payrollApi.getPayslipDispatchStatus(id);
+        const updated = res?.data || res;
+        if (updated && updated.jobId) {
+          setDispatchJob(updated);
+          if (updated.status === 'COMPLETED') {
+            clearInterval(pollTimerRef.current);
+            pollTimerRef.current = null;
+            toast.success(`Dispatched ${updated.sent} payslips successfully!`);
+            fetchPayrun();
+          } else if (updated.status === 'FAILED') {
+            clearInterval(pollTimerRef.current);
+            pollTimerRef.current = null;
+            toast.error(`Dispatch failed: ${updated.error || 'Error sending payslips'}`);
+          }
+        }
+      } catch (err) {
+        console.error('Error polling job status:', err);
+      }
+    }, 1500);
+
+    return () => {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, [dispatchJob?.status, id]);
 
   const handleAction = async (actionFn, successMessage) => {
     setActionLoading(true);
@@ -109,6 +179,23 @@ export default function PayrunDetailPage() {
       const msg = error.response?.data?.message || error.response?.data?.error || error.message || 'Action failed';
       toast.error(msg);
       console.error('Payrun action failed:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleStartEmailDispatch = async () => {
+    setActionLoading(true);
+    try {
+      const res = await payrollApi.sendPayslips(id);
+      const job = res?.data || res;
+      setDispatchJob(job);
+      setShowDispatchModal(true);
+      toast.success('Payslip email dispatch started in background!');
+    } catch (error) {
+      const msg = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to start email dispatch';
+      toast.error(msg);
+      console.error('Email dispatch error:', error);
     } finally {
       setActionLoading(false);
     }
@@ -126,8 +213,36 @@ export default function PayrunDetailPage() {
     return <div className="p-8 text-center text-rose-600 font-bold">Payrun not found</div>;
   }
 
+  const isDispatchRunning = dispatchJob && (dispatchJob.status === 'QUEUED' || dispatchJob.status === 'PROCESSING');
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      {/* Background Active Dispatch Banner (when modal is closed) */}
+      {isDispatchRunning && !showDispatchModal && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex items-center justify-between animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-amber-500/20 rounded-xl text-amber-700">
+              <Mail className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                Sending Payslip Emails in Background ({dispatchJob.progress || 0}%)
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
+              </div>
+              <p className="text-xs text-stone-600">
+                Dispatched {dispatchJob.sent || 0} of {dispatchJob.total || 0} emails ({dispatchJob.failed || 0} failed, {dispatchJob.skipped || 0} skipped).
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowDispatchModal(true)}
+            className="px-4 py-1.5 rounded-full bg-stone-900 text-white text-xs font-bold hover:bg-stone-800 transition-all shadow-sm"
+          >
+            View Live Progress
+          </button>
+        </div>
+      )}
+
       {/* Top Header Card */}
       <div className="bg-white p-6 rounded-[28px] border border-stone-200/80 shadow-soft space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -184,13 +299,24 @@ export default function PayrunDetailPage() {
             </button>
           )}
 
-          <button
-            onClick={() => handleAction(payrollApi.sendPayslips, 'Payslips sent to employees!')}
-            disabled={actionLoading}
-            className="rounded-full px-4 py-2 text-xs font-bold bg-stone-100 text-stone-700 hover:bg-stone-200 transition-all flex items-center gap-2"
-          >
-            <Send className="w-3.5 h-3.5" /> Send Payslips
-          </button>
+          {isDispatchRunning ? (
+            <button
+              onClick={() => setShowDispatchModal(true)}
+              className="rounded-full px-4 py-2 text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition-all flex items-center gap-2"
+            >
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-700" />
+              Dispatching Emails ({dispatchJob?.progress || 0}%)
+            </button>
+          ) : (
+            <button
+              onClick={handleStartEmailDispatch}
+              disabled={actionLoading}
+              className="rounded-full px-4 py-2 text-xs font-bold bg-stone-100 text-stone-700 hover:bg-stone-200 transition-all flex items-center gap-2"
+            >
+              {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+              Send Payslips
+            </button>
+          )}
         </div>
       </div>
 
@@ -321,6 +447,161 @@ export default function PayrunDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Email Dispatch Live Progress Modal */}
+      <Modal
+        open={showDispatchModal}
+        onClose={() => setShowDispatchModal(false)}
+        title="Payslip Email Dispatch"
+        size="lg"
+      >
+        <div className="space-y-6">
+          {/* Header Status */}
+          <div className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl border border-stone-100">
+            <div className="flex items-center gap-3">
+              <div className={`p-3 rounded-xl ${
+                dispatchJob?.status === 'COMPLETED' 
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : dispatchJob?.status === 'FAILED'
+                  ? 'bg-rose-100 text-rose-700'
+                  : 'bg-amber-100 text-amber-700'
+              }`}>
+                {dispatchJob?.status === 'COMPLETED' ? (
+                  <Check className="w-6 h-6" />
+                ) : dispatchJob?.status === 'FAILED' ? (
+                  <XCircle className="w-6 h-6" />
+                ) : (
+                  <Mail className="w-6 h-6 animate-pulse" />
+                )}
+              </div>
+              <div>
+                <div className="text-base font-bold text-stone-900 flex items-center gap-2">
+                  {dispatchJob?.status === 'COMPLETED' && 'Dispatch Completed'}
+                  {dispatchJob?.status === 'FAILED' && 'Dispatch Failed'}
+                  {dispatchJob?.status === 'PROCESSING' && 'Dispatching Emails in Background...'}
+                  {dispatchJob?.status === 'QUEUED' && 'Job Queued in Redis...'}
+                  {!dispatchJob?.status && 'Preparing Dispatch...'}
+
+                  {isDispatchRunning && <Loader2 className="w-4 h-4 animate-spin text-amber-600" />}
+                </div>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  {isDispatchRunning
+                    ? 'Processing PDF generations and SMTP deliveries with background worker.'
+                    : dispatchJob?.status === 'COMPLETED'
+                    ? 'All payslip emails have been processed and dispatched.'
+                    : 'Dispatch job terminated with an error.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right font-mono">
+              <span className="text-2xl font-black text-stone-900">{dispatchJob?.progress ?? 0}%</span>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="space-y-1.5">
+            <div className="w-full bg-stone-100 rounded-full h-3 overflow-hidden border border-stone-200/60">
+              <div
+                className={`h-full transition-all duration-500 rounded-full ${
+                  dispatchJob?.status === 'COMPLETED'
+                    ? 'bg-emerald-500'
+                    : dispatchJob?.status === 'FAILED'
+                    ? 'bg-rose-500'
+                    : 'bg-amber-500'
+                }`}
+                style={{ width: `${Math.min(100, Math.max(0, dispatchJob?.progress ?? 0))}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Stat Metrics Grid */}
+          <div className="grid grid-cols-4 gap-3">
+            <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-100 text-center">
+              <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Total</span>
+              <div className="text-xl font-black text-stone-800 mt-1">{dispatchJob?.total || 0}</div>
+            </div>
+            <div className="p-3.5 bg-emerald-50/70 rounded-xl border border-emerald-100 text-center">
+              <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Sent</span>
+              <div className="text-xl font-black text-emerald-700 mt-1">{dispatchJob?.sent || 0}</div>
+            </div>
+            <div className="p-3.5 bg-rose-50/70 rounded-xl border border-rose-100 text-center">
+              <span className="text-[11px] font-bold text-rose-600 uppercase tracking-wider">Failed</span>
+              <div className="text-xl font-black text-rose-700 mt-1">{dispatchJob?.failed || 0}</div>
+            </div>
+            <div className="p-3.5 bg-stone-100/70 rounded-xl border border-stone-200/60 text-center">
+              <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Skipped</span>
+              <div className="text-xl font-black text-stone-700 mt-1">{dispatchJob?.skipped || 0}</div>
+            </div>
+          </div>
+
+          {/* Error Message display if any */}
+          {dispatchJob?.error && (
+            <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+              <div>
+                <span className="font-bold">Error encountered:</span> {dispatchJob.error}
+              </div>
+            </div>
+          )}
+
+          {/* Dispatch Live Activity Log */}
+          {dispatchJob?.results && dispatchJob.results.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-stone-700 uppercase tracking-wider">Dispatch Log ({dispatchJob.results.length})</h4>
+              <div className="max-h-48 overflow-y-auto border border-stone-100 rounded-xl divide-y divide-stone-100 text-xs bg-stone-50/50">
+                {dispatchJob.results.slice().reverse().map((r, i) => (
+                  <div key={i} className="p-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${
+                        r.status === 'SENT' ? 'bg-emerald-500' : r.status === 'FAILED' ? 'bg-rose-500' : 'bg-stone-400'
+                      }`} />
+                      <span className="font-medium text-stone-900">{r.employeeName || `Employee #${r.employeeId}`}</span>
+                      <span className="text-stone-400 font-mono text-[11px]">({r.email || 'No email'})</span>
+                    </div>
+                    <div>
+                      {r.status === 'SENT' && (
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                          Sent
+                        </span>
+                      )}
+                      {r.status === 'FAILED' && (
+                        <span className="text-[11px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full" title={r.error}>
+                          Failed: {r.error}
+                        </span>
+                      )}
+                      {r.status === 'SKIPPED' && (
+                        <span className="text-[11px] font-medium text-stone-600 bg-stone-200 px-2 py-0.5 rounded-full" title={r.reason}>
+                          Skipped
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Footer Actions */}
+          <div className="pt-2 flex justify-end gap-3 border-t border-stone-100">
+            {isDispatchRunning ? (
+              <button
+                onClick={() => setShowDispatchModal(false)}
+                className="px-5 py-2.5 rounded-full bg-stone-900 text-white text-xs font-bold hover:bg-stone-800 transition-all shadow-sm"
+              >
+                Run in Background
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowDispatchModal(false)}
+                className="px-5 py-2.5 rounded-full bg-stone-900 text-white text-xs font-bold hover:bg-stone-800 transition-all shadow-sm"
+              >
+                Close
+              </button>
+            )}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

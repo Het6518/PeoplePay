@@ -237,11 +237,18 @@ async function calculateAttendanceStats(employeeId, periodStart, periodEnd, pris
   // Final worked days = attendance worked days + paid leave days
   const finalWorkedDays = Math.min(workedDays + leaveDays, totalWorkingDays);
 
+  // Fetch approved overtime records for this employee within this period
+  const overtimeService = require('./overtimeService');
+  const otData = await overtimeService.getApprovedOvertimeForPeriod(employeeId, periodStart, periodEnd, prisma);
+
   return {
     workedDays: Math.round(finalWorkedDays * 100) / 100,
     totalWorkingDays,
     leaveDays: Math.round(leaveDays * 100) / 100,
-    overtimeHours: Math.round(overtimeHours * 100) / 100,
+    overtimeHours: otData.totalOvertimeHours,
+    overtimeRate: otData.averageOvertimeRate,
+    overtimeAmount: otData.totalOvertimeAmount,
+    overtimeRecords: otData.records,
     attendanceSummary: summary,
     attendanceRecords: attendance,
   };
@@ -260,7 +267,14 @@ async function calculateAttendanceStats(employeeId, periodStart, periodEnd, pris
  * @returns {{ lines, grossSalary, totalDeductions, netSalary, context }}
  */
 function processPayrollRules({ contract, attendanceStats, rules }) {
-  const { workedDays, totalWorkingDays, overtimeHours, leaveDays } = attendanceStats;
+  const {
+    workedDays,
+    totalWorkingDays,
+    overtimeHours = 0,
+    overtimeRate = 0,
+    overtimeAmount = 0,
+    leaveDays = 0,
+  } = attendanceStats;
 
   // Initial calculation context
   const context = {
@@ -268,6 +282,9 @@ function processPayrollRules({ contract, attendanceStats, rules }) {
     WORKED_DAYS: workedDays,
     TOTAL_DAYS: totalWorkingDays,
     OVERTIME_HOURS: overtimeHours,
+    OVERTIME_RATE: overtimeRate,
+    OVERTIME_PAY: overtimeAmount,
+    OVERTIME_AMOUNT: overtimeAmount,
     LEAVE_DAYS: leaveDays,
     BASIC: 0,
     GROSS: 0,
@@ -339,6 +356,27 @@ function processPayrollRules({ contract, attendanceStats, rules }) {
       amount,
       quantity: 1,
       rate: amount,
+    });
+  }
+
+  // If approved overtime amount exists and no explicit 'OT' rule was defined in structure,
+  // insert an Overtime Pay line under ALLOWANCE category to ensure OT is represented in PayslipLines and Gross
+  const hasExplicitOtRule = rules.some((r) => r.code === 'OT' && r.isActive);
+  if (!hasExplicitOtRule && overtimeAmount > 0) {
+    grossSalary += overtimeAmount;
+    const maxAllowanceSeq = lines
+      .filter((l) => ['BASIC', 'ALLOWANCE'].includes(l.category))
+      .reduce((max, l) => Math.max(max, l.sequence), 0);
+
+    lines.push({
+      salaryRuleId: null,
+      name: 'Overtime Pay',
+      code: 'OT',
+      category: 'ALLOWANCE',
+      sequence: maxAllowanceSeq > 0 ? maxAllowanceSeq + 1 : 5,
+      amount: overtimeAmount,
+      quantity: overtimeHours,
+      rate: overtimeRate,
     });
   }
 
@@ -440,6 +478,8 @@ async function computeEmployeePayroll({
     totalWorkingDays: attendanceStats.totalWorkingDays,
     leaveDays: attendanceStats.leaveDays,
     overtimeHours: attendanceStats.overtimeHours,
+    overtimeRate: attendanceStats.overtimeRate || 0,
+    overtimeAmount: attendanceStats.overtimeAmount || 0,
     grossSalary: calculation.grossSalary,
     totalDeductions: calculation.totalDeductions,
     netSalary: calculation.netSalary,

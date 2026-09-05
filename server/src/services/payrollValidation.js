@@ -198,6 +198,26 @@ async function validatePayrun(payrunId) {
       });
     }
 
+    // 12. Pending Overtime Approvals
+    const pendingOtCount = await prisma.overtime.count({
+      where: {
+        employeeId: employee.id,
+        status: 'PENDING',
+        date: { gte: periodStart, lte: periodEnd },
+      },
+    });
+
+    if (pendingOtCount > 0) {
+      issues.push({
+        severity: 'WARNING',
+        type: 'PENDING_OVERTIME',
+        employeeId: employee.id,
+        employeeName: empName,
+        message: `${empName}: Has ${pendingOtCount} pending unapproved overtime record(s) in this period. Please approve or reject them so overtime pay is computed.`,
+        metadata: { pendingCount: pendingOtCount },
+      });
+    }
+
     // 12. Missing payslip lines
     if (payslip.lines.length === 0) {
       issues.push({
