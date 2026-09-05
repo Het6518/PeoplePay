@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
-const { sendSuccess } = require('../utils/response');
+const { sendSuccess, sendError } = require('../utils/response');
 const { getDashboardAnomalies } = require('../services/payrollAnomaly');
+const { logAuditAction } = require('../utils/auditLogger');
 
 // GET /api/dashboard/summary
 const getSummary = async (req, res, next) => {
@@ -661,6 +662,466 @@ const getTimeOffReport = async (req, res, next) => {
   }
 };
 
+// GET /api/dashboard/admin
+const getAdminDashboard = async (req, res, next) => {
+  try {
+    const [
+      totalEmployees,
+      employeesByStatus,
+      totalContracts,
+      expiringContracts,
+      totalDepartments,
+      usersByRole,
+      recentUsers,
+      auditLogs,
+      employeesWithNoContract,
+      contractsWithNoStructure,
+      overlappingContracts,
+      companyPayrollSummary,
+    ] = await Promise.all([
+      prisma.employee.count({ where: { status: 'ACTIVE' } }),
+
+      prisma.employee.groupBy({
+        by: ['status'],
+        _count: true,
+      }),
+
+      prisma.contract.count({ where: { status: 'ACTIVE' } }),
+
+      prisma.contract.count({
+        where: {
+          status: 'ACTIVE',
+          endDate: {
+            gte: new Date(),
+            lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          },
+        },
+      }),
+
+      prisma.department.count(),
+
+      prisma.user.groupBy({
+        by: ['role'],
+        _count: true,
+      }),
+
+      prisma.user.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          isActive: true,
+          createdAt: true,
+          employee: {
+            select: { firstName: true, lastName: true, employeeCode: true },
+          },
+        },
+      }),
+
+      prisma.auditLog.findMany({
+        take: 20,
+        orderBy: { createdAt: 'desc' },
+      }),
+
+      // Integrity Alert 1: Active employees without active contract
+      prisma.employee.findMany({
+        where: {
+          status: 'ACTIVE',
+          contracts: { none: { status: 'ACTIVE' } },
+        },
+        select: {
+          id: true,
+          employeeCode: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          department: { select: { name: true } },
+        },
+        take: 10,
+      }),
+
+      // Integrity Alert 2: Active contracts without salary structure
+      prisma.contract.findMany({
+        where: {
+          status: 'ACTIVE',
+          salaryStructureId: null,
+        },
+        select: {
+          id: true,
+          position: true,
+          wage: true,
+          employee: {
+            select: { id: true, firstName: true, lastName: true, employeeCode: true },
+          },
+        },
+        take: 10,
+      }),
+
+      // Integrity Alert 3: Overlapping active contracts for same employee
+      prisma.contract.groupBy({
+        by: ['employeeId'],
+        where: { status: 'ACTIVE' },
+        _count: true,
+        having: { employeeId: { _count: { gt: 1 } } },
+      }),
+
+      // Company-wide aggregate payroll
+      prisma.payslip.aggregate({
+        where: { status: 'PAID' },
+        _sum: { netSalary: true, grossSalary: true, totalDeductions: true },
+        _count: true,
+      }),
+    ]);
+
+    const roleBreakdown = {
+      ADMIN: 0,
+      HR_PAYROLL_MANAGER: 0,
+      HR_PAYROLL_USER: 0,
+      HR_MANAGER: 0,
+      EMPLOYEE: 0,
+    };
+    for (const r of usersByRole) {
+      roleBreakdown[r.role] = r._count;
+    }
+
+    const dataIntegrityAlerts = [];
+    if (employeesWithNoContract.length > 0) {
+      dataIntegrityAlerts.push({
+        id: 'no-active-contract',
+        type: 'NO_CONTRACT',
+        severity: 'HIGH',
+        title: `${employeesWithNoContract.length} Active Employees Lack Active Contracts`,
+        description: 'Employees with no active contract cannot be processed in automated payruns.',
+        affectedCount: employeesWithNoContract.length,
+        items: employeesWithNoContract,
+        link: '/contracts',
+      });
+    }
+
+    if (contractsWithNoStructure.length > 0) {
+      dataIntegrityAlerts.push({
+        id: 'no-salary-structure',
+        type: 'NO_STRUCTURE',
+        severity: 'HIGH',
+        title: `${contractsWithNoStructure.length} Active Contracts Lack Salary Structure`,
+        description: 'Contracts missing a salary structure will default to contract wage or require manual assignment.',
+        affectedCount: contractsWithNoStructure.length,
+        items: contractsWithNoStructure,
+        link: '/contracts',
+      });
+    }
+
+    if (overlappingContracts.length > 0) {
+      dataIntegrityAlerts.push({
+        id: 'overlapping-contracts',
+        type: 'OVERLAPPING_CONTRACTS',
+        severity: 'CRITICAL',
+        title: `${overlappingContracts.length} Employees Have Overlapping Active Contracts`,
+        description: 'Multiple active contracts for a single employee create wage computation conflicts.',
+        affectedCount: overlappingContracts.length,
+        items: overlappingContracts,
+        link: '/contracts',
+      });
+    }
+
+    return sendSuccess(res, {
+      kpis: {
+        totalEmployees,
+        totalContracts,
+        expiringContracts,
+        totalDepartments,
+        totalUsers: recentUsers.length,
+        usersByRole: roleBreakdown,
+      },
+      recentUsers,
+      auditLogs,
+      dataIntegrityAlerts,
+      companyPayrollSummary: {
+        totalNetPaid: Math.round((companyPayrollSummary._sum.netSalary || 0) * 100) / 100,
+        totalGross: Math.round((companyPayrollSummary._sum.grossSalary || 0) * 100) / 100,
+        totalDeductions: Math.round((companyPayrollSummary._sum.totalDeductions || 0) * 100) / 100,
+        totalPayslips: companyPayrollSummary._count || 0,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/dashboard/payroll-manager
+const getPayrollManagerDashboard = async (req, res, next) => {
+  try {
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+
+    const [
+      payruns,
+      payslipsWithWarnings,
+      payslipAgg,
+      approvedTimeOff,
+      totalEmployees,
+      attendanceToday,
+      structureChangeLogs,
+      pendingSuggestions,
+    ] = await Promise.all([
+      // Payruns pipeline
+      prisma.payrun.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        include: {
+          salaryStructure: { select: { name: true } },
+          _count: { select: { payslips: true } },
+        },
+      }),
+
+      // Payslips with warnings/errors
+      prisma.payslip.findMany({
+        where: {
+          OR: [{ hasWarnings: true }, { hasErrors: true }],
+          payrun: { status: { in: ['DRAFT', 'COMPUTED', 'VALIDATED'] } },
+        },
+        include: {
+          employee: { select: { firstName: true, lastName: true, employeeCode: true } },
+          payrun: { select: { id: true, name: true, status: true } },
+        },
+        take: 15,
+      }),
+
+      // Aggregate paid payslips
+      prisma.payslip.aggregate({
+        where: { status: 'PAID' },
+        _sum: { netSalary: true },
+        _avg: { netSalary: true },
+        _count: true,
+      }),
+
+      // Approved time off duration
+      prisma.timeOffRequest.aggregate({
+        where: { status: 'APPROVED' },
+        _sum: { duration: true },
+      }),
+
+      prisma.employee.count({ where: { status: 'ACTIVE' } }),
+
+      prisma.attendance.groupBy({
+        by: ['status'],
+        where: {
+          date: {
+            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+          },
+        },
+        _count: true,
+      }),
+
+      // Salary structure & rule change log from AuditLog
+      prisma.auditLog.findMany({
+        where: {
+          entityType: { in: ['SALARY_STRUCTURE', 'SALARY_RULE'] },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+
+      // Pending holiday suggestions
+      prisma.holidaySuggestion.findMany({
+        where: { status: 'PENDING' },
+        orderBy: { date: 'asc' },
+        take: 10,
+      }),
+    ]);
+
+    // Group payruns by status and flag stuck payruns (>3 days in DRAFT/COMPUTED/VALIDATED)
+    const pipeline = {
+      DRAFT: [],
+      COMPUTED: [],
+      VALIDATED: [],
+      PAID: [],
+    };
+
+    for (const pr of payruns) {
+      const isStuck =
+        ['DRAFT', 'COMPUTED', 'VALIDATED'].includes(pr.status) &&
+        new Date(pr.updatedAt || pr.createdAt) < threeDaysAgo;
+
+      const item = {
+        id: pr.id,
+        name: pr.name,
+        periodStart: pr.periodStart,
+        periodEnd: pr.periodEnd,
+        salaryStructure: pr.salaryStructure?.name,
+        employeeCount: pr._count.payslips,
+        totalNet: pr.totalNet,
+        status: pr.status,
+        updatedAt: pr.updatedAt,
+        isStuck,
+      };
+
+      if (pipeline[pr.status]) {
+        pipeline[pr.status].push(item);
+      }
+    }
+
+    const presentCount = attendanceToday
+      .filter((a) => ['PRESENT', 'OVERTIME', 'MANUAL_CORRECTION', 'LATE'].includes(a.status))
+      .reduce((sum, a) => sum + a._count, 0);
+    const attendanceHealth = totalEmployees > 0 ? Math.round((presentCount / totalEmployees) * 100) : 0;
+
+    return sendSuccess(res, {
+      kpis: {
+        totalNetPaid: Math.round((payslipAgg._sum.netSalary || 0) * 100) / 100,
+        payslipsGenerated: payslipAgg._count || 0,
+        averageSalary: Math.round((payslipAgg._avg.netSalary || 0) * 100) / 100,
+        approvedTimeOffDays: approvedTimeOff._sum.duration || 0,
+        attendanceHealth,
+      },
+      payrunPipeline: pipeline,
+      pendingActionsQueue: payslipsWithWarnings,
+      structureChangeLogs,
+      pendingHolidaySuggestions: pendingSuggestions,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/dashboard/payroll-user
+const getPayrollUserDashboard = async (req, res, next) => {
+  try {
+    const [
+      inProgressPayruns,
+      payslipWarnings,
+      activeStructures,
+      payslipAgg,
+      totalEmployees,
+      attendanceToday,
+      pendingLeaves,
+    ] = await Promise.all([
+      // In-progress payruns (DRAFT or COMPUTED)
+      prisma.payrun.findMany({
+        where: { status: { in: ['DRAFT', 'COMPUTED'] } },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          salaryStructure: { select: { name: true } },
+          _count: { select: { payslips: true } },
+        },
+      }),
+
+      // Payslip warnings
+      prisma.payslip.findMany({
+        where: {
+          hasWarnings: true,
+          payrun: { status: { in: ['DRAFT', 'COMPUTED'] } },
+        },
+        include: {
+          employee: { select: { firstName: true, lastName: true, employeeCode: true } },
+          payrun: { select: { id: true, name: true } },
+        },
+        take: 10,
+      }),
+
+      // Read-Only active salary structures & rules
+      prisma.salaryStructure.findMany({
+        where: { isActive: true },
+        include: {
+          rules: {
+            where: { isActive: true },
+            orderBy: { sequence: 'asc' },
+          },
+        },
+      }),
+
+      prisma.payslip.aggregate({
+        where: { status: 'PAID' },
+        _sum: { netSalary: true },
+        _count: true,
+      }),
+
+      prisma.employee.count({ where: { status: 'ACTIVE' } }),
+
+      prisma.attendance.groupBy({
+        by: ['status'],
+        where: {
+          date: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+        },
+        _count: true,
+      }),
+
+      prisma.timeOffRequest.count({ where: { status: 'PENDING' } }),
+    ]);
+
+    const presentCount = attendanceToday
+      .filter((a) => ['PRESENT', 'OVERTIME', 'MANUAL_CORRECTION', 'LATE'].includes(a.status))
+      .reduce((sum, a) => sum + a._count, 0);
+    const attendanceHealth = totalEmployees > 0 ? Math.round((presentCount / totalEmployees) * 100) : 0;
+
+    return sendSuccess(res, {
+      kpis: {
+        totalNetPaid: Math.round((payslipAgg._sum.netSalary || 0) * 100) / 100,
+        payslipsProcessed: payslipAgg._count || 0,
+        attendanceHealth,
+      },
+      inProgressPayruns,
+      payslipWarnings,
+      salaryStructures: activeStructures,
+      attendanceSnapshot: {
+        totalEmployees,
+        presentToday: presentCount,
+        pendingLeaves,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/dashboard/flag-warning
+const flagPayslipWarning = async (req, res, next) => {
+  try {
+    const { payslipId, note } = req.body;
+    if (!payslipId) return sendError(res, 'payslipId is required', 400);
+
+    const payslip = await prisma.payslip.findUnique({
+      where: { id: payslipId },
+      include: { employee: true },
+    });
+
+    if (!payslip) return sendError(res, 'Payslip not found', 404);
+
+    const existingNotes = Array.isArray(payslip.validationNotes) ? payslip.validationNotes : [];
+    const updatedNotes = [
+      ...existingNotes,
+      {
+        type: 'FLAGGED_FOR_MANAGER',
+        severity: 'WARNING',
+        message: note || 'Flagged by Payroll User for Payroll Manager review.',
+        flaggedBy: req.user?.email || 'Payroll User',
+        flaggedAt: new Date().toISOString(),
+      },
+    ];
+
+    await prisma.payslip.update({
+      where: { id: payslipId },
+      data: {
+        hasWarnings: true,
+        validationNotes: updatedNotes,
+      },
+    });
+
+    await logAuditAction({
+      actionType: 'FLAG_PAYSLIP_WARNING',
+      entityType: 'PAYSLIP',
+      entityId: payslipId,
+      description: `Flagged payslip for ${payslip.employee?.firstName} ${payslip.employee?.lastName}: ${note || 'Needs Manager review'}`,
+      performedBy: req.user?.email || 'Payroll User',
+    });
+
+    return sendSuccess(res, { message: 'Payslip flagged for Payroll Manager review successfully.' });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getSummary,
   getPayrollTrend,
@@ -671,4 +1132,9 @@ module.exports = {
   getPayrollReport,
   getAttendanceReport,
   getTimeOffReport,
+  getAdminDashboard,
+  getPayrollManagerDashboard,
+  getPayrollUserDashboard,
+  flagPayslipWarning,
 };
+

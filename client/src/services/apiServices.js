@@ -133,6 +133,10 @@ export const dashboardApi = {
   getAttendance: (params) => api.get('/dashboard/attendance', { params }),
   getTimeOff: (params) => api.get('/dashboard/time-off', { params }),
   getAlerts: () => api.get('/dashboard/alerts'),
+  getAdminDashboard: () => api.get('/dashboard/admin'),
+  getPayrollManagerDashboard: () => api.get('/dashboard/payroll-manager'),
+  getPayrollUserDashboard: () => api.get('/dashboard/payroll-user'),
+  flagWarning: (data) => api.post('/dashboard/flag-warning', data),
 };
 
 export const reportApi = {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Edit, FileText, Calendar, Clock, DollarSign, Download, Eye } from 'lucide-react';
+import { Edit, FileText, Calendar, Clock, DollarSign, Download, Eye, Layers } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { employeeApi, payrollApi } from '../../services/apiServices';
 import { getInitials, formatDate, formatINR } from '../../utils/formatters';
@@ -82,6 +82,9 @@ export default function EmployeeDetailPage() {
 
   const counts = employee._count || { contracts: 0, attendance: 0, timeOffRequests: 0, payslips: 0 };
   const payslipCount = payslips.length > 0 ? payslips.length : counts.payslips;
+
+  const activeContract = employee.contracts?.find(c => c.status === 'ACTIVE') || employee.contracts?.[0];
+  const salaryStructure = activeContract?.salaryStructure;
 
   return (
     <div className="space-y-7 max-w-5xl mx-auto pb-10">
@@ -237,6 +240,102 @@ export default function EmployeeDetailPage() {
               </div>
             </dl>
           </div>
+        </div>
+      </div>
+
+      {/* View-Only Salary Structure Section */}
+      <div className="bg-white rounded-[24px] border border-stone-200/70 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-stone-100 bg-stone-50/70 flex items-center justify-between">
+          <h3 className="text-sm font-extrabold text-stone-900 uppercase tracking-wider flex items-center gap-2">
+            <Layers className="w-4 h-4 text-amber-600" />
+            {isOwnEmployeeProfile ? 'My Salary Structure & Rules' : 'Assigned Salary Structure'}
+          </h3>
+          <span className="text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-stone-100 text-stone-600 border border-stone-300">
+            View Only
+          </span>
+        </div>
+        <div className="p-6 space-y-4">
+          {activeContract ? (
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-amber-50/40 border border-amber-200/70 mb-4">
+                <div>
+                  <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">Structure Name</span>
+                  <span className="text-base font-black text-stone-950">{salaryStructure?.name || 'Default Contract Wage Structure'}</span>
+                  {salaryStructure?.description && (
+                    <p className="text-xs text-stone-500 mt-0.5 font-medium">{salaryStructure.description}</p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-6">
+                  <div>
+                    <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">Base Contract Wage</span>
+                    <span className="text-lg font-black text-stone-950 font-mono">{formatINR(activeContract.wage)}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest block">Contract Status</span>
+                    <StatusBadge status={activeContract.status} />
+                  </div>
+                </div>
+              </div>
+
+              {salaryStructure?.rules?.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-stone-100 text-xs">
+                    <thead>
+                      <tr className="text-left font-extrabold text-stone-400 uppercase text-[10px] tracking-wider">
+                        <th className="pb-2.5 w-12">Seq</th>
+                        <th className="pb-2.5">Code</th>
+                        <th className="pb-2.5">Rule Name</th>
+                        <th className="pb-2.5">Category</th>
+                        <th className="pb-2.5">Computation Type</th>
+                        <th className="pb-2.5 text-right">Value / Formula</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100 font-medium text-stone-700">
+                      {salaryStructure.rules.map((rule) => {
+                        let compDetail = '-';
+                        if (rule.computationType === 'FIXED') {
+                          compDetail = rule.category === 'BASIC' ? 'Contract Wage' : formatINR(rule.fixedAmount);
+                        } else if (rule.computationType === 'PERCENTAGE') {
+                          compDetail = `${rule.percentage}% of ${rule.percentageBase || 'BASIC'}`;
+                        } else if (rule.computationType === 'FORMULA') {
+                          compDetail = rule.formula || 'Formula';
+                        }
+
+                        let categoryBadge = 'bg-stone-100 text-stone-800';
+                        if (rule.category === 'BASIC') categoryBadge = 'bg-amber-100 text-amber-900 border border-amber-300/60';
+                        else if (rule.category === 'ALLOWANCE') categoryBadge = 'bg-emerald-100 text-emerald-900 border border-emerald-300/60';
+                        else if (rule.category === 'DEDUCTION') categoryBadge = 'bg-rose-100 text-rose-900 border border-rose-300/60';
+
+                        return (
+                          <tr key={rule.id} className="hover:bg-stone-50/60">
+                            <td className="py-2.5 font-mono text-stone-400 font-bold">{rule.sequence}</td>
+                            <td className="py-2.5 font-mono font-black text-stone-950">{rule.code}</td>
+                            <td className="py-2.5 font-bold text-stone-900">{rule.name}</td>
+                            <td className="py-2.5">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${categoryBadge}`}>
+                                {rule.category}
+                              </span>
+                            </td>
+                            <td className="py-2.5 font-mono text-stone-500">{rule.computationType}</td>
+                            <td className="py-2.5 text-right font-mono font-bold text-stone-950">{compDetail}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-4 text-center text-xs text-stone-400 italic font-medium">
+                  No custom salary rules attached to this structure. Standard contract wage applies.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="py-6 text-center text-xs font-medium text-stone-400">
+              No active contract or salary structure assigned to this profile yet.
+            </div>
+          )}
         </div>
       </div>
 

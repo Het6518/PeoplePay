@@ -636,3 +636,20 @@ model CompanyHoliday {
   @@index([date])
 }
 
+// ============================================================
+// AUDIT LOG
+// ============================================================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actionType  String   // e.g. "PAYRUN_CREATE", "STRUCTURE_UPDATE", "RULE_UPDATE", "EMPLOYEE_STATUS", "CONTRACT_END"
+  entityType  String   // "PAYRUN", "SALARY_STRUCTURE", "SALARY_RULE", "EMPLOYEE", "CONTRACT", "USER"
+  entityId    String?
+  description String
+  performedBy String   // User email / name
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+

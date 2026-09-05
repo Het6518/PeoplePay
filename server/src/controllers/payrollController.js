@@ -6,6 +6,7 @@ const { validatePayrun } = require('../services/payrollValidation');
 const { detectAnomalies } = require('../services/payrollAnomaly');
 const pdfService = require('../services/pdfService');
 const emailService = require('../services/emailService');
+const { logAuditAction } = require('../utils/auditLogger');
 
 // ============================================================
 // PAYRUNS
@@ -303,6 +304,14 @@ const createPayrun = async (req, res, next) => {
         salaryStructure: { select: { id: true, name: true } },
         _count: { select: { payslips: true } },
       },
+    });
+
+    await logAuditAction({
+      actionType: 'PAYRUN_CREATE',
+      entityType: 'PAYRUN',
+      entityId: fullPayrun.id,
+      description: `Created payrun "${fullPayrun.name}" with ${fullPayrun._count.payslips} employees`,
+      performedBy: req.user?.email || 'Payroll Manager',
     });
 
     return sendSuccess(res, fullPayrun, 201);

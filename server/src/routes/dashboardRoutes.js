@@ -12,4 +12,9 @@ router.get('/attendance', ctrl.getAttendanceSummary);
 router.get('/time-off', ctrl.getTimeOffSummary);
 router.get('/alerts', ctrl.getAlerts);
 
+router.get('/admin', ctrl.getAdminDashboard);
+router.get('/payroll-manager', ctrl.getPayrollManagerDashboard);
+router.get('/payroll-user', ctrl.getPayrollUserDashboard);
+router.post('/flag-warning', ctrl.flagPayslipWarning);
+
 module.exports = router;

@@ -27,15 +27,32 @@ import { useAuth } from '../contexts/AuthContext';
 import { StatusBadge } from '../components/ui/Badge';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 import { HolidayReviewWidget } from '../components/payroll/HolidayReviewWidget';
+import { AdminDashboard } from '../components/dashboard/AdminDashboard';
+import { PayrollManagerDashboard } from '../components/dashboard/PayrollManagerDashboard';
+import { PayrollUserDashboard } from '../components/dashboard/PayrollUserDashboard';
 import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const role = currentUser?.role;
+
+  if (role === 'ADMIN') {
+    return <AdminDashboard />;
+  }
+
+  if (role === 'HR_PAYROLL_MANAGER') {
+    return <PayrollManagerDashboard />;
+  }
+
+  if (role === 'HR_PAYROLL_USER') {
+    return <PayrollUserDashboard />;
+  }
+
   const userName =
     currentUser?.employee?.firstName ||
     currentUser?.email?.split('@')[0] ||
-    'Admin';
+    'User';
 
   const [summary, setSummary] = useState(null);
   const [attendanceChart, setAttendanceChart] = useState([]);
