@@ -8,6 +8,7 @@ import { StatusBadge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Pagination } from '../../components/ui/Pagination';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function EmployeeListPage() {
   const navigate = useNavigate();
@@ -68,6 +69,9 @@ export default function EmployeeListPage() {
     setPage(1);
   };
 
+  const { currentUser, isHR } = useAuth();
+  const isHROrAdmin = isHR();
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -75,13 +79,15 @@ export default function EmployeeListPage() {
           <h1 className="text-2xl font-bold text-gray-900">Employees</h1>
           <p className="text-sm text-gray-500">Total {totalCount} employees</p>
         </div>
-        <Link
-          to="/employees/new"
-          className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Employee
-        </Link>
+        {isHROrAdmin && (
+          <Link
+            to="/employees/new"
+            className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Employee
+          </Link>
+        )}
       </div>
 
       {/* Filters Bar */}

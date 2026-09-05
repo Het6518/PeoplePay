@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Check, X, Plus, Calendar, Clock, Edit2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-
-// Assuming these are exported from apiServices
 import { timeOffApi } from '../../services/apiServices';
+import { useAuth } from '../../contexts/AuthContext';
+import { formatDate } from '../../utils/formatters';
 
 export default function TimeOffPage() {
   const [activeTab, setActiveTab] = useState('requests');
@@ -45,6 +45,9 @@ export default function TimeOffPage() {
 }
 
 function RequestsTab() {
+  const { user } = useAuth();
+  const isHR = user?.role === 'HR' || user?.role === 'HR_MANAGER' || user?.role === 'ADMIN';
+
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('All');
@@ -104,6 +107,8 @@ function RequestsTab() {
     }
   };
 
+  const hasPendingItems = isHR && requests.some(r => r.status === 'PENDING');
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -130,7 +135,7 @@ function RequestsTab() {
         </div>
         <button 
           onClick={() => setShowModal(true)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center"
+          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 flex items-center text-sm font-medium"
         >
           <Plus className="w-4 h-4 mr-2" /> Request Leave
         </button>
@@ -145,41 +150,53 @@ function RequestsTab() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Duration</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              {hasPendingItems && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {requests.map(req => (
-              <tr key={req.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">{req.employee?.name || 'Unknown'}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                    {req.leaveType?.name || 'Leave'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {req.startDate} to {req.endDate}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{req.duration}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    ${req.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 
-                      req.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 
-                      req.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 
-                      'bg-gray-100 text-gray-800'}`}>
-                    {req.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  {req.status === 'PENDING' && (
-                    <div className="flex space-x-2">
-                      <button onClick={() => handleApprove(req.id)} className="text-green-600 hover:text-green-900"><Check className="w-5 h-5"/></button>
-                      <button onClick={() => handleReject(req.id)} className="text-red-600 hover:text-red-900"><X className="w-5 h-5"/></button>
-                    </div>
+            {requests.map(req => {
+              const empName = req.employee
+                ? `${req.employee.firstName || ''} ${req.employee.lastName || ''}`.trim() || req.employee.name
+                : 'Employee';
+              const typeName = req.timeOffType?.name || req.leaveType?.name || 'Leave';
+
+              return (
+                <tr key={req.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{empName}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className="px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full"
+                      style={{ backgroundColor: `${req.timeOffType?.color || '#3b82f6'}20`, color: req.timeOffType?.color || '#3b82f6' }}
+                    >
+                      {typeName}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {formatDate(req.startDate)} to {formatDate(req.endDate)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{req.duration} days</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full 
+                      ${req.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 
+                        req.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 
+                        req.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' : 
+                        'bg-gray-100 text-gray-800'}`}>
+                      {req.status}
+                    </span>
+                  </td>
+                  {hasPendingItems && (
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      {req.status === 'PENDING' && (
+                        <div className="flex space-x-2">
+                          <button onClick={() => handleApprove(req.id)} className="text-green-600 hover:text-green-900"><Check className="w-5 h-5"/></button>
+                          <button onClick={() => handleReject(req.id)} className="text-red-600 hover:text-red-900"><X className="w-5 h-5"/></button>
+                        </div>
+                      )}
+                    </td>
                   )}
-                </td>
-              </tr>
-            ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

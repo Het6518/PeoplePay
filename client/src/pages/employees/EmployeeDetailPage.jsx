@@ -5,7 +5,7 @@ import { employeeApi } from '../../services/apiServices';
 import { getInitials, formatDate } from '../../utils/formatters';
 import { StatusBadge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
-import toast from 'react-hot-toast';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function EmployeeDetailPage() {
   const { id } = useParams();
@@ -29,6 +29,11 @@ export default function EmployeeDetailPage() {
     }
   };
 
+  const { isHR, isPayroll } = useAuth();
+  const canEdit = isHR();
+  const canViewContracts = isHR();
+  const canViewPayroll = isPayroll();
+
   if (loading) return <LoadingSpinner />;
   if (!employee) return <div>Employee not found</div>;
 
@@ -43,12 +48,14 @@ export default function EmployeeDetailPage() {
         >
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to Employees
         </button>
-        <Link
-          to={`/employees/${id}/edit`}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-        >
-          <Edit className="h-4 w-4 mr-2" /> Edit Employee
-        </Link>
+        {canEdit && (
+          <Link
+            to={`/employees/${id}/edit`}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <Edit className="h-4 w-4 mr-2" /> Edit Employee
+          </Link>
+        )}
       </div>
 
       {/* Header Profile Section */}
@@ -74,11 +81,19 @@ export default function EmployeeDetailPage() {
 
       {/* Smart Hub Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Link to={`/contracts?employeeId=${id}`} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-indigo-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
-          <FileText className="h-8 w-8 text-indigo-500 mb-2 group-hover:scale-110 transition-transform" />
-          <span className="text-2xl font-bold text-gray-900">{counts.contracts}</span>
-          <span className="text-sm font-medium text-gray-500">Contracts</span>
-        </Link>
+        {canViewContracts ? (
+          <Link to={`/contracts?employeeId=${id}`} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-indigo-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
+            <FileText className="h-8 w-8 text-indigo-500 mb-2 group-hover:scale-110 transition-transform" />
+            <span className="text-2xl font-bold text-gray-900">{counts.contracts}</span>
+            <span className="text-sm font-medium text-gray-500">Contracts</span>
+          </Link>
+        ) : (
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 opacity-60 flex flex-col items-center justify-center cursor-not-allowed">
+            <FileText className="h-8 w-8 text-slate-400 mb-2" />
+            <span className="text-2xl font-bold text-gray-900">{counts.contracts}</span>
+            <span className="text-sm font-medium text-gray-500">Contracts</span>
+          </div>
+        )}
         
         <Link to={`/attendance?employeeId=${id}`} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-green-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
           <Clock className="h-8 w-8 text-green-500 mb-2 group-hover:scale-110 transition-transform" />
@@ -92,11 +107,19 @@ export default function EmployeeDetailPage() {
           <span className="text-sm font-medium text-gray-500">Time Off</span>
         </Link>
 
-        <Link to={`/payroll/payslips?employeeId=${id}`} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-purple-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
-          <DollarSign className="h-8 w-8 text-purple-500 mb-2 group-hover:scale-110 transition-transform" />
-          <span className="text-2xl font-bold text-gray-900">{counts.payslips}</span>
-          <span className="text-sm font-medium text-gray-500">Payslips</span>
-        </Link>
+        {canViewPayroll ? (
+          <Link to={`/payroll/payslips?employeeId=${id}`} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:border-purple-400 hover:shadow-md transition-all flex flex-col items-center justify-center group">
+            <DollarSign className="h-8 w-8 text-purple-500 mb-2 group-hover:scale-110 transition-transform" />
+            <span className="text-2xl font-bold text-gray-900">{counts.payslips}</span>
+            <span className="text-sm font-medium text-gray-500">Payslips</span>
+          </Link>
+        ) : (
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 opacity-60 flex flex-col items-center justify-center cursor-not-allowed">
+            <DollarSign className="h-8 w-8 text-slate-400 mb-2" />
+            <span className="text-2xl font-bold text-gray-900">{counts.payslips}</span>
+            <span className="text-sm font-medium text-gray-500">Payslips</span>
+          </div>
+        )}
       </div>
 
       {/* Info Sections Grid */}

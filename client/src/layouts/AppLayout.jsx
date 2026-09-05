@@ -7,11 +7,15 @@ import {
   UserCircle, Building2, ClipboardList, Banknote, ListChecks,
 } from 'lucide-react';
 
+const HR_ROLES = ['HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'];
+const PAYROLL_ROLES = ['HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'];
+const MANAGER_ROLES = ['HR_PAYROLL_MANAGER', 'ADMIN'];
+
 const payrollSubItems = [
-  { to: '/payroll/payruns', label: 'Payruns' },
-  { to: '/payroll/payslips', label: 'Payslips' },
-  { to: '/payroll/salary-structures', label: 'Salary Structures' },
-  { to: '/payroll/salary-rules', label: 'Salary Rules' },
+  { to: '/payroll/payruns', label: 'Payruns', roles: PAYROLL_ROLES },
+  { to: '/payroll/payslips', label: 'Payslips', roles: ['EMPLOYEE', ...PAYROLL_ROLES] },
+  { to: '/payroll/salary-structures', label: 'Salary Structures', roles: PAYROLL_ROLES },
+  { to: '/payroll/salary-rules', label: 'Salary Rules', roles: MANAGER_ROLES },
 ];
 
 function SidebarItem({ to, icon: Icon, label, end = false }) {
@@ -29,9 +33,15 @@ function SidebarItem({ to, icon: Icon, label, end = false }) {
   );
 }
 
-function PayrollMenu({ isPayroll }) {
+function PayrollMenu({ currentUser, isPayroll }) {
   const [open, setOpen] = useState(false);
   if (!isPayroll) return null;
+
+  const allowedSubItems = payrollSubItems.filter(
+    (item) => !item.roles || item.roles.includes(currentUser?.role)
+  );
+
+  if (allowedSubItems.length === 0) return null;
 
   return (
     <div>
@@ -47,7 +57,7 @@ function PayrollMenu({ isPayroll }) {
       </button>
       {open && (
         <div className="ml-6 mt-1 space-y-1 border-l border-white/20 pl-3">
-          {payrollSubItems.map((item) => (
+          {allowedSubItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -112,7 +122,7 @@ export function AppLayout({ children }) {
         {navItems.filter((i) => i.always || i.show).map((item) => (
           <SidebarItem key={item.to} {...item} end={item.to === '/dashboard'} />
         ))}
-        <PayrollMenu isPayroll={isPayroll()} />
+        <PayrollMenu currentUser={currentUser} isPayroll={isPayroll()} />
         <div className="pt-2 border-t border-white/10 mt-2 space-y-1">
           {bottomNavItems.filter((i) => i.show).map((item) => (
             <SidebarItem key={item.to} {...item} />

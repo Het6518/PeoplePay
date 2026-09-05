@@ -4,7 +4,7 @@ import { attendanceApi, employeeApi, departmentApi } from '../../services/apiSer
 import { StatusBadge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { Modal } from '../../components/ui/Modal';
-import { Pagination } from '../../components/ui/Pagination';
+import { formatDate } from '../../utils/formatters';
 import { Clock, Calendar, CheckCircle, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -300,12 +300,12 @@ export default function AttendancePage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-gray-400" />
-                      {new Date(record.date).toLocaleDateString()}
+                      {formatDate(record.date)}
                     </div>
                   </td>
                   {isHR && (
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {record.employee?.firstName} {record.employee?.lastName}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                      {record.employee ? `${record.employee.firstName || ''} ${record.employee.lastName || ''}`.trim() : '-'}
                     </td>
                   )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -319,7 +319,7 @@ export default function AttendancePage() {
                     {record.workedHours ? `${record.workedHours.toFixed(2)}h` : '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusColor(record.status)}`}>
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold leading-5 ${getStatusColor(record.status)}`}>
                       {record.status.replace('_', ' ')}
                     </span>
                   </td>
