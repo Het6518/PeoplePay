@@ -1,0 +1,32 @@
+{
+  "name": "peoplepay360-server",
+  "version": "1.0.0",
+  "description": "PeoplePay360 - Integrated HR & Payroll Operations Platform - API Server",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "db:migrate": "prisma migrate dev --schema=../prisma/schema.prisma",
+    "db:generate": "prisma generate --schema=../prisma/schema.prisma",
+    "db:seed": "node ../prisma/seed.js",
+    "db:studio": "prisma studio --schema=../prisma/schema.prisma",
+    "db:reset": "prisma migrate reset --force --schema=../prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "express-async-errors": "^3.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "mathjs": "^13.2.0",
+    "nodemailer": "^6.9.16",
+    "pdfkit": "^0.15.0",
+    "prisma": "^5.22.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
