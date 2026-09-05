@@ -15,9 +15,10 @@ router.post('/payruns/:id/validate', authorize(...PAYROLL_ROLES), ctrl.validateP
 router.post('/payruns/:id/mark-paid', authorize(...PAYROLL_MANAGER_ROLES), ctrl.markPayrunPaid);
 router.post('/payruns/:id/send-payslips', authorize(...PAYROLL_ROLES), ctrl.sendPayslips);
 
-// Payslips
-router.get('/payslips', authorize(...PAYROLL_ROLES), ctrl.getPayslips);
-router.get('/payslips/:id', authorize(...PAYROLL_ROLES), ctrl.getPayslip);
-router.get('/payslips/:id/pdf', authorize(...PAYROLL_ROLES), ctrl.downloadPayslipPDF);
+// Payslips (Employees can view & download their own payslips; HR/Payroll can view all)
+const ALL_ROLES = ['EMPLOYEE', 'HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'];
+router.get('/payslips', authorize(...ALL_ROLES), ctrl.getPayslips);
+router.get('/payslips/:id', authorize(...ALL_ROLES), ctrl.getPayslip);
+router.get('/payslips/:id/pdf', authorize(...ALL_ROLES), ctrl.downloadPayslipPDF);
 
 module.exports = router;

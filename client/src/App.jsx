@@ -97,8 +97,8 @@ function AppRoutes() {
                 <Route path="/payroll/payruns" element={<ProtectedRoute roles={PAYROLL_ROLES}><PayrunListPage /></ProtectedRoute>} />
                 <Route path="/payroll/payruns/new" element={<ProtectedRoute roles={PAYROLL_ROLES}><NewPayrunPage /></ProtectedRoute>} />
                 <Route path="/payroll/payruns/:id" element={<ProtectedRoute roles={PAYROLL_ROLES}><PayrunDetailPage /></ProtectedRoute>} />
-                <Route path="/payroll/payslips" element={<ProtectedRoute roles={PAYROLL_ROLES}><PayslipListPage /></ProtectedRoute>} />
-                <Route path="/payroll/payslips/:id" element={<ProtectedRoute roles={PAYROLL_ROLES}><PayslipDetailPage /></ProtectedRoute>} />
+                <Route path="/payroll/payslips" element={<PayslipListPage />} />
+                <Route path="/payroll/payslips/:id" element={<PayslipDetailPage />} />
                 <Route path="/payroll/salary-structures" element={<ProtectedRoute roles={PAYROLL_ROLES}><SalaryStructurePage /></ProtectedRoute>} />
                 <Route path="/payroll/salary-rules" element={<ProtectedRoute roles={PAYROLL_ROLES}><SalaryStructurePage /></ProtectedRoute>} />
                 <Route path="/payroll/salary-rules/new" element={<ProtectedRoute roles={PAYROLL_MANAGER_ROLES}><SalaryRuleFormPage /></ProtectedRoute>} />
