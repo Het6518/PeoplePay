@@ -22,6 +22,8 @@ router.post('/payruns/:id/validate', authorize(...PAYROLL_ROLES), invalidatePayr
 router.post('/payruns/:id/mark-paid', authorize(...PAYROLL_MANAGER_ROLES), invalidatePayrollCache, ctrl.markPayrunPaid);
 router.post('/payruns/:id/send-payslips', authorize(...PAYROLL_ROLES), invalidatePayrollCache, ctrl.sendPayslips);
 router.get('/payruns/:id/send-payslips/status', authorize(...PAYROLL_ROLES), ctrl.getPayslipDispatchStatus);
+router.get('/payruns/:id/bank-advice/summary', authorize(...PAYROLL_ROLES), ctrl.getBankAdviceSummary);
+router.get('/payruns/:id/bank-advice', authorize(...PAYROLL_ROLES), ctrl.downloadBankAdviceCSV);
 
 // Payslips (Employees can view & download their own payslips; HR/Payroll can view all)
 const ALL_ROLES = ['EMPLOYEE', 'HR_MANAGER', 'HR_PAYROLL_USER', 'HR_PAYROLL_MANAGER', 'ADMIN'];

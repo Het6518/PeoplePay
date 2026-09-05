@@ -7,6 +7,7 @@ const { detectAnomalies } = require('../services/payrollAnomaly');
 const pdfService = require('../services/pdfService');
 const emailService = require('../services/emailService');
 const payslipQueue = require('../services/payslipQueue');
+const bankAdviceService = require('../services/bankAdviceService');
 const { logAuditAction } = require('../utils/auditLogger');
 
 // ============================================================
@@ -773,6 +774,29 @@ const downloadPayslipPDF = async (req, res, next) => {
   }
 };
 
+// GET /api/payruns/:id/bank-advice/summary
+const getBankAdviceSummary = async (req, res, next) => {
+  try {
+    const summary = await bankAdviceService.getBankAdviceSummary(req.params.id);
+    return sendSuccess(res, summary);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/payruns/:id/bank-advice
+const downloadBankAdviceCSV = async (req, res, next) => {
+  try {
+    const { csv, filename } = await bankAdviceService.generateBankAdviceCSV(req.params.id);
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(csv);
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getPayruns,
   getPayrun,
@@ -783,6 +807,8 @@ module.exports = {
   markPayrunPaid,
   sendPayslips,
   getPayslipDispatchStatus,
+  getBankAdviceSummary,
+  downloadBankAdviceCSV,
   getPayslips,
   getPayslip,
   downloadPayslipPDF,

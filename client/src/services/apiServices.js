@@ -129,6 +129,8 @@ export const payrollApi = {
   markPaid: (id) => api.post(`/payruns/${id}/mark-paid`),
   sendPayslips: (id) => api.post(`/payruns/${id}/send-payslips`),
   getPayslipDispatchStatus: (id) => api.get(`/payruns/${id}/send-payslips/status`),
+  getBankAdviceSummary: (id) => api.get(`/payruns/${id}/bank-advice/summary`),
+  downloadBankAdvice: (id) => api.get(`/payruns/${id}/bank-advice`, { responseType: 'blob' }),
 
   // Payslips
   getPayslips: (params) => api.get('/payslips', { params }),

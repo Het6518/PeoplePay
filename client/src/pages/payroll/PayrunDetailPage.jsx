@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   FileText, Play, CheckCircle, CreditCard, AlertTriangle, 
-  Info, Loader2, Users, DollarSign, ArrowLeft, Send, Mail, Check, XCircle
+  Info, Loader2, Users, DollarSign, ArrowLeft, Send, Mail, Check, XCircle,
+  Building2, Download, Landmark, FileSpreadsheet
 } from 'lucide-react';
 import { payrollApi } from '../../services/apiServices';
 import { formatINR, formatDate } from '../../utils/formatters';
@@ -66,6 +67,12 @@ export default function PayrunDetailPage() {
   const [dispatchJob, setDispatchJob] = useState(null);
   const [showDispatchModal, setShowDispatchModal] = useState(false);
   const pollTimerRef = useRef(null);
+
+  // Bank Advice state
+  const [showBankAdviceModal, setShowBankAdviceModal] = useState(false);
+  const [bankAdviceSummary, setBankAdviceSummary] = useState(null);
+  const [bankAdviceLoading, setBankAdviceLoading] = useState(false);
+  const [downloadingBankAdvice, setDownloadingBankAdvice] = useState(false);
 
   const fetchPayrun = async () => {
     try {
@@ -201,6 +208,44 @@ export default function PayrunDetailPage() {
     }
   };
 
+  const handleOpenBankAdvice = async () => {
+    setBankAdviceLoading(true);
+    setShowBankAdviceModal(true);
+    try {
+      const res = await payrollApi.getBankAdviceSummary(id);
+      const data = res?.data || res;
+      setBankAdviceSummary(data);
+    } catch (err) {
+      toast.error('Failed to load bank transfer summary');
+      console.error(err);
+    } finally {
+      setBankAdviceLoading(false);
+    }
+  };
+
+  const handleDownloadBankAdvice = async () => {
+    setDownloadingBankAdvice(true);
+    try {
+      const res = await payrollApi.downloadBankAdvice(id);
+      const blob = new Blob([res.data || res], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const safeName = (payrun?.name || 'payrun').replace(/[^a-zA-Z0-9_-]/g, '_');
+      link.setAttribute('download', `bank_advice_${safeName}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Bank Transfer Advice CSV downloaded successfully!');
+    } catch (err) {
+      toast.error('Failed to download Bank Advice CSV');
+      console.error(err);
+    } finally {
+      setDownloadingBankAdvice(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -317,6 +362,16 @@ export default function PayrunDetailPage() {
               Send Payslips
             </button>
           )}
+
+          <button
+            onClick={handleOpenBankAdvice}
+            disabled={actionLoading}
+            className="rounded-full px-4 py-2 text-xs font-bold bg-stone-100 text-stone-700 hover:bg-stone-200 transition-all flex items-center gap-2"
+            title="Download Bank Transfer Advice for corporate salary disbursement"
+          >
+            <Building2 className="w-3.5 h-3.5 text-stone-600" />
+            Bank Advice CSV
+          </button>
         </div>
       </div>
 
@@ -600,6 +655,136 @@ export default function PayrunDetailPage() {
               </button>
             )}
           </div>
+        </div>
+      </Modal>
+
+      {/* Bank Transfer Advice Modal */}
+      <Modal
+        open={showBankAdviceModal}
+        onClose={() => setShowBankAdviceModal(false)}
+        title="Bank Transfer Advice (NEFT / RTGS Export)"
+        size="lg"
+      >
+        <div className="space-y-6">
+          {bankAdviceLoading ? (
+            <div className="py-12 flex flex-col items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-amber-500 mb-2" />
+              <p className="text-xs text-stone-500 font-medium">Loading bank transfer distribution...</p>
+            </div>
+          ) : (
+            <>
+              {/* Top Summary Banner */}
+              <div className="p-5 bg-gradient-to-br from-stone-900 to-stone-800 rounded-2xl text-white shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400 block">
+                    Total Salary Disbursement
+                  </span>
+                  <div className="text-3xl font-black text-white mt-1">
+                    {formatINR(bankAdviceSummary?.totalDisbursementAmount || payrun.totalNet)}
+                  </div>
+                  <p className="text-xs text-stone-300 mt-1">
+                    Ready for batch NEFT/RTGS upload to corporate banking portals.
+                  </p>
+                </div>
+                <div className="flex sm:flex-col items-center sm:items-end gap-2 text-right">
+                  <span className="px-3 py-1 rounded-full bg-amber-400 text-stone-950 text-xs font-black">
+                    {bankAdviceSummary?.readyCount || 0} Beneficiaries
+                  </span>
+                  <span className="text-[11px] font-mono text-stone-400">
+                    Status: {payrun.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Missing Account Warning */}
+              {bankAdviceSummary?.missingBankDetailsCount > 0 && (
+                <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    {bankAdviceSummary.missingBankDetailsCount} employee(s) missing bank account details
+                  </div>
+                  <p className="text-stone-600">
+                    These employees will appear with <code>MISSING_ACCOUNT</code> in the export file. Please update their profile before submitting to the bank.
+                  </p>
+                </div>
+              )}
+
+              {/* Bank Breakdown Table */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold text-stone-700 uppercase tracking-wider flex items-center gap-2">
+                    <Landmark className="w-4 h-4 text-stone-500" />
+                    Bank-Wise Distribution Breakdown
+                  </h4>
+                  <span className="text-xs text-stone-400 font-medium">
+                    {bankAdviceSummary?.bankBreakdown?.length || 0} Destination Banks
+                  </span>
+                </div>
+
+                <div className="overflow-hidden rounded-2xl border border-stone-200/70 max-h-56 overflow-y-auto">
+                  <table className="min-w-full divide-y divide-stone-200/60 text-xs">
+                    <thead className="bg-stone-50/80 sticky top-0">
+                      <tr>
+                        <th className="px-4 py-2.5 text-left font-bold text-stone-500 uppercase tracking-wider">Bank Name</th>
+                        <th className="px-4 py-2.5 text-left font-bold text-stone-500 uppercase tracking-wider">IFSC Routing</th>
+                        <th className="px-4 py-2.5 text-center font-bold text-stone-500 uppercase tracking-wider">Payees</th>
+                        <th className="px-4 py-2.5 text-right font-bold text-stone-500 uppercase tracking-wider">Disbursement Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100 bg-white">
+                      {(bankAdviceSummary?.bankBreakdown || []).map((b, idx) => (
+                        <tr key={idx} className="hover:bg-stone-50/60">
+                          <td className="px-4 py-2.5 font-bold text-stone-900">{b.bankName}</td>
+                          <td className="px-4 py-2.5 font-mono text-stone-500">{b.ifsc}</td>
+                          <td className="px-4 py-2.5 text-center font-semibold text-stone-700">{b.employeeCount}</td>
+                          <td className="px-4 py-2.5 text-right font-black text-stone-900">{formatINR(b.totalAmount)}</td>
+                        </tr>
+                      ))}
+                      {(!bankAdviceSummary?.bankBreakdown || bankAdviceSummary.bankBreakdown.length === 0) && (
+                        <tr>
+                          <td colSpan={4} className="px-4 py-6 text-center text-stone-400">
+                            No bank breakdown records available.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Format specifications note */}
+              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/60 text-[11px] text-stone-500 flex items-start gap-2">
+                <FileSpreadsheet className="w-4 h-4 text-stone-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-stone-700">Export format:</span> RFC 4180 CSV standard. Automatically routes transactions ≥ ₹2,00,000 as <strong>RTGS</strong> and &lt; ₹2,00,000 as <strong>NEFT</strong> with standard salary remarks.
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-3 flex justify-end gap-3 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setShowBankAdviceModal(false)}
+                  className="px-4 py-2 rounded-full bg-stone-100 text-stone-700 text-xs font-bold hover:bg-stone-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadBankAdvice}
+                  disabled={downloadingBankAdvice}
+                  className="btn-primary rounded-full px-5 py-2.5 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300 shadow-sm flex items-center gap-2"
+                >
+                  {downloadingBankAdvice ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  Download Batch CSV
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     </div>
