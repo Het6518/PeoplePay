@@ -183,16 +183,11 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* HR Festival & Holiday Review Widget */}
-      {currentUser?.role !== 'EMPLOYEE' && (
-        <HolidayReviewWidget onHolidayUpdated={fetchDashboardData} />
-      )}
-
       {/* 2-Column Command Center Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* ============================================================ */}
-        {/* MAIN AREA: Pending Leave Approvals (Red Box Requirement)    */}
+        {/* MAIN AREA: Pending Leave Approvals & Festival Review          */}
         {/* ============================================================ */}
         <div className="lg:col-span-8 space-y-6">
           
@@ -473,6 +468,13 @@ export default function DashboardPage() {
         </div>
 
       </div>
+
+      {/* Full-Width Festival & Public Holiday Review Panel */}
+      {currentUser?.role !== 'EMPLOYEE' && (
+        <div className="w-full">
+          <HolidayReviewWidget onHolidayUpdated={fetchDashboardData} />
+        </div>
+      )}
     </div>
   );
 }
