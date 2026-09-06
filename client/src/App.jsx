@@ -35,6 +35,7 @@ import PayslipDetailPage from './pages/payroll/PayslipDetailPage';
 import PayslipListPage from './pages/payroll/PayslipListPage';
 import SalaryStructurePage from './pages/payroll/SalaryStructurePage';
 import SalaryRuleFormPage from './pages/payroll/SalaryRuleFormPage';
+import TaxCalculatorPage from './pages/payroll/TaxCalculatorPage';
 
 // Reports & Admin
 import ReportsPage from './pages/reports/ReportsPage';
@@ -105,6 +106,7 @@ function AppRoutes() {
                 <Route path="/payroll/salary-rules" element={<ProtectedRoute roles={PAYROLL_ROLES}><SalaryStructurePage /></ProtectedRoute>} />
                 <Route path="/payroll/salary-rules/new" element={<ProtectedRoute roles={PAYROLL_MANAGER_ROLES}><SalaryRuleFormPage /></ProtectedRoute>} />
                 <Route path="/payroll/salary-rules/:id/edit" element={<ProtectedRoute roles={PAYROLL_MANAGER_ROLES}><SalaryRuleFormPage /></ProtectedRoute>} />
+                <Route path="/payroll/tax-calculator" element={<TaxCalculatorPage />} />
 
                 {/* Reports */}
                 <Route path="/reports" element={<ProtectedRoute roles={HR_ROLES}><ReportsPage /></ProtectedRoute>} />

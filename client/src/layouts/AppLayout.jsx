@@ -13,6 +13,7 @@ const payrollSubItems = [
   { to: '/payroll/payruns', label: 'Payruns', roles: PAYROLL_ROLES },
   { to: '/payroll/payslips', label: 'Payslips', roles: PAYROLL_ROLES },
   { to: '/payroll/salary-structures', label: 'Salary Structures', roles: PAYROLL_ROLES },
+  { to: '/payroll/tax-calculator', label: 'Tax Calculator' },
 ];
 
 function NavItem({ to, label, end = false, onClick, fullWidth = false }) {
@@ -116,6 +117,7 @@ export function AppLayout({ children }) {
     { to: '/attendance', label: 'Attendance', show: true, end: true },
     { to: '/attendance/overtime', label: 'Overtime', show: true, end: true },
     { to: '/time-off', label: 'Leave', show: true },
+    { to: '/payroll/tax-calculator', label: 'Tax Estimator', show: isEmployeeRole },
   ];
 
   const bottomNavItems = [

@@ -5,6 +5,11 @@ const { sendError } = require('../utils/response');
 const errorHandler = (err, req, res, next) => {
   console.error('[Error]', err.message || err);
 
+  // JSON parsing SyntaxError
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return sendError(res, 'Invalid JSON payload received.', 400);
+  }
+
   // Zod validation errors
   if (err instanceof ZodError) {
     const errors = err.errors.map((e) => ({

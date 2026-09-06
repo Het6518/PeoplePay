@@ -13,6 +13,7 @@ import {
   Info,
   MoreHorizontal,
   ChevronRight,
+  ChevronLeft,
   ArrowUpRight,
   Clock,
   Briefcase,
@@ -57,6 +58,8 @@ export default function DashboardPage() {
   const [summary, setSummary] = useState(null);
   const [attendanceChart, setAttendanceChart] = useState([]);
   const [pendingLeaveRequests, setPendingLeaveRequests] = useState([]);
+  const [leavePage, setLeavePage] = useState(1);
+  const leavePerPage = 3;
   const [matrixMode, setMatrixMode] = useState('team');
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -151,6 +154,14 @@ export default function DashboardPage() {
     return 'bg-stone-700';
   });
 
+  // Internal pagination for leave requests
+  const totalLeavePages = Math.max(1, Math.ceil(pendingLeaveRequests.length / leavePerPage));
+  const safeLeavePage = Math.min(leavePage, totalLeavePages);
+  const currentLeaveRequests = pendingLeaveRequests.slice(
+    (safeLeavePage - 1) * leavePerPage,
+    safeLeavePage * leavePerPage
+  );
+
   return (
     <div className="space-y-6 pb-12">
       {/* Contextual Header & Top Summary Metrics */}
@@ -208,108 +219,163 @@ export default function DashboardPage() {
       </div>
 
       {/* 2-Column Command Center Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
         {/* ============================================================ */}
-        {/* MAIN AREA: Pending Leave Approvals & Festival Review          */}
+        {/* MAIN AREA: Pending Leave Approvals (Left Column)             */}
         {/* ============================================================ */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="lg:col-span-8 flex flex-col">
           
           {/* PRIMARY LEAVE NOTIFICATIONS & PENDING APPROVALS BOX */}
-          <div className="bg-white/95 rounded-[28px] p-6 border border-stone-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-700 flex items-center justify-center font-extrabold">
-                  <Calendar size={20} />
+          <div className="bg-white/95 rounded-[28px] p-6 border border-stone-200/80 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex-1 flex flex-col justify-between min-h-[624px]">
+            <div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-700 flex items-center justify-center font-extrabold">
+                    <Calendar size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-stone-950 uppercase tracking-wider flex items-center gap-2">
+                      Leave Notifications & Approvals
+                      <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300/60">
+                        {pendingLeaveRequests.length} Pending
+                      </span>
+                    </h3>
+                    <p className="text-xs font-medium text-stone-500 mt-0.5">
+                      Review and approve employee leave requests pending your authorization.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-base font-black text-stone-950 uppercase tracking-wider flex items-center gap-2">
-                    Leave Notifications & Approvals
-                    <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300/60">
-                      {pendingLeaveRequests.length} Pending
-                    </span>
-                  </h3>
-                  <p className="text-xs font-medium text-stone-500 mt-0.5">
-                    Review and approve employee leave requests pending your authorization.
-                  </p>
-                </div>
+                <button
+                  onClick={() => navigate('/time-off/requests')}
+                  className="text-xs font-bold bg-stone-900 text-white hover:bg-stone-800 px-4 py-2 rounded-full shadow-xs transition-all flex items-center gap-1.5 self-start sm:self-auto"
+                >
+                  All Requests <ChevronRight size={14} />
+                </button>
               </div>
-              <button
-                onClick={() => navigate('/time-off/requests')}
-                className="text-xs font-bold bg-stone-900 text-white hover:bg-stone-800 px-4 py-2 rounded-full shadow-xs transition-all flex items-center gap-1.5 self-start sm:self-auto"
-              >
-                All Requests <ChevronRight size={14} />
-              </button>
+
+              {/* Pending Leave Requests List (Paginated, 3 per page) */}
+              <div className="space-y-3 pt-3.5">
+                {currentLeaveRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="p-3.5 rounded-2xl bg-amber-50/40 border border-amber-200/70 hover:bg-amber-100/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3.5"
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-10 h-10 rounded-full bg-stone-950 text-amber-400 font-black text-xs flex items-center justify-center shrink-0 shadow-xs">
+                        {(req.employee?.firstName?.[0] || 'E').toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-black text-stone-950 flex items-center gap-2">
+                          {req.employee?.firstName} {req.employee?.lastName}
+                          <span className="text-xs font-mono text-stone-400 font-semibold">
+                            ({req.employee?.employeeCode || 'EMP'})
+                          </span>
+                        </h4>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <span className="text-xs font-extrabold text-amber-800 bg-amber-200/60 px-2.5 py-0.5 rounded-full border border-amber-300/80">
+                            {req.timeOffType?.name || 'Leave'}
+                          </span>
+                          <span className="text-xs font-bold text-stone-600 font-mono">
+                            {req.duration} {req.timeOffType?.unit === 'HOURS' ? 'Hours' : 'Days'}
+                          </span>
+                          <span className="text-xs font-semibold text-stone-500 font-mono">
+                            ({formatDate(req.startDate)} – {formatDate(req.endDate)})
+                          </span>
+                        </div>
+                        {req.reason && (
+                          <p className="text-xs font-medium text-stone-600 italic mt-1 bg-white/80 px-2.5 py-0.5 rounded-xl border border-stone-200/60 inline-block">
+                            "{req.reason}"
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 sm:self-center">
+                      <button
+                        onClick={() => handleApproveLeave(req.id)}
+                        disabled={actionLoadingId === req.id}
+                        className="px-4 py-2 rounded-full text-xs font-black bg-emerald-600 text-white hover:bg-emerald-500 transition-all shadow-sm flex items-center gap-1.5"
+                      >
+                        {actionLoadingId === req.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle size={14} />
+                        )}
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleRejectLeave(req.id)}
+                        disabled={actionLoadingId === req.id}
+                        className="px-3.5 py-2 rounded-full text-xs font-bold bg-stone-200 text-stone-700 hover:bg-rose-100 hover:text-rose-700 transition-all"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {pendingLeaveRequests.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-16 bg-stone-50/60 rounded-2xl border border-dashed border-stone-200 text-center">
+                    <CheckCircle className="w-10 h-10 text-emerald-500 mb-2" />
+                    <h4 className="text-sm font-black text-stone-900">No Pending Leave Approvals</h4>
+                    <p className="text-xs font-medium text-stone-500 mt-1 max-w-sm">
+                      All employee leave applications are processed. New leave requests will appear here for your immediate approval.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Pending Leave Requests List */}
-            <div className="space-y-3.5 pt-1">
-              {pendingLeaveRequests.map((req) => (
-                <div
-                  key={req.id}
-                  className="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/70 hover:bg-amber-100/40 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div className="flex items-start gap-3.5">
-                    <div className="w-10 h-10 rounded-full bg-stone-950 text-amber-400 font-black text-xs flex items-center justify-center shrink-0 shadow-xs">
-                      {(req.employee?.firstName?.[0] || 'E').toUpperCase()}
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-black text-stone-950 flex items-center gap-2">
-                        {req.employee?.firstName} {req.employee?.lastName}
-                        <span className="text-xs font-mono text-stone-400 font-semibold">
-                          ({req.employee?.employeeCode || 'EMP'})
-                        </span>
-                      </h4>
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <span className="text-xs font-extrabold text-amber-800 bg-amber-200/60 px-2.5 py-0.5 rounded-full border border-amber-300/80">
-                          {req.timeOffType?.name || 'Leave'}
-                        </span>
-                        <span className="text-xs font-bold text-stone-600 font-mono">
-                          {req.duration} {req.timeOffType?.unit === 'HOURS' ? 'Hours' : 'Days'}
-                        </span>
-                        <span className="text-xs font-semibold text-stone-500 font-mono">
-                          ({formatDate(req.startDate)} – {formatDate(req.endDate)})
-                        </span>
-                      </div>
-                      {req.reason && (
-                        <p className="text-xs font-medium text-stone-600 italic mt-1.5 bg-white/80 px-3 py-1 rounded-xl border border-stone-200/60 inline-block">
-                          "{req.reason}"
-                        </p>
-                      )}
-                    </div>
+            {/* In-Card Pagination Footer */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3.5 border-t border-stone-100 mt-3">
+              <div className="text-xs font-semibold text-stone-500">
+                {pendingLeaveRequests.length > 0 ? (
+                  <>
+                    Showing <span className="font-bold text-stone-900">{(safeLeavePage - 1) * leavePerPage + 1}</span> to{' '}
+                    <span className="font-bold text-stone-900">
+                      {Math.min(safeLeavePage * leavePerPage, pendingLeaveRequests.length)}
+                    </span>{' '}
+                    of <span className="font-bold text-stone-900">{pendingLeaveRequests.length}</span> pending requests
+                  </>
+                ) : (
+                  '0 pending requests'
+                )}
+              </div>
+
+              {totalLeavePages > 1 && (
+                <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                  <button
+                    onClick={() => setLeavePage((p) => Math.max(1, p - 1))}
+                    disabled={safeLeavePage === 1}
+                    className="px-3 py-1 rounded-full text-xs font-bold bg-stone-100 text-stone-700 hover:bg-stone-200 disabled:opacity-40 disabled:hover:bg-stone-100 disabled:cursor-not-allowed transition-all flex items-center gap-1"
+                  >
+                    <ChevronLeft size={13} /> Prev
+                  </button>
+
+                  <div className="flex items-center gap-1 px-1">
+                    {Array.from({ length: totalLeavePages }, (_, i) => i + 1).map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => setLeavePage(pageNum)}
+                        className={`w-6 h-6 rounded-full text-xs font-black transition-all flex items-center justify-center ${
+                          safeLeavePage === pageNum
+                            ? 'bg-stone-950 text-amber-400 shadow-xs'
+                            : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0 sm:self-center">
-                    <button
-                      onClick={() => handleApproveLeave(req.id)}
-                      disabled={actionLoadingId === req.id}
-                      className="px-4 py-2 rounded-full text-xs font-black bg-emerald-600 text-white hover:bg-emerald-500 transition-all shadow-sm flex items-center gap-1.5"
-                    >
-                      {actionLoadingId === req.id ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <CheckCircle size={14} />
-                      )}
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleRejectLeave(req.id)}
-                      disabled={actionLoadingId === req.id}
-                      className="px-3.5 py-2 rounded-full text-xs font-bold bg-stone-200 text-stone-700 hover:bg-rose-100 hover:text-rose-700 transition-all"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {pendingLeaveRequests.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-12 bg-stone-50/60 rounded-2xl border border-dashed border-stone-200 text-center">
-                  <CheckCircle className="w-10 h-10 text-emerald-500 mb-2" />
-                  <h4 className="text-sm font-black text-stone-900">No Pending Leave Approvals</h4>
-                  <p className="text-xs font-medium text-stone-500 mt-1 max-w-sm">
-                    All employee leave applications are processed. New leave requests will appear here for your immediate approval.
-                  </p>
+                  <button
+                    onClick={() => setLeavePage((p) => Math.min(totalLeavePages, p + 1))}
+                    disabled={safeLeavePage === totalLeavePages}
+                    className="px-3 py-1 rounded-full text-xs font-bold bg-stone-100 text-stone-700 hover:bg-stone-200 disabled:opacity-40 disabled:hover:bg-stone-100 disabled:cursor-not-allowed transition-all flex items-center gap-1"
+                  >
+                    Next <ChevronRight size={13} />
+                  </button>
                 </div>
               )}
             </div>
@@ -320,7 +386,7 @@ export default function DashboardPage() {
         {/* ============================================================ */}
         {/* RIGHT SIDEBAR (Yellow Box Area): Attendance & Composition     */}
         {/* ============================================================ */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 flex flex-col justify-between gap-6">
           
           {/* Top Card: Dark Attendance Command Card (Dynamic Interactive Individual Heat Maps) */}
           <div className="bg-stone-950 text-white rounded-[28px] p-6 border border-stone-800 shadow-xl flex flex-col justify-between min-h-[300px]">

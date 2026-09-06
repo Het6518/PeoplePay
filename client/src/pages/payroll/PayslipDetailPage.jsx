@@ -76,7 +76,35 @@ export default function PayslipDetailPage() {
   const structureName = payslip.salaryStructure?.name || payslip.contract?.salaryStructure?.name || payslip.payrun?.salaryStructure?.name || payslip.structureName || 'Standard Structure';
   const periodStart = payslip.periodStart || payslip.payrun?.periodStart;
   const periodEnd = payslip.periodEnd || payslip.payrun?.periodEnd;
-  const lines = payslip.lines || payslip.rules || [];
+  const rawLines = payslip.lines || payslip.rules || [];
+  const hasOtLine = rawLines.some(r => r.code === 'OT' || r.name?.toLowerCase().includes('overtime'));
+  const lines = [...rawLines];
+
+  // If overtime amount or hours exist and no explicit OT line exists, insert Overtime Pay line before GROSS
+  const otAmount = Number(payslip.overtimeAmount || 0);
+  const otHours = Number(payslip.overtimeHours || 0);
+  if (!hasOtLine && (otAmount > 0 || otHours > 0)) {
+    const grossIdx = lines.findIndex(l => l.category === 'GROSS');
+    const calculatedOtAmount = otAmount > 0 
+      ? otAmount 
+      : (otHours * (payslip.overtimeRate || ((payslip.contract?.wage || 30000) / 22 / 8 * 1.5)));
+    
+    const otLine = {
+      name: 'Overtime Pay',
+      code: 'OT',
+      category: 'ALLOWANCE',
+      amount: Math.round(calculatedOtAmount * 100) / 100,
+      quantity: otHours,
+      rate: payslip.overtimeRate || Math.round((calculatedOtAmount / Math.max(1, otHours)) * 100) / 100,
+    };
+
+    if (grossIdx >= 0) {
+      lines.splice(grossIdx, 0, otLine);
+    } else {
+      lines.push(otLine);
+    }
+  }
+
   const earnings = lines.filter(r => r.category === 'BASIC' || r.category === 'ALLOWANCE');
   const deductions = lines.filter(r => r.category === 'DEDUCTION');
   const grossSalary = payslip.grossSalary ?? payslip.gross ?? 0;

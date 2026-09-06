@@ -4,11 +4,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { Banknote, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 const DEMO_USERS = [
-  { label: 'Admin', email: 'admin@peoplepay360.com', password: 'Admin@123', color: 'bg-red-100 text-red-700' },
-  { label: 'Payroll Mgr', email: 'payrollmanager@peoplepay360.com', password: 'Pmgr@1234', color: 'bg-purple-100 text-purple-700' },
-  { label: 'Payroll User', email: 'payrolluser@peoplepay360.com', password: 'Pay@12345', color: 'bg-blue-100 text-blue-700' },
-  { label: 'HR Manager', email: 'hr@peoplepay360.com', password: 'Hr@123456', color: 'bg-green-100 text-green-700' },
-  { label: 'Employee', email: 'employee@peoplepay360.com', password: 'Emp@12345', color: 'bg-amber-100 text-amber-700' },
+  { label: 'Admin', role: 'ADMIN', email: 'admin@peoplepay360.com', password: 'Password123!', color: 'bg-rose-100 text-rose-800 border-rose-300' },
+  { label: 'Payroll Manager', role: 'HR_PAYROLL_MANAGER', email: 'payrollmanager@peoplepay360.com', password: 'Password123!', color: 'bg-purple-100 text-purple-800 border-purple-300' },
+  { label: 'Payroll User', role: 'HR_PAYROLL_USER', email: 'payrolluser@peoplepay360.com', password: 'Password123!', color: 'bg-blue-100 text-blue-800 border-blue-300' },
+  { label: 'HR Manager', role: 'HR_MANAGER', email: 'hr@peoplepay360.com', password: 'Password123!', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
+  { label: 'Employee', role: 'EMPLOYEE', email: 'employee@peoplepay360.com', password: 'Password123!', color: 'bg-amber-100 text-amber-900 border-amber-300' },
 ];
 
 export default function LoginPage() {
@@ -146,19 +146,34 @@ export default function LoginPage() {
           </form>
 
           {/* Demo credentials */}
-          <div className="mt-8 pt-6 border-t border-stone-100">
-            <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-3">
-              Demo Accounts (Click to Fill)
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="mt-7 pt-5 border-t border-stone-100">
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+                Demo Accounts (1-Click Fill)
+              </p>
+              <span className="text-[10px] font-mono text-stone-400">Pass: Password123!</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {DEMO_USERS.map((u) => (
                 <button
                   key={u.email}
                   type="button"
                   onClick={() => fillDemo(u)}
-                  className="px-3 py-2 rounded-full border border-stone-200/80 bg-stone-50/80 text-[11px] font-bold text-stone-800 text-left hover:bg-amber-400 hover:text-stone-950 hover:border-amber-400 transition-all truncate"
+                  className="p-2.5 rounded-2xl border border-stone-200/80 bg-stone-50/70 text-left hover:bg-amber-400/20 hover:border-amber-400 transition-all flex items-center justify-between group"
                 >
-                  {u.label}
+                  <div className="min-w-0 pr-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full border ${u.color}`}>
+                        {u.label}
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-medium text-stone-600 truncate mt-1 group-hover:text-stone-900 font-mono">
+                      {u.email}
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-extrabold text-amber-700 bg-amber-100 px-2 py-1 rounded-full shrink-0 group-hover:bg-amber-400 group-hover:text-stone-950 transition-colors">
+                    Use
+                  </span>
                 </button>
               ))}
             </div>

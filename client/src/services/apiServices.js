@@ -59,7 +59,7 @@ export const overtimeApi = {
   getAll: (params) => api.get('/overtime', { params }),
   getMyOvertime: (params) => api.get('/overtime/me', { params }),
   getSummary: (params) => api.get('/overtime/summary', { params }),
-  approve: (id) => api.post(`/overtime/${id}/approve`),
+  approve: (id) => api.post(`/overtime/${id}/approve`, {}),
   reject: (id, data) => api.post(`/overtime/${id}/reject`, data),
   correct: (id, data) => api.patch(`/overtime/${id}/correct`, data),
 };
@@ -86,17 +86,17 @@ export const timeOffApi = {
   getAllocations: (params) => api.get('/time-off/allocations', { params }),
   createAllocation: (data) => api.post('/time-off/allocations', data),
   updateAllocation: (id, data) => api.put(`/time-off/allocations/${id}`, data),
-  approveAllocation: (id) => api.post(`/time-off/allocations/${id}/approve`),
-  refuseAllocation: (id) => api.post(`/time-off/allocations/${id}/refuse`),
+  approveAllocation: (id) => api.post(`/time-off/allocations/${id}/approve`, {}),
+  refuseAllocation: (id) => api.post(`/time-off/allocations/${id}/refuse`, {}),
 
   // Balance & Requests
   getBalance: (params) => api.get('/time-off/balance', { params }),
   getRequests: (params) => api.get('/time-off/requests', { params }),
   getRequest: (id) => api.get(`/time-off/requests/${id}`),
   createRequest: (data) => api.post('/time-off/requests', data),
-  approve: (id) => api.post(`/time-off/requests/${id}/approve`),
+  approve: (id) => api.post(`/time-off/requests/${id}/approve`, {}),
   reject: (id, data) => api.post(`/time-off/requests/${id}/reject`, data),
-  cancel: (id) => api.post(`/time-off/requests/${id}/cancel`),
+  cancel: (id) => api.post(`/time-off/requests/${id}/cancel`, {}),
 };
 
 export const salaryApi = {
@@ -122,12 +122,12 @@ export const payrollApi = {
   getPayrun: (id) => api.get(`/payruns/${id}`),
   createPayrun: (data) => api.post('/payruns', data),
   checkOverlaps: (data) => api.post('/payruns/check-overlaps', data),
-  compute: (id) => api.post(`/payruns/${id}/compute`),
-  computePayrun: (id) => api.post(`/payruns/${id}/compute`),
-  validate: (id) => api.post(`/payruns/${id}/validate`),
-  validatePayrun: (id) => api.post(`/payruns/${id}/validate`),
-  markPaid: (id) => api.post(`/payruns/${id}/mark-paid`),
-  sendPayslips: (id) => api.post(`/payruns/${id}/send-payslips`),
+  compute: (id) => api.post(`/payruns/${id}/compute`, {}),
+  computePayrun: (id) => api.post(`/payruns/${id}/compute`, {}),
+  validate: (id) => api.post(`/payruns/${id}/validate`, {}),
+  validatePayrun: (id) => api.post(`/payruns/${id}/validate`, {}),
+  markPaid: (id) => api.post(`/payruns/${id}/mark-paid`, {}),
+  sendPayslips: (id) => api.post(`/payruns/${id}/send-payslips`, {}),
   getPayslipDispatchStatus: (id) => api.get(`/payruns/${id}/send-payslips/status`),
   getBankAdviceSummary: (id) => api.get(`/payruns/${id}/bank-advice/summary`),
   downloadBankAdvice: (id) => api.get(`/payruns/${id}/bank-advice`, { responseType: 'blob' }),
@@ -165,7 +165,7 @@ export const workingDaysApi = {
 
 export const holidayApi = {
   getSuggestions: () => api.get('/holidays/suggestions'),
-  sync: (params) => api.post('/holidays/sync', null, { params }),
+  sync: (params) => api.post('/holidays/sync', {}, { params }),
   processSuggestion: (id, status) => api.post(`/holidays/suggestions/${id}/process`, { status }),
   createManual: (data) => api.post('/holidays/manual', data),
   getCompanyHolidays: (params) => api.get('/holidays/company', { params }),
@@ -173,5 +173,12 @@ export const holidayApi = {
 
 export const redisApi = {
   getStatus: () => api.get('/admin/redis-status'),
-  clearCache: () => api.post('/admin/redis-clear'),
+  clearCache: () => api.post('/admin/redis-clear', {}),
 };
+
+export const taxApi = {
+  calculate: (data) => api.post('/tax/calculate', data),
+  compare: (data) => api.post('/tax/compare', data),
+  getEmployeeTaxProfile: (id, params) => api.get(`/tax/employee/${id}`, { params }),
+};
+

@@ -2,17 +2,11 @@
  * PeoplePay360 Comprehensive Database Seed Script
  * 
  * Populates the database with ~300 realistic Indian employee profiles,
- * working schedules, departments, salary structures, contracts, leave data,
- * attendance, payruns, payslips, policies, holidays, and audit logs.
- * 
- * Demonstrates all platform features:
- * - Period-based contract detection & multi-contract histories
- * - Dynamic working days & dynamic monthly policy overrides
- * - Paid/unpaid leave prorated salary calculations
- * - Per-employee schedule-attributed attendance (Late, Overtime, Missing Checkout)
- * - Strict-structure payslip calculation with fixed medical/transport allowances
- * - Data integrity alerts (missing contracts, missing bank details, overrides, period adjustments)
- * - Role-based access and dashboards (Admin, HR Payroll Manager, HR Payroll User, HR Manager, Employee)
+ * working schedules with HR policy credit settings, geofence locations & audits,
+ * departments, salary structures, contracts, leave allocations & requests,
+ * attendance (including Half-Day, Short-Hours, Overtime, Geofence tracking),
+ * explicit Overtime records, multi-month payruns, payslips, working days policies,
+ * holiday suggestions, company holidays, and audit logs.
  * 
  * Idempotent execution: run directly via `node prisma/seed.js` or `npm run db:seed`.
  */
@@ -24,7 +18,6 @@ require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
 
 const prisma = new PrismaClient();
 
-// Helper: Seeded deterministic PRNG for reproducible runs if needed
 function randomBetween(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -81,22 +74,13 @@ const JOB_POSITIONS_BY_DEPT = {
 
 async function main() {
   console.log('============================================================');
-  console.log('🚀 PeoplePay360 Seed Script — Enterprise Demo Dataset Generator');
+  console.log('🚀 PeoplePay360 Seed Script — Full Platform Dataset Generator');
   console.log('============================================================\n');
-
-  // Check if force flag is passed
-  const isForce = process.argv.includes('--force');
-  const existingEmployees = await prisma.employee.count();
-
-  if (existingEmployees > 0 && !isForce) {
-    console.log(`ℹ️  Found ${existingEmployees} existing employees in database.`);
-    console.log('   Re-clearing and reseeding database to ensure clean, consistent state...\n');
-  }
 
   // ------------------------------------------------------------
   // CLEANUP (Order handles Foreign Key constraints)
   // ------------------------------------------------------------
-  console.log('🧹 Cleaning existing data...');
+  console.log('🧹 Cleaning existing database records...');
   await prisma.auditLog.deleteMany();
   await prisma.companyHoliday.deleteMany();
   await prisma.holidaySuggestion.deleteMany();
@@ -148,16 +132,26 @@ async function main() {
   console.log(`✅ ${Object.keys(departmentMap).length} Departments created\n`);
 
   // ------------------------------------------------------------
-  // 2. WORKING SCHEDULES (~4 records)
+  // 2. WORKING SCHEDULES (With HR Attendance Policy Rules)
   // ------------------------------------------------------------
-  console.log('📅 2/12 Seeding Working Schedules...');
+  console.log('📅 2/12 Seeding Working Schedules & HR Attendance Policies...');
   
-  // Standard 9-6 (40h/wk)
+  // 1. Standard 9-6 (40h/wk)
   const stdSchedule = await prisma.workingSchedule.create({
     data: {
       name: 'Standard 9-6',
       type: 'FIXED',
       weeklyHours: 40,
+      minHoursForFullDay: 7.0,
+      minHoursForHalfDay: 4.0,
+      lateGraceMinutes: 15,
+      monthlyLateGraceCount: 3,
+      latePenaltyType: 'HALF_DAY',
+      overtimeMinMinutes: 30,
+      overtimeMultiplier: 1.5,
+      weekendOvertimeMultiplier: 2.0,
+      holidayOvertimeMultiplier: 2.0,
+      overtimeRequiresApproval: true,
       isActive: true,
       days: {
         create: [
@@ -173,12 +167,22 @@ async function main() {
     }
   });
 
-  // Early Shift 8-5 (40h/wk)
+  // 2. Early Shift 8-5 (40h/wk)
   const earlySchedule = await prisma.workingSchedule.create({
     data: {
       name: 'Early Shift',
       type: 'FIXED',
       weeklyHours: 40,
+      minHoursForFullDay: 7.0,
+      minHoursForHalfDay: 4.0,
+      lateGraceMinutes: 10,
+      monthlyLateGraceCount: 3,
+      latePenaltyType: 'HALF_DAY',
+      overtimeMinMinutes: 30,
+      overtimeMultiplier: 1.5,
+      weekendOvertimeMultiplier: 2.0,
+      holidayOvertimeMultiplier: 2.0,
+      overtimeRequiresApproval: true,
       isActive: true,
       days: {
         create: [
@@ -194,12 +198,22 @@ async function main() {
     }
   });
 
-  // Flexible Hours (40h/wk)
+  // 3. Flexible Hours (40h/wk)
   const flexSchedule = await prisma.workingSchedule.create({
     data: {
       name: 'Flexible Hours',
       type: 'FLEXIBLE',
       weeklyHours: 40,
+      minHoursForFullDay: 6.5,
+      minHoursForHalfDay: 3.5,
+      lateGraceMinutes: 30,
+      monthlyLateGraceCount: 5,
+      latePenaltyType: 'HALF_DAY',
+      overtimeMinMinutes: 45,
+      overtimeMultiplier: 1.5,
+      weekendOvertimeMultiplier: 2.0,
+      holidayOvertimeMultiplier: 2.0,
+      overtimeRequiresApproval: false,
       isActive: true,
       days: {
         create: [
@@ -215,12 +229,22 @@ async function main() {
     }
   });
 
-  // Rotational Shift A/B (6-day week: Mon-Sat, 42h/wk)
+  // 4. Rotational Shift A/B (6-day week: Mon-Sat, 42h/wk)
   const shiftSchedule = await prisma.workingSchedule.create({
     data: {
       name: 'Rotational Shift A/B',
       type: 'SHIFT',
       weeklyHours: 42,
+      minHoursForFullDay: 7.0,
+      minHoursForHalfDay: 4.0,
+      lateGraceMinutes: 15,
+      monthlyLateGraceCount: 2,
+      latePenaltyType: 'FULL_DAY',
+      overtimeMinMinutes: 30,
+      overtimeMultiplier: 1.5,
+      weekendOvertimeMultiplier: 2.0,
+      holidayOvertimeMultiplier: 2.0,
+      overtimeRequiresApproval: true,
       isActive: true,
       days: {
         create: [
@@ -240,7 +264,7 @@ async function main() {
   console.log(`✅ ${schedules.length} Working Schedules created with day mappings\n`);
 
   // ------------------------------------------------------------
-  // ATTENDANCE LOCATIONS
+  // ATTENDANCE LOCATIONS (GEOFENCES) & AUDIT LOGS
   // ------------------------------------------------------------
   const headOfficeLoc = await prisma.attendanceLocation.create({
     data: { name: 'Head Office (Ahmedabad)', latitude: 23.0225, longitude: 72.5714, radiusMeters: 500, isActive: true }
@@ -250,6 +274,17 @@ async function main() {
   });
   const techParkLoc = await prisma.attendanceLocation.create({
     data: { name: 'Tech Park (Bengaluru)', latitude: 12.9716, longitude: 77.5946, radiusMeters: 400, isActive: true }
+  });
+
+  await prisma.attendanceLocationAudit.create({
+    data: {
+      locationId: headOfficeLoc.id,
+      locationName: headOfficeLoc.name,
+      changedById: 'SYSTEM',
+      changedByName: 'Admin',
+      changeType: 'CREATE',
+      newValues: { radius: 500, lat: 23.0225, lng: 72.5714 }
+    }
   });
 
   // ------------------------------------------------------------
@@ -325,7 +360,7 @@ async function main() {
     }
   });
 
-  // 4. Het ki start up (Exact name preserved)
+  // 4. Het ki start up
   const startupStruct = await prisma.salaryStructure.create({
     data: {
       name: 'Het ki start up',
@@ -355,7 +390,6 @@ async function main() {
   const TOTAL_EMPLOYEES = 300;
   const deptList = Object.keys(departmentMap);
 
-  // Dedicated credentials array for key demo accounts
   const demoAccounts = [
     { email: 'admin@peoplepay360.com', role: 'ADMIN', code: 'EMP001', first: 'Priya', last: 'Sharma', dept: 'Human Resources', pos: 'HR Director' },
     { email: 'payrollmanager@peoplepay360.com', role: 'HR_PAYROLL_MANAGER', code: 'EMP002', first: 'Rajesh', last: 'Kumar', dept: 'Finance', pos: 'Payroll Manager' },
@@ -364,7 +398,6 @@ async function main() {
     { email: 'employee@peoplepay360.com', role: 'EMPLOYEE', code: 'EMP005', first: 'Het', last: 'Zadafiya', dept: 'Engineering', pos: 'Senior Software Engineer' },
   ];
 
-  // Role distribution targets: 3 Admin, 5 HR Payroll Mgr, 7 HR Payroll User, 15 HR Manager, 270 Employee
   const rolePool = [
     ...Array(2).fill('ADMIN'),
     ...Array(4).fill('HR_PAYROLL_MANAGER'),
@@ -374,7 +407,7 @@ async function main() {
   ];
 
   const seededEmployees = [];
-  const deptManagers = {}; // track manager IDs by dept
+  const deptManagers = {};
 
   for (let i = 1; i <= TOTAL_EMPLOYEES; i++) {
     const code = `EMP${String(i).padStart(3, '0')}`;
@@ -411,21 +444,19 @@ async function main() {
     if (i % 10 === 0) employeeType = 'PART_TIME';
     if (i % 20 === 0) employeeType = 'CONTRACT';
 
-    // Joining date spread across 1-8 years ago
     const yearsAgo = randomBetween(1, 8);
     const month = randomBetween(0, 11);
     const day = randomBetween(1, 28);
     const joiningDate = new Date(Date.now() - yearsAgo * 365 * 86400000 + month * 30 * 86400000 + day * 86400000);
     const dob = new Date(joiningDate.getFullYear() - randomBetween(22, 50), month, day);
 
-    // Bank details: 85% populated, 15% deliberately blank (for warnings queue test)
-    const hasBankDetails = i % 7 !== 0; // ~15% blank
+    // Bank & PAN details (88% populated)
+    const hasBankDetails = i % 8 !== 0;
     const bankAccountName = hasBankDetails ? `${firstName} ${lastName}` : null;
     const bankAccountNumber = hasBankDetails ? `${randomBetween(10000000000, 99999999999)}` : null;
     const bankName = hasBankDetails ? randomItem(BANK_NAMES) : null;
     const panNumber = hasBankDetails ? `${lastName.slice(0, 3).toUpperCase()}${firstName.slice(0, 2).toUpperCase()}${randomBetween(1000, 9999)}P` : null;
 
-    // Manager assignment: first 2 employees in department become managers
     let managerId = null;
     if (!deptManagers[deptName]) {
       deptManagers[deptName] = [];
@@ -434,11 +465,9 @@ async function main() {
       managerId = deptManagers[deptName][0];
     }
 
-    // Schedule assignment
     const scheduleId = schedules[(i - 1) % schedules.length].id;
     const locationId = [headOfficeLoc.id, branchOfficeLoc.id, techParkLoc.id][i % 3];
 
-    // Create linked User
     const user = await prisma.user.create({
       data: {
         email,
@@ -448,7 +477,6 @@ async function main() {
       }
     });
 
-    // Create Employee
     const employee = await prisma.employee.create({
       data: {
         employeeCode: code,
@@ -494,27 +522,24 @@ async function main() {
     const emp = seededEmployees[idx];
     const i = idx + 1;
 
-    // Determine wage scale by seniority
-    let baseWage = randomBetween(22000, 35000); // Junior
+    let baseWage = randomBetween(24000, 38000); // Junior
     let structureId = juniorStruct.id;
 
     if (emp.jobPosition.includes('Manager') || emp.jobPosition.includes('Director') || emp.jobPosition.includes('VP') || emp.jobPosition.includes('Lead') || emp.jobPosition.includes('Architect')) {
-      baseWage = randomBetween(95000, 185000); // Senior / Manager
+      baseWage = randomBetween(95000, 195000); // Senior / Manager
       structureId = seniorStruct.id;
     } else if (emp.jobPosition.includes('Senior') || emp.jobPosition.includes('Specialist') || emp.jobPosition.includes('Analyst')) {
-      baseWage = randomBetween(45000, 80000); // Mid Level
+      baseWage = randomBetween(48000, 85000); // Mid Level
       structureId = midStruct.id;
     }
 
-    // Assign 'Het ki start up' structure to ~20 employees for realistic distribution
     if (i >= 200 && i <= 220) {
       structureId = startupStruct.id;
-      baseWage = 42000;
+      baseWage = 45000;
     }
 
     if (emp.status === 'TERMINATED') {
-      // Create ended contract
-      const contract = await prisma.contract.create({
+      await prisma.contract.create({
         data: {
           employeeId: emp.id,
           startDate: new Date('2024-01-01'),
@@ -532,9 +557,8 @@ async function main() {
       continue;
     }
 
-    // Deliberate Contract Gap for 5 employees (triggers Admin Data Integrity Alerts widget)
+    // Contract gap for 5 employees (for data integrity alerts)
     if (i >= 295 && i <= 299) {
-      // Ended contract with no active renewal
       await prisma.contract.create({
         data: {
           employeeId: emp.id,
@@ -553,9 +577,8 @@ async function main() {
       continue;
     }
 
-    // Multi-contract history for ~30 employees (~10%)
+    // Multi-contract history for ~30 employees
     if (i <= 30) {
-      // Historical Expired Contract
       await prisma.contract.create({
         data: {
           employeeId: emp.id,
@@ -563,7 +586,7 @@ async function main() {
           endDate: new Date('2026-06-30'),
           departmentId: emp.departmentId,
           position: emp.jobPosition,
-          wage: Math.round(baseWage * 0.82), // earlier wage
+          wage: Math.round(baseWage * 0.82),
           salaryStructureId: structureId,
           annualLeaveQuota: 24,
           status: 'EXPIRED',
@@ -572,7 +595,6 @@ async function main() {
       });
       contractCount++;
 
-      // Current Active Contract starting July 1, 2026
       const activeContract = await prisma.contract.create({
         data: {
           employeeId: emp.id,
@@ -590,7 +612,6 @@ async function main() {
       contractCount++;
       contractMap[emp.id] = activeContract;
     } else {
-      // Standard active contract
       const activeContract = await prisma.contract.create({
         data: {
           employeeId: emp.id,
@@ -609,7 +630,7 @@ async function main() {
     }
   }
 
-  console.log(`✅ ${contractCount} Contracts created (including historical expired contracts and 5 deliberate contract gaps)\n`);
+  console.log(`✅ ${contractCount} Contracts created\n`);
 
   // ------------------------------------------------------------
   // 6. TIME OFF TYPES (~6 records)
@@ -644,7 +665,6 @@ async function main() {
   const validFrom = new Date('2026-01-01');
   const validTo = new Date('2026-12-31');
 
-  // Create Allocations for active employees
   for (const emp of activeEmployees) {
     await prisma.timeOffAllocation.create({
       data: {
@@ -692,10 +712,9 @@ async function main() {
     });
   }
 
-  // Create Time Off Requests across last 2-3 months
   let requestCount = 0;
   
-  // 1. Unpaid Leave for 20 employees (to test proportional salary deduction in payroll)
+  // Unpaid Leave for 20 employees
   for (let idx = 0; idx < 20; idx++) {
     const emp = activeEmployees[idx];
     await prisma.timeOffRequest.create({
@@ -714,7 +733,7 @@ async function main() {
     requestCount++;
   }
 
-  // 2. Approved Paid Leaves in past months
+  // Approved Paid Leaves
   for (let idx = 20; idx < 80; idx++) {
     const emp = activeEmployees[idx];
     await prisma.timeOffRequest.create({
@@ -733,8 +752,8 @@ async function main() {
     requestCount++;
   }
 
-  // 3. Pending Requests (for HR Approval Queue demo)
-  for (let idx = 80; idx < 100; idx++) {
+  // Pending Requests (for In-Card Pagination and HR approval)
+  for (let idx = 80; idx < 105; idx++) {
     const emp = activeEmployees[idx];
     await prisma.timeOffRequest.create({
       data: {
@@ -750,8 +769,8 @@ async function main() {
     requestCount++;
   }
 
-  // 4. Rejected Requests
-  for (let idx = 100; idx < 110; idx++) {
+  // Rejected Requests
+  for (let idx = 105; idx < 115; idx++) {
     const emp = activeEmployees[idx];
     await prisma.timeOffRequest.create({
       data: {
@@ -773,16 +792,15 @@ async function main() {
   console.log(`✅ ${activeEmployees.length * 3} Allocations & ${requestCount} Time Off Requests created\n`);
 
   // ------------------------------------------------------------
-  // 8. ATTENDANCE (Last 3 Months, Batch Created)
+  // 8. ATTENDANCE & OVERTIME RECORDS (Last 3 Months)
   // ------------------------------------------------------------
-  console.log('⏰ 8/12 Generating Daily Attendance for last 3 months (~19,500 records)...');
+  console.log('⏰ 8/12 Generating Daily Attendance & Overtime for last 3 months...');
 
   const attendanceBatch = [];
-  // Dates: June 1, 2026 to August 31, 2026 (~65 working days)
+  const overtimeBatch = [];
   const startDate = new Date('2026-06-01');
   const endDate = new Date('2026-08-31');
 
-  // Map employee ID to schedule start time
   const empScheduleTimes = {};
   for (const emp of activeEmployees) {
     empScheduleTimes[emp.id] = emp.workingScheduleId === flexSchedule.id ? '09:30' : (emp.workingScheduleId === earlySchedule.id ? '08:00' : '09:00');
@@ -790,7 +808,7 @@ async function main() {
 
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const dayOfWeek = d.getDay();
-    if (dayOfWeek === 0) continue; // Sunday off for all
+    if (dayOfWeek === 0) continue; // Sunday off
 
     const dateStr = d.toISOString().split('T')[0];
 
@@ -799,9 +817,9 @@ async function main() {
       const isSat = dayOfWeek === 6;
       const is6DayWorker = emp.workingScheduleId === shiftSchedule.id;
 
-      if (isSat && !is6DayWorker) continue; // Saturday off for 5-day schedules
+      if (isSat && !is6DayWorker) continue;
 
-      // Status distribution: 75% PRESENT, 10% LATE, 8% OVERTIME, 4% ABSENT, 2% MISSING_CHECKOUT, 1% MANUAL_CORRECTION
+      // Status distribution: 70% PRESENT, 10% LATE, 6% OVERTIME, 4% HALF_DAY, 3% SHORT_HOURS, 4% ABSENT, 2% MISSING_CHECKOUT, 1% MANUAL_CORRECTION
       const rand = randomBetween(1, 100);
       let status = 'PRESENT';
       let checkIn = null;
@@ -813,23 +831,35 @@ async function main() {
       const schedStart = empScheduleTimes[emp.id] || '09:00';
       const [startH, startM] = schedStart.split(':').map(Number);
 
-      if (rand <= 75) {
+      if (rand <= 70) {
         status = 'PRESENT';
         checkIn = new Date(`${dateStr}T${String(startH).padStart(2, '0')}:${String(randomBetween(0, 10)).padStart(2, '0')}:00Z`);
         checkOut = new Date(`${dateStr}T${String(startH + 9).padStart(2, '0')}:${String(randomBetween(0, 15)).padStart(2, '0')}:00Z`);
         workedHours = 8.0;
-      } else if (rand <= 85) {
+      } else if (rand <= 80) {
         status = 'LATE';
         checkIn = new Date(`${dateStr}T${String(startH).padStart(2, '0')}:${String(randomBetween(20, 55)).padStart(2, '0')}:00Z`);
         checkOut = new Date(`${dateStr}T${String(startH + 9).padStart(2, '0')}:00:00Z`);
         workedHours = 7.5;
-        notes = `Late check-in recorded past scheduled ${schedStart} start`;
-      } else if (rand <= 93) {
+        notes = `Late check-in past ${schedStart}`;
+      } else if (rand <= 86) {
         status = 'OVERTIME';
         checkIn = new Date(`${dateStr}T${String(startH).padStart(2, '0')}:00:00Z`);
         checkOut = new Date(`${dateStr}T${String(startH + 11).padStart(2, '0')}:30:00Z`);
         workedHours = 10.5;
         notes = 'Approved project overtime (+2.5 hours)';
+      } else if (rand <= 90) {
+        status = 'HALF_DAY';
+        checkIn = new Date(`${dateStr}T${String(startH).padStart(2, '0')}:00:00Z`);
+        checkOut = new Date(`${dateStr}T${String(startH + 5).padStart(2, '0')}:00:00Z`);
+        workedHours = 5.0;
+        notes = 'Half day logged (5.0 hours worked)';
+      } else if (rand <= 93) {
+        status = 'SHORT_HOURS';
+        checkIn = new Date(`${dateStr}T${String(startH).padStart(2, '0')}:00:00Z`);
+        checkOut = new Date(`${dateStr}T${String(startH + 1).padStart(2, '0')}:30:00Z`);
+        workedHours = 1.5;
+        notes = 'Short hours logged (<4.0 hours threshold)';
       } else if (rand <= 97) {
         status = 'ABSENT';
         checkIn = null;
@@ -850,7 +880,7 @@ async function main() {
         notes = 'Attendance manually adjusted by HR Administrator';
       }
 
-      attendanceBatch.push({
+      const attRecord = {
         employeeId: emp.id,
         date: new Date(dateStr),
         checkIn,
@@ -861,18 +891,55 @@ async function main() {
         correctionReason: isManual ? 'Card reader glitch at turnstile' : null,
         notes,
         attendanceLocationId: emp.attendanceLocationId,
-      });
+        checkInLatitude: 23.0225 + (Math.random() - 0.5) * 0.002,
+        checkInLongitude: 72.5714 + (Math.random() - 0.5) * 0.002,
+        checkInDistanceMeters: randomBetween(20, 150),
+        checkInAllowedRadiusMeters: 500,
+      };
+
+      attendanceBatch.push(attRecord);
+
+      // Explicit Overtime record for OVERTIME status
+      if (status === 'OVERTIME') {
+        const hourlyRate = Math.round(((contractMap[emp.id]?.wage || 45000) / 22) / 8);
+        const otHours = 2.5;
+        const multiplier = 1.5;
+        const otRate = hourlyRate * multiplier;
+        const otAmount = otHours * otRate;
+
+        overtimeBatch.push({
+          employeeId: emp.id,
+          date: new Date(dateStr),
+          expectedHours: 8.0,
+          actualHours: 10.5,
+          overtimeHours: otHours,
+          hourlyRate,
+          multiplier,
+          overtimeRate: otRate,
+          overtimeAmount: otAmount,
+          status: 'APPROVED',
+          reason: 'Critical feature delivery & sprint deadline',
+          approvedByName: 'Priya Sharma (HR Director)',
+          approvedAt: new Date(`${dateStr}T20:00:00Z`),
+        });
+      }
     }
   }
 
-  // Insert attendance in chunks of 2,000 records to prevent memory buffer overflow
+  // Insert attendance in chunks of 2,000
   const CHUNK_SIZE = 2000;
   for (let i = 0; i < attendanceBatch.length; i += CHUNK_SIZE) {
     const chunk = attendanceBatch.slice(i, i + CHUNK_SIZE);
     await prisma.attendance.createMany({ data: chunk, skipDuplicates: true });
   }
 
-  console.log(`✅ ${attendanceBatch.length} Daily Attendance records inserted in bulk\n`);
+  // Insert overtime records
+  for (let i = 0; i < overtimeBatch.length; i += CHUNK_SIZE) {
+    const chunk = overtimeBatch.slice(i, i + CHUNK_SIZE);
+    await prisma.overtime.createMany({ data: chunk, skipDuplicates: true });
+  }
+
+  console.log(`✅ ${attendanceBatch.length} Daily Attendance & ${overtimeBatch.length} Overtime records inserted\n`);
 
   // ------------------------------------------------------------
   // 9. WORKING DAYS POLICY
@@ -905,7 +972,6 @@ async function main() {
     data: { date: new Date('2026-10-02'), name: 'Gandhi Jayanti', isPaid: true, linkedSuggestionId: holiday2.id }
   });
 
-  // Pending & Rejected suggestions for dashboard widget
   await prisma.holidaySuggestion.create({
     data: { date: new Date('2026-09-14'), name: 'Ganesh Chaturthi', source: 'API_CALENDARIFIC', status: 'PENDING', country: 'IN' }
   });
@@ -925,15 +991,14 @@ async function main() {
 
   const payrollManager = seededEmployees.find(e => e.email === 'payrollmanager@peoplepay360.com');
 
-  // 4 Historical PAID Payruns (May, June, July, August 2026)
   const historicalPeriods = [
     { name: 'Payroll - May 2026', start: '2026-05-01', end: '2026-05-31', totalDays: 22 },
     { name: 'Payroll - June 2026', start: '2026-06-01', end: '2026-06-30', totalDays: 22 },
     { name: 'Payroll - July 2026', start: '2026-07-01', end: '2026-07-31', totalDays: 22 },
-    { name: 'Payroll - August 2026', start: '2026-08-01', end: '2026-08-31', totalDays: 21 }, // overridden month
+    { name: 'Payroll - August 2026', start: '2026-08-01', end: '2026-08-31', totalDays: 21 },
   ];
 
-  const payrunEmployees = activeEmployees.slice(0, 75); // ~75 employees per payrun
+  const payrunEmployees = activeEmployees.slice(0, 100);
 
   for (const period of historicalPeriods) {
     const payrun = await prisma.payrun.create({
@@ -962,7 +1027,14 @@ async function main() {
       const hra = Math.round(basic * 0.50);
       const transport = 2000;
       const medical = 2000;
-      const gross = basic + hra + transport + medical;
+
+      const hasOt = (emp.employeeCode.charCodeAt(emp.employeeCode.length - 1) % 3 === 0);
+      const overtimeHours = hasOt ? randomBetween(2, 6) : 0;
+      const hourlyRate = Math.round((wage / period.totalDays) / 8);
+      const overtimeRate = Math.round(hourlyRate * 1.5);
+      const overtimeAmount = Math.round(overtimeHours * overtimeRate);
+
+      const gross = basic + hra + transport + medical + overtimeAmount;
       const pf = Math.round(basic * 0.12);
       const pt = 200;
       const tds = Math.max(0, Math.round(gross * 0.1 - 2500));
@@ -973,7 +1045,26 @@ async function main() {
       runDeductions += deductions;
       runNet += net;
 
-      const payslip = await prisma.payslip.create({
+      const lines = [
+        { name: 'Basic Salary', code: 'BASIC', category: 'BASIC', sequence: 1, amount: basic, quantity: 1, rate: basic },
+        { name: 'House Rent Allowance', code: 'HRA', category: 'ALLOWANCE', sequence: 2, amount: hra, quantity: 1, rate: hra },
+        { name: 'Transport Allowance', code: 'TRANSPORT', category: 'ALLOWANCE', sequence: 3, amount: transport, quantity: 1, rate: transport },
+        { name: 'Medical Allowance', code: 'MEDICAL', category: 'ALLOWANCE', sequence: 4, amount: medical, quantity: 1, rate: medical },
+      ];
+
+      if (overtimeAmount > 0) {
+        lines.push({ name: 'Overtime Pay', code: 'OT', category: 'ALLOWANCE', sequence: 4.5, amount: overtimeAmount, quantity: overtimeHours, rate: overtimeRate });
+      }
+
+      lines.push(
+        { name: 'Gross Salary', code: 'GROSS', category: 'GROSS', sequence: 5, amount: gross, quantity: 1, rate: gross },
+        { name: 'Provident Fund', code: 'PF', category: 'DEDUCTION', sequence: 6, amount: pf, quantity: 1, rate: pf },
+        { name: 'Professional Tax', code: 'PT', category: 'DEDUCTION', sequence: 7, amount: pt, quantity: 1, rate: pt },
+        { name: 'Income Tax (TDS)', code: 'TDS', category: 'DEDUCTION', sequence: 8, amount: tds, quantity: 1, rate: tds },
+        { name: 'Net Salary', code: 'NET', category: 'NET', sequence: 9, amount: net, quantity: 1, rate: net }
+      );
+
+      await prisma.payslip.create({
         data: {
           payrunId: payrun.id,
           employeeId: emp.id,
@@ -984,7 +1075,9 @@ async function main() {
           workedDays: period.totalDays,
           totalWorkingDays: period.totalDays,
           leaveDays: 0,
-          overtimeHours: randomBetween(0, 5),
+          overtimeHours,
+          overtimeRate: overtimeHours > 0 ? overtimeRate : 0,
+          overtimeAmount,
           status: 'PAID',
           grossSalary: gross,
           totalDeductions: deductions,
@@ -992,17 +1085,7 @@ async function main() {
           hasWarnings: false,
           hasErrors: false,
           lines: {
-            create: [
-              { name: 'Basic Salary', code: 'BASIC', category: 'BASIC', sequence: 1, amount: basic, quantity: 1, rate: basic },
-              { name: 'House Rent Allowance', code: 'HRA', category: 'ALLOWANCE', sequence: 2, amount: hra, quantity: 1, rate: hra },
-              { name: 'Transport Allowance', code: 'TRANSPORT', category: 'ALLOWANCE', sequence: 3, amount: transport, quantity: 1, rate: transport },
-              { name: 'Medical Allowance', code: 'MEDICAL', category: 'ALLOWANCE', sequence: 4, amount: medical, quantity: 1, rate: medical },
-              { name: 'Gross Salary', code: 'GROSS', category: 'GROSS', sequence: 5, amount: gross, quantity: 1, rate: gross },
-              { name: 'Provident Fund', code: 'PF', category: 'DEDUCTION', sequence: 6, amount: pf, quantity: 1, rate: pf },
-              { name: 'Professional Tax', code: 'PT', category: 'DEDUCTION', sequence: 7, amount: pt, quantity: 1, rate: pt },
-              { name: 'Income Tax (TDS)', code: 'TDS', category: 'DEDUCTION', sequence: 8, amount: tds, quantity: 1, rate: tds },
-              { name: 'Net Salary', code: 'NET', category: 'NET', sequence: 9, amount: net, quantity: 1, rate: net },
-            ]
+            create: lines
           }
         }
       });
@@ -1014,7 +1097,7 @@ async function main() {
     });
   }
 
-  // 1 Current Payrun (September 2026) in COMPUTED status
+  // Current Payrun (September 2026) in COMPUTED status
   const septPayrun = await prisma.payrun.create({
     data: {
       name: 'Payroll - September 2026',
@@ -1029,7 +1112,7 @@ async function main() {
 
   let currentGross = 0, currentDeductions = 0, currentNet = 0;
 
-  for (let idx = 0; idx < 80; idx++) {
+  for (let idx = 0; idx < 100; idx++) {
     const emp = activeEmployees[idx];
     const contract = contractMap[emp.id];
     if (!contract) continue;
@@ -1039,7 +1122,14 @@ async function main() {
     const hra = Math.round(basic * 0.50);
     const transport = 2000;
     const medical = 2000;
-    const gross = basic + hra + transport + medical;
+
+    const hasOt = (idx % 3 === 0);
+    const overtimeHours = hasOt ? randomBetween(2, 6) : 0;
+    const hourlyRate = Math.round((wage / 22) / 8);
+    const overtimeRate = Math.round(hourlyRate * 1.5);
+    const overtimeAmount = Math.round(overtimeHours * overtimeRate);
+
+    const gross = basic + hra + transport + medical + overtimeAmount;
     const pf = Math.round(basic * 0.12);
     const pt = 200;
     const tds = Math.max(0, Math.round(gross * 0.1 - 2500));
@@ -1050,10 +1140,28 @@ async function main() {
     currentDeductions += deductions;
     currentNet += net;
 
-    // Check warning conditions: missing bank details, override, period adjustment
     const isMissingBank = !emp.bankAccountNumber;
     const isOverride = idx === 5 || idx === 6;
     const isPeriodAdjusted = idx === 12;
+
+    const lines = [
+      { name: 'Basic Salary', code: 'BASIC', category: 'BASIC', sequence: 1, amount: basic, quantity: 1, rate: basic },
+      { name: 'House Rent Allowance', code: 'HRA', category: 'ALLOWANCE', sequence: 2, amount: hra, quantity: 1, rate: hra },
+      { name: 'Transport Allowance', code: 'TRANSPORT', category: 'ALLOWANCE', sequence: 3, amount: transport, quantity: 1, rate: transport },
+      { name: 'Medical Allowance', code: 'MEDICAL', category: 'ALLOWANCE', sequence: 4, amount: medical, quantity: 1, rate: medical },
+    ];
+
+    if (overtimeAmount > 0) {
+      lines.push({ name: 'Overtime Pay', code: 'OT', category: 'ALLOWANCE', sequence: 4.5, amount: overtimeAmount, quantity: overtimeHours, rate: overtimeRate });
+    }
+
+    lines.push(
+      { name: 'Gross Salary', code: 'GROSS', category: 'GROSS', sequence: 5, amount: gross, quantity: 1, rate: gross },
+      { name: 'Provident Fund', code: 'PF', category: 'DEDUCTION', sequence: 6, amount: pf, quantity: 1, rate: pf },
+      { name: 'Professional Tax', code: 'PT', category: 'DEDUCTION', sequence: 7, amount: pt, quantity: 1, rate: pt },
+      { name: 'Income Tax (TDS)', code: 'TDS', category: 'DEDUCTION', sequence: 8, amount: tds, quantity: 1, rate: tds },
+      { name: 'Net Salary', code: 'NET', category: 'NET', sequence: 9, amount: net, quantity: 1, rate: net }
+    );
 
     await prisma.payslip.create({
       data: {
@@ -1070,7 +1178,9 @@ async function main() {
         workedDays: 22,
         totalWorkingDays: 22,
         leaveDays: 0,
-        overtimeHours: randomBetween(0, 4),
+        overtimeHours,
+        overtimeRate: overtimeHours > 0 ? overtimeRate : 0,
+        overtimeAmount,
         status: 'COMPUTED',
         grossSalary: gross,
         totalDeductions: deductions,
@@ -1079,17 +1189,7 @@ async function main() {
         hasErrors: false,
         validationNotes: isMissingBank ? ['Employee bank account details are missing'] : null,
         lines: {
-          create: [
-            { name: 'Basic Salary', code: 'BASIC', category: 'BASIC', sequence: 1, amount: basic, quantity: 1, rate: basic },
-            { name: 'House Rent Allowance', code: 'HRA', category: 'ALLOWANCE', sequence: 2, amount: hra, quantity: 1, rate: hra },
-            { name: 'Transport Allowance', code: 'TRANSPORT', category: 'ALLOWANCE', sequence: 3, amount: transport, quantity: 1, rate: transport },
-            { name: 'Medical Allowance', code: 'MEDICAL', category: 'ALLOWANCE', sequence: 4, amount: medical, quantity: 1, rate: medical },
-            { name: 'Gross Salary', code: 'GROSS', category: 'GROSS', sequence: 5, amount: gross, quantity: 1, rate: gross },
-            { name: 'Provident Fund', code: 'PF', category: 'DEDUCTION', sequence: 6, amount: pf, quantity: 1, rate: pf },
-            { name: 'Professional Tax', code: 'PT', category: 'DEDUCTION', sequence: 7, amount: pt, quantity: 1, rate: pt },
-            { name: 'Income Tax (TDS)', code: 'TDS', category: 'DEDUCTION', sequence: 8, amount: tds, quantity: 1, rate: tds },
-            { name: 'Net Salary', code: 'NET', category: 'NET', sequence: 9, amount: net, quantity: 1, rate: net },
-          ]
+          create: lines
         }
       }
     });
@@ -1100,10 +1200,10 @@ async function main() {
     data: { totalGross: currentGross, totalDeductions: currentDeductions, totalNet: currentNet }
   });
 
-  console.log('✅ 4 Historical PAID Payruns and 1 Current COMPUTED Payrun created with flagged test payslips\n');
+  console.log('✅ 4 Historical PAID Payruns and 1 Current COMPUTED Payrun created\n');
 
   // ------------------------------------------------------------
-  // 12. AUDIT LOG (15-20 entries)
+  // 12. AUDIT LOG (16 entries)
   // ------------------------------------------------------------
   console.log('📋 12/12 Seeding Audit Logs...');
 
@@ -1147,6 +1247,7 @@ async function main() {
     timeOffAllocations: await prisma.timeOffAllocation.count(),
     timeOffRequests: await prisma.timeOffRequest.count(),
     attendance: await prisma.attendance.count(),
+    overtime: await prisma.overtime.count(),
     workingDaysPolicies: await prisma.workingDaysPolicy.count(),
     holidaySuggestions: await prisma.holidaySuggestion.count(),
     companyHolidays: await prisma.companyHoliday.count(),
@@ -1171,6 +1272,7 @@ async function main() {
   console.log(`   • Leave Allocations:    ${counts.timeOffAllocations}`);
   console.log(`   • Leave Requests:       ${counts.timeOffRequests}`);
   console.log(`   • Attendance Records:   ${counts.attendance}`);
+  console.log(`   • Overtime Records:     ${counts.overtime}`);
   console.log(`   • Working Days Policies:${counts.workingDaysPolicies}`);
   console.log(`   • Holiday Suggestions:  ${counts.holidaySuggestions}`);
   console.log(`   • Company Holidays:     ${counts.companyHolidays}`);
