@@ -86,7 +86,17 @@ const WorkingScheduleDaySchema = z.object({
 
 const CreateScheduleSchema = z.object({
   name: z.string().min(1, 'Schedule name is required'),
-  type: z.enum(['FIXED', 'FLEXIBLE', 'SHIFT']).optional(),
+  type: z.enum(['FIXED', 'FLEXIBLE', 'SHIFT']).optional().default('FIXED'),
+  minHoursForFullDay: z.coerce.number().min(1).max(24).optional().default(7.0),
+  minHoursForHalfDay: z.coerce.number().min(0.5).max(12).optional().default(4.0),
+  lateGraceMinutes: z.coerce.number().min(0).max(240).optional().default(15),
+  monthlyLateGraceCount: z.coerce.number().min(0).max(31).optional().default(3),
+  latePenaltyType: z.enum(['HALF_DAY', 'FULL_DAY', 'NONE']).optional().default('HALF_DAY'),
+  overtimeMinMinutes: z.coerce.number().min(0).max(240).optional().default(30),
+  overtimeMultiplier: z.coerce.number().min(1.0).max(5.0).optional().default(1.5),
+  weekendOvertimeMultiplier: z.coerce.number().min(1.0).max(5.0).optional().default(2.0),
+  holidayOvertimeMultiplier: z.coerce.number().min(1.0).max(5.0).optional().default(2.0),
+  overtimeRequiresApproval: z.boolean().optional().default(true),
   days: z.array(WorkingScheduleDaySchema).min(1, 'At least one day must be configured'),
 });
 

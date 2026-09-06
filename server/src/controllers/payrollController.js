@@ -678,18 +678,25 @@ const getPayslip = async (req, res, next) => {
       totalLoggedHours: 0,
     };
 
-    for (const a of attendances) {
-      if (a.workedHours) attendanceSummary.totalLoggedHours += a.workedHours;
-      switch (a.status) {
-        case 'PRESENT': attendanceSummary.present++; break;
-        case 'LATE': attendanceSummary.late++; break;
-        case 'ABSENT': attendanceSummary.absent++; break;
-        case 'OVERTIME': attendanceSummary.overtime++; break;
-        case 'MISSING_CHECKOUT': attendanceSummary.missingCheckout++; break;
-        case 'MANUAL_CORRECTION': attendanceSummary.manualCorrection++; break;
+    if (attendances.length === 0) {
+      attendanceSummary.present = Math.max(0, (payslip.workedDays || 0) - (payslip.leaveDays || 0));
+      attendanceSummary.hasDailyLogs = false;
+      attendanceSummary.totalLoggedHours = Math.round((payslip.workedDays || 0) * 8 * 100) / 100;
+    } else {
+      attendanceSummary.hasDailyLogs = true;
+      for (const a of attendances) {
+        if (a.workedHours) attendanceSummary.totalLoggedHours += a.workedHours;
+        switch (a.status) {
+          case 'PRESENT': attendanceSummary.present++; break;
+          case 'LATE': attendanceSummary.late++; break;
+          case 'ABSENT': attendanceSummary.absent++; break;
+          case 'OVERTIME': attendanceSummary.overtime++; break;
+          case 'MISSING_CHECKOUT': attendanceSummary.missingCheckout++; break;
+          case 'MANUAL_CORRECTION': attendanceSummary.manualCorrection++; break;
+        }
       }
+      attendanceSummary.totalLoggedHours = Math.round(attendanceSummary.totalLoggedHours * 100) / 100;
     }
-    attendanceSummary.totalLoggedHours = Math.round(attendanceSummary.totalLoggedHours * 100) / 100;
 
     return sendSuccess(res, {
       ...payslip,
@@ -747,16 +754,24 @@ const downloadPayslipPDF = async (req, res, next) => {
       totalLoggedHours: 0,
     };
 
-    for (const a of attendances) {
-      if (a.workedHours) attendanceSummary.totalLoggedHours += a.workedHours;
-      switch (a.status) {
-        case 'PRESENT': attendanceSummary.present++; break;
-        case 'LATE': attendanceSummary.late++; break;
-        case 'ABSENT': attendanceSummary.absent++; break;
-        case 'OVERTIME': attendanceSummary.overtime++; break;
-        case 'MISSING_CHECKOUT': attendanceSummary.missingCheckout++; break;
-        case 'MANUAL_CORRECTION': attendanceSummary.manualCorrection++; break;
+    if (attendances.length === 0) {
+      attendanceSummary.present = Math.max(0, (payslip.workedDays || 0) - (payslip.leaveDays || 0));
+      attendanceSummary.hasDailyLogs = false;
+      attendanceSummary.totalLoggedHours = Math.round((payslip.workedDays || 0) * 8 * 100) / 100;
+    } else {
+      attendanceSummary.hasDailyLogs = true;
+      for (const a of attendances) {
+        if (a.workedHours) attendanceSummary.totalLoggedHours += a.workedHours;
+        switch (a.status) {
+          case 'PRESENT': attendanceSummary.present++; break;
+          case 'LATE': attendanceSummary.late++; break;
+          case 'ABSENT': attendanceSummary.absent++; break;
+          case 'OVERTIME': attendanceSummary.overtime++; break;
+          case 'MISSING_CHECKOUT': attendanceSummary.missingCheckout++; break;
+          case 'MANUAL_CORRECTION': attendanceSummary.manualCorrection++; break;
+        }
       }
+      attendanceSummary.totalLoggedHours = Math.round(attendanceSummary.totalLoggedHours * 100) / 100;
     }
     payslip.attendanceSummary = attendanceSummary;
 

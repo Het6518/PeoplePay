@@ -17,10 +17,17 @@ function calculateWorkedHours(checkIn, checkOut, breakMinutes = 0) {
 }
 
 // Determine attendance status
-function determineStatus(workedHours, checkIn, scheduleDay) {
+function determineStatus(workedHours, checkIn, scheduleDay, schedule) {
   if (!checkIn) return 'ABSENT';
   if (workedHours === null || workedHours === undefined) return 'MISSING_CHECKOUT';
 
+  const lateGraceMinutes = schedule?.lateGraceMinutes ?? 15;
+  const minFullDay = schedule?.minHoursForFullDay ?? 7.0;
+  const minHalfDay = schedule?.minHoursForHalfDay ?? 4.0;
+  const otMinMinutes = schedule?.overtimeMinMinutes ?? 30;
+
+  // Check if check-in was late
+  let isLate = false;
   if (scheduleDay && scheduleDay.startTime) {
     const [schedH, schedM] = scheduleDay.startTime.split(':').map(Number);
     const checkInTime = new Date(checkIn);
@@ -28,18 +35,33 @@ function determineStatus(workedHours, checkIn, scheduleDay) {
     scheduledStart.setHours(schedH, schedM, 0, 0);
 
     const lateMinutes = (checkInTime - scheduledStart) / (1000 * 60);
-    if (lateMinutes > 10) return 'LATE';
+    if (lateMinutes > lateGraceMinutes) isLate = true;
   }
 
-  if (scheduleDay && scheduleDay.endTime) {
+  // Calculate expected hours for shift
+  let expectedHours = 8.0;
+  if (scheduleDay && scheduleDay.startTime && scheduleDay.endTime) {
     const [endH, endM] = scheduleDay.endTime.split(':').map(Number);
-    const expectedHours =
-      (endH * 60 +
-        endM -
-        scheduleDay.startTime.split(':').reduce((a, v, i) => a + (i === 0 ? Number(v) * 60 : Number(v)), 0) -
-        scheduleDay.breakMinutes) /
-      60;
-    if (workedHours > expectedHours + 1) return 'OVERTIME';
+    const [startH, startM] = scheduleDay.startTime.split(':').map(Number);
+    const totalMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+    expectedHours = Math.max(0, totalMinutes - (scheduleDay.breakMinutes || 0)) / 60;
+  }
+
+  // Check overtime: extra minutes worked >= overtimeMinMinutes
+  const extraHours = workedHours - expectedHours;
+  if (extraHours >= (otMinMinutes / 60) && expectedHours > 0) {
+    return 'OVERTIME';
+  }
+
+  // Check short hours / half day / present
+  if (workedHours < minHalfDay) {
+    return 'SHORT_HOURS';
+  }
+  if (workedHours < minFullDay) {
+    return 'HALF_DAY';
+  }
+  if (isLate) {
+    return 'LATE';
   }
 
   return 'PRESENT';
@@ -228,8 +250,9 @@ const checkIn = async (req, res, next) => {
       const [schedH, schedM] = scheduleDay.startTime.split(':').map(Number);
       const scheduledStart = new Date(now);
       scheduledStart.setHours(schedH, schedM, 0, 0);
+      const lateGrace = employee?.workingSchedule?.lateGraceMinutes ?? 15;
       const lateMinutes = (now - scheduledStart) / (1000 * 60);
-      if (lateMinutes > 10) initialStatus = 'LATE';
+      if (lateMinutes > lateGrace) initialStatus = 'LATE';
     }
 
     const attendanceData = {
@@ -311,7 +334,7 @@ const checkOut = async (req, res, next) => {
     const dayOfWeek = now.getDay();
     const scheduleDay = employee?.workingSchedule?.days.find((d) => d.dayOfWeek === dayOfWeek);
     const workedHours = calculateWorkedHours(record.checkIn, now, scheduleDay?.breakMinutes || 0);
-    const status = determineStatus(workedHours, record.checkIn, scheduleDay);
+    const status = determineStatus(workedHours, record.checkIn, scheduleDay, employee?.workingSchedule);
 
     const updated = await prisma.attendance.update({
       where: { id: record.id },

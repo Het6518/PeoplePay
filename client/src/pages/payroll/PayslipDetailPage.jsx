@@ -229,6 +229,10 @@ export default function PayslipDetailPage() {
           const summary = payslip.attendanceSummary || {};
           const present = summary.present ?? payslip.workedDays ?? 0;
           const late = summary.late ?? 0;
+          const lateGrace = summary.lateGraceApplied ?? 0;
+          const latePenalized = summary.latePenalized ?? 0;
+          const halfDay = summary.halfDay ?? 0;
+          const shortHours = summary.shortHours ?? 0;
           const absent = summary.absent ?? 0;
           const overtime = summary.overtime ?? (payslip.overtimeHours > 0 ? 1 : 0);
           const leave = summary.leaveDays ?? payslip.leaveDays ?? 0;
@@ -257,8 +261,22 @@ export default function PayslipDetailPage() {
                   late > 0 ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-stone-100 text-stone-500 border-stone-200'
                 }`}>
                   <span className={`w-2 h-2 rounded-full ${late > 0 ? 'bg-amber-500' : 'bg-stone-300'}`} />
-                  Late Days: {late}
+                  Late Days: {late} {late > 0 && (lateGrace > 0 || latePenalized > 0) ? `(${lateGrace} Grace • ${latePenalized} Penalized)` : ''}
                 </span>
+
+                {halfDay > 0 && (
+                  <span className="px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 text-xs font-bold border border-amber-200 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    Half Days (0.5x): {halfDay}
+                  </span>
+                )}
+
+                {shortHours > 0 && (
+                  <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-bold border border-rose-200 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500" />
+                    Short Hours (&lt;4h): {shortHours}
+                  </span>
+                )}
 
                 <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
                   absent > 0 ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-stone-100 text-stone-500 border-stone-200'

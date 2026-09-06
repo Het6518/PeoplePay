@@ -64,7 +64,8 @@ export default function ScheduleListPage() {
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Name</th>
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Type</th>
                   <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Weekly Hours</th>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Employees Assigned</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Day Credit & Late Policy</th>
+                  <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-stone-500">Employees</th>
                   <th className="px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-stone-500">Actions</th>
                 </tr>
               </thead>
@@ -73,10 +74,20 @@ export default function ScheduleListPage() {
                   <tr key={schedule.id} className="hover:bg-stone-50/60 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-stone-900">{schedule.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">
-                      <span className="px-3 py-1 rounded-full bg-stone-100 text-stone-800 font-semibold">{schedule.type || 'Standard'}</span>
+                      <span className="px-3 py-1 rounded-full bg-stone-100 text-stone-800 font-semibold">{schedule.type || 'FIXED'}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-xs font-bold text-amber-600">{schedule.weeklyHours || 40}h / week</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">{schedule._count?.employees ?? schedule.employeeCount ?? 0} employees</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-stone-600">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-semibold text-stone-800">
+                          Full: {schedule.minHoursForFullDay ?? 7}h • Half: {schedule.minHoursForHalfDay ?? 4}h
+                        </span>
+                        <span className="text-[11px] text-stone-500">
+                          Grace: {schedule.lateGraceMinutes ?? 15}m ({schedule.monthlyLateGraceCount ?? 3}x/mo) • OT: {schedule.overtimeMultiplier ?? 1.5}x
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-stone-600">{schedule._count?.employees ?? schedule.employeeCount ?? 0} assigned</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-xs font-medium">
                       <div className="flex justify-end space-x-2">
                         <Link to={`/schedules/${schedule.id}/edit`} className="p-1.5 rounded-full bg-stone-100 text-stone-700 hover:bg-amber-100 hover:text-amber-800 transition-all">

@@ -159,45 +159,164 @@ async function calculateAttendanceStats(employeeId, periodStart, periodEnd, pris
     }
   }
 
+  // Load employee working schedule and active contract for policy evaluation
+  const empInfo = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    include: {
+      workingSchedule: { include: { days: true } },
+      contracts: {
+        where: { status: 'ACTIVE' },
+        orderBy: { startDate: 'desc' },
+        take: 1,
+      },
+    },
+  });
+
+  const schedule = empInfo?.workingSchedule;
+  const minFullDay = schedule?.minHoursForFullDay ?? 7.0;
+  const minHalfDay = schedule?.minHoursForHalfDay ?? 4.0;
+  const monthlyLateGraceCount = schedule?.monthlyLateGraceCount ?? 3;
+  const latePenaltyType = schedule?.latePenaltyType ?? 'HALF_DAY';
+  const otMinMinutes = schedule?.overtimeMinMinutes ?? 30;
+
   let workedDays = 0;
-  let overtimeHours = 0;
+  let dynamicOtHours = 0;
+  let dynamicOtAmount = 0;
+  let lateOccurrences = 0;
+
   const summary = {
     present: 0,
     late: 0,
+    lateGraceApplied: 0,
+    latePenalized: 0,
+    halfDay: 0,
+    shortHours: 0,
     absent: 0,
     overtime: 0,
     missing_checkout: 0,
     manual_correction: 0,
   };
 
+  const contract = empInfo?.contracts?.[0];
+  const weeklyHours = schedule?.weeklyHours || 40;
+  const wage = contract?.wage || 0;
+  const overtimeService = require('./overtimeService');
+  const hourlyRate = overtimeService.calculateHourlyRate(wage, weeklyHours);
+
   for (const record of attendance) {
+    const actualHours = record.workedHours;
+
     switch (record.status) {
+      case 'SHORT_HOURS':
+        workedDays += 0;
+        summary.shortHours++;
+        break;
+
+      case 'HALF_DAY':
+        workedDays += 0.5;
+        summary.halfDay++;
+        break;
+
       case 'PRESENT':
-        workedDays += 1;
-        summary.present++;
+        if (actualHours !== null && actualHours !== undefined) {
+          if (actualHours < minHalfDay) {
+            workedDays += 0;
+            summary.shortHours++;
+          } else if (actualHours < minFullDay) {
+            workedDays += 0.5;
+            summary.halfDay++;
+          } else {
+            workedDays += 1.0;
+            summary.present++;
+          }
+        } else {
+          workedDays += 1.0;
+          summary.present++;
+        }
         break;
+
       case 'LATE':
-        workedDays += 1;
         summary.late++;
+        lateOccurrences++;
+        if (lateOccurrences <= monthlyLateGraceCount) {
+          // Within monthly grace allowance: 100% full pay credited
+          summary.lateGraceApplied++;
+          workedDays += 1.0;
+        } else {
+          // Exceeded monthly grace allowance: apply HR configured penalty
+          summary.latePenalized++;
+          if (latePenaltyType === 'HALF_DAY') {
+            workedDays += 0.5;
+          } else if (latePenaltyType === 'FULL_DAY') {
+            workedDays += 0.0;
+          } else {
+            workedDays += 1.0; // NONE (tracking only)
+          }
+        }
         break;
+
       case 'OVERTIME':
-        workedDays += 1;
+        workedDays += 1.0;
         summary.overtime++;
-        if (record.workedHours) overtimeHours += Math.max(0, record.workedHours - 8);
         break;
+
       case 'MANUAL_CORRECTION':
-        workedDays += 1;
         summary.manual_correction++;
+        if (actualHours !== null && actualHours !== undefined) {
+          if (actualHours < minHalfDay) {
+            workedDays += 0;
+            summary.shortHours++;
+          } else if (actualHours < minFullDay) {
+            workedDays += 0.5;
+            summary.halfDay++;
+          } else {
+            workedDays += 1.0;
+          }
+        } else {
+          workedDays += 1.0;
+        }
         break;
+
       case 'MISSING_CHECKOUT':
         workedDays += 0.5; // Partial day
         summary.missing_checkout++;
         break;
+
       case 'ABSENT':
         summary.absent++;
         break;
+
       default:
+        workedDays += 1.0;
         break;
+    }
+
+    // Dynamic overtime hours & amounts evaluation per record
+    if (record.status !== 'MISSING_CHECKOUT' && record.status !== 'ABSENT') {
+      const d = new Date(record.date);
+      const dayOfWeek = d.getDay();
+      const scheduleDay = schedule?.days?.find((sd) => sd.dayOfWeek === dayOfWeek);
+      const expectedHours = overtimeService.getExpectedHoursForDay(scheduleDay) || 8.0;
+      const hoursWorked = actualHours || 0;
+      const extraHours = hoursWorked - expectedHours;
+
+      let dayOtHours = 0;
+      if (record.status === 'OVERTIME' && extraHours < (otMinMinutes / 60)) {
+        dayOtHours = Math.max(1.0, Math.round(extraHours * 100) / 100);
+      } else if (extraHours >= (otMinMinutes / 60) && expectedHours > 0) {
+        dayOtHours = Math.round(extraHours * 100) / 100;
+      } else if (expectedHours === 0 && hoursWorked > 0) {
+        // Off-day or weekend worked
+        dayOtHours = Math.round(hoursWorked * 100) / 100;
+      }
+
+      if (dayOtHours > 0) {
+        const { multiplier } = overtimeService.getMultiplierForDate(record.date, schedule, false);
+        const dayOtRate = Math.round(hourlyRate * multiplier * 100) / 100;
+        const dayAmount = Math.round(dayOtHours * dayOtRate * 100) / 100;
+        dynamicOtHours += dayOtHours;
+        dynamicOtAmount += dayAmount;
+      }
     }
   }
 
@@ -216,7 +335,6 @@ async function calculateAttendanceStats(employeeId, periodStart, periodEnd, pris
 
   let leaveDays = 0;
   for (const leave of approvedLeave) {
-    // Check isPaid flag on TimeOffType configuration
     const isPaid = leave.timeOffType ? leave.timeOffType.isPaid !== false : true;
     if (!isPaid) continue;
 
@@ -238,16 +356,26 @@ async function calculateAttendanceStats(employeeId, periodStart, periodEnd, pris
   const finalWorkedDays = Math.min(workedDays + leaveDays, totalWorkingDays);
 
   // Fetch approved overtime records for this employee within this period
-  const overtimeService = require('./overtimeService');
   const otData = await overtimeService.getApprovedOvertimeForPeriod(employeeId, periodStart, periodEnd, prisma);
+
+  let finalOtHours = otData.totalOvertimeHours;
+  let finalOtRate = otData.averageOvertimeRate;
+  let finalOtAmount = otData.totalOvertimeAmount;
+
+  // Fallback to dynamic attendance overtime if explicit approved Overtime rows are empty
+  if (finalOtAmount === 0 && dynamicOtAmount > 0) {
+    finalOtHours = Math.round(dynamicOtHours * 100) / 100;
+    finalOtAmount = Math.round(dynamicOtAmount * 100) / 100;
+    finalOtRate = Math.round((finalOtAmount / finalOtHours) * 100) / 100;
+  }
 
   return {
     workedDays: Math.round(finalWorkedDays * 100) / 100,
     totalWorkingDays,
     leaveDays: Math.round(leaveDays * 100) / 100,
-    overtimeHours: otData.totalOvertimeHours,
-    overtimeRate: otData.averageOvertimeRate,
-    overtimeAmount: otData.totalOvertimeAmount,
+    overtimeHours: finalOtHours,
+    overtimeRate: finalOtRate,
+    overtimeAmount: finalOtAmount,
     overtimeRecords: otData.records,
     attendanceSummary: summary,
     attendanceRecords: attendance,
@@ -285,6 +413,7 @@ function processPayrollRules({ contract, attendanceStats, rules }) {
     OVERTIME_RATE: overtimeRate,
     OVERTIME_PAY: overtimeAmount,
     OVERTIME_AMOUNT: overtimeAmount,
+    OT: overtimeAmount,
     LEAVE_DAYS: leaveDays,
     BASIC: 0,
     GROSS: 0,
@@ -294,6 +423,12 @@ function processPayrollRules({ contract, attendanceStats, rules }) {
   const lines = [];
   let grossSalary = 0;
   let totalDeductions = 0;
+  const hasExplicitOtRule = rules.some((r) => r.code === 'OT' && r.isActive);
+
+  // If overtime amount exists and no explicit 'OT' rule is in structure, add overtime to grossSalary upfront
+  if (!hasExplicitOtRule && overtimeAmount > 0) {
+    grossSalary += overtimeAmount;
+  }
 
   for (const rule of rules) {
     if (!rule.isActive) continue;
@@ -331,14 +466,12 @@ function processPayrollRules({ contract, attendanceStats, rules }) {
       throw new Error(`Rule "${rule.name}" (${rule.code}): ${err.message}`);
     }
 
-    // Store result in context under rule's code
-    context[rule.code] = amount;
-
     // Accumulate based on category
     if (['BASIC', 'ALLOWANCE'].includes(rule.category)) {
       grossSalary += amount;
     } else if (rule.category === 'GROSS') {
-      // GROSS rule resets gross to computed value
+      // GROSS rule: ensure GROSS incorporates all accumulated earnings & overtime pay
+      amount = Math.max(amount, grossSalary);
       grossSalary = amount;
       context.GROSS = amount;
     } else if (rule.category === 'DEDUCTION') {
@@ -346,6 +479,9 @@ function processPayrollRules({ contract, attendanceStats, rules }) {
     } else if (rule.category === 'NET') {
       context.NET = amount;
     }
+
+    // Store result in context under rule's code
+    context[rule.code] = amount;
 
     lines.push({
       salaryRuleId: rule.id,
@@ -360,34 +496,47 @@ function processPayrollRules({ contract, attendanceStats, rules }) {
   }
 
   // If approved overtime amount exists and no explicit 'OT' rule was defined in structure,
-  // insert an Overtime Pay line under ALLOWANCE category to ensure OT is represented in PayslipLines and Gross
-  const hasExplicitOtRule = rules.some((r) => r.code === 'OT' && r.isActive);
+  // insert an Overtime Pay line under ALLOWANCE category before the GROSS line
   if (!hasExplicitOtRule && overtimeAmount > 0) {
-    grossSalary += overtimeAmount;
-    const maxAllowanceSeq = lines
-      .filter((l) => ['BASIC', 'ALLOWANCE'].includes(l.category))
-      .reduce((max, l) => Math.max(max, l.sequence), 0);
+    const grossLineIdx = lines.findIndex((l) => l.category === 'GROSS');
+    const insertSeq = grossLineIdx >= 0 ? lines[grossLineIdx].sequence - 0.5 : 4.5;
 
-    lines.push({
+    const otLine = {
       salaryRuleId: null,
       name: 'Overtime Pay',
       code: 'OT',
       category: 'ALLOWANCE',
-      sequence: maxAllowanceSeq > 0 ? maxAllowanceSeq + 1 : 5,
+      sequence: insertSeq,
       amount: overtimeAmount,
       quantity: overtimeHours,
       rate: overtimeRate,
-    });
+    };
+
+    if (grossLineIdx >= 0) {
+      lines.splice(grossLineIdx, 0, otLine);
+    } else {
+      lines.push(otLine);
+    }
   }
 
-  // Ensure GROSS is set
+  // Ensure GROSS is set in context
   if ((!context.GROSS || context.GROSS === 0) && grossSalary > 0) {
     context.GROSS = grossSalary;
   }
 
-  // Final net salary
+  // Update GROSS and NET lines in lines array if they exist to match true values
   const calculatedGross = context.GROSS || grossSalary || 0;
   const netSalary = context.NET || Math.max(0, calculatedGross - totalDeductions);
+
+  for (const line of lines) {
+    if (line.category === 'GROSS') {
+      line.amount = Math.round(calculatedGross * 100) / 100;
+      line.rate = line.amount;
+    } else if (line.category === 'NET') {
+      line.amount = Math.round(netSalary * 100) / 100;
+      line.rate = line.amount;
+    }
+  }
 
   return {
     lines,

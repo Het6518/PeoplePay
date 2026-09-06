@@ -50,6 +50,8 @@ enum AttendanceStatus {
   PRESENT
   LATE
   ABSENT
+  HALF_DAY
+  SHORT_HOURS
   OVERTIME
   MISSING_CHECKOUT
   MANUAL_CORRECTION
@@ -210,6 +212,12 @@ model WorkingSchedule {
   name                       String
   type                       ScheduleType @default(FIXED)
   weeklyHours                Float        @default(0)
+  minHoursForFullDay         Float        @default(7.0)
+  minHoursForHalfDay         Float        @default(4.0)
+  lateGraceMinutes           Int          @default(15)
+  monthlyLateGraceCount      Int          @default(3)
+  latePenaltyType            String       @default("HALF_DAY") // "HALF_DAY", "FULL_DAY", "NONE"
+  overtimeMinMinutes         Int          @default(30)
   overtimeMultiplier         Float        @default(1.5)
   weekendOvertimeMultiplier  Float        @default(2.0)
   holidayOvertimeMultiplier  Float        @default(2.0)

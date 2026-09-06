@@ -30,6 +30,10 @@ const STATUS_COLOR_MAP = {
 
   // Amber / Orange
   MISSING_CHECKOUT: 'amber',
+  HALF_DAY: 'amber',
+
+  // Red / Short Hours
+  SHORT_HOURS: 'red',
 };
 
 const COLOR_CLASSES = {
