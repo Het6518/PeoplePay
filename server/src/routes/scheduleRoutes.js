@@ -17,6 +17,6 @@ router.get('/', cacheMiddleware(3600), ctrl.getSchedules);
 router.post('/', authorize(...HR_ROLES), invalidateScheduleCache, ctrl.createSchedule);
 router.get('/:id', cacheMiddleware(3600), ctrl.getSchedule);
 router.put('/:id', authorize(...HR_ROLES), invalidateScheduleCache, ctrl.updateSchedule);
-router.delete('/:id', authorize('HR_PAYROLL_MANAGER', 'ADMIN'), invalidateScheduleCache, ctrl.deleteSchedule);
+router.delete('/:id', authorize(...HR_ROLES), invalidateScheduleCache, ctrl.deleteSchedule);
 
 module.exports = router;

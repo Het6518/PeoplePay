@@ -110,10 +110,14 @@ const deleteSchedule = async (req, res, next) => {
     });
     if (!schedule) return sendError(res, 'Schedule not found.', 404);
     if (schedule._count.employees > 0) {
-      return sendError(res, 'Cannot delete schedule assigned to employees.', 400);
+      return sendError(
+        res,
+        `Cannot delete schedule "${schedule.name}" because ${schedule._count.employees} employee(s) are currently assigned to it. Please reassign all employees before deleting.`,
+        400
+      );
     }
     await prisma.workingSchedule.delete({ where: { id: req.params.id } });
-    return sendSuccess(res, { message: 'Schedule deleted.' });
+    return sendSuccess(res, { message: `Schedule "${schedule.name}" deleted successfully.` });
   } catch (err) {
     next(err);
   }
