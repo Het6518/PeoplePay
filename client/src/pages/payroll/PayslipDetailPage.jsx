@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Download, FileText, User, Building, Briefcase, Calendar, CheckCircle, AlertTriangle } from 'lucide-react';
 import { payrollApi } from '../../services/apiServices';
 import { formatINR, formatDate } from '../../utils/formatters';
 import { StatusBadge } from '../../components/ui/Badge';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { EmptyState } from '../../components/ui/EmptyState';
 import toast from 'react-hot-toast';
 
 export default function PayslipDetailPage() {
@@ -63,7 +64,31 @@ export default function PayslipDetailPage() {
   }
 
   if (!payslip) {
-    return <div className="p-8 text-center text-rose-600 font-bold">Payslip not found</div>;
+    return (
+      <div className="max-w-2xl mx-auto bg-white p-8 rounded-[28px] border border-stone-200/80 shadow-soft my-8">
+        <EmptyState
+          icon={FileText}
+          title="Payslip Not Found"
+          message="The requested payslip record could not be loaded. If a database re-seed occurred, please open your payslip from the Payruns or Attendance hub."
+          action={
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="btn-secondary rounded-full px-4 py-2 text-xs font-bold"
+              >
+                Go Back
+              </button>
+              <Link
+                to="/payroll/payruns"
+                className="btn-primary rounded-full px-5 py-2 text-xs font-bold bg-amber-400 text-stone-950 hover:bg-amber-300"
+              >
+                Browse Payruns
+              </Link>
+            </div>
+          }
+        />
+      </div>
+    );
   }
 
   const employeeName = payslip.employee
@@ -119,13 +144,26 @@ export default function PayslipDetailPage() {
     if (rule.code === 'OT' || rule.name?.toLowerCase().includes('overtime')) {
       const hours = currentPayslip?.overtimeHours || rule.quantity || 0;
       const rate = rule.rate || currentPayslip?.overtimeRate || 0;
-      return `${hours} hrs @ ${formatINR(rate)}/hr = ${formatINR(rule.amount)}`;
+      return `${hours} hrs @ ${formatINR(rate)}/hr (1.5x OT) = ${formatINR(rule.amount)}`;
     }
 
     if (rule.code === 'BASIC' || rule.category === 'BASIC') {
       if (contractWage) {
         if (totalDays > 0) {
-          return `Base Wage ${formatINR(contractWage)} × ${workedDays}/${totalDays} days = ${formatINR(rule.amount)}`;
+          const isProrated = workedDays < totalDays;
+          const lossOfPayDays = Math.max(0, Math.round((totalDays - workedDays) * 100) / 100);
+          const lossOfPayAmount = Math.round(((contractWage / totalDays) * lossOfPayDays) * 100) / 100;
+
+          return (
+            <div className="space-y-0.5">
+              <div>Base Wage {formatINR(contractWage)} × {workedDays}/{totalDays} paid days = {formatINR(rule.amount)}</div>
+              {isProrated && lossOfPayDays > 0 && (
+                <div className="text-[11px] font-bold text-rose-600 flex items-center gap-1">
+                  <span>⚠️ Absent / Loss of Pay (LOP): –{lossOfPayDays} day(s) (–{formatINR(lossOfPayAmount)})</span>
+                </div>
+              )}
+            </div>
+          );
         }
         return `Monthly Wage: ${formatINR(contractWage)}`;
       }
@@ -266,80 +304,134 @@ export default function PayslipDetailPage() {
           const leave = summary.leaveDays ?? payslip.leaveDays ?? 0;
           const missing = summary.missingCheckout ?? 0;
           const manual = summary.manualCorrection ?? 0;
+          const policy = payslip.schedulePolicy || {};
+
+          const totalDays = payslip.totalWorkingDays || 21;
+          const workedDays = payslip.workedDays || 0;
+          const lopDays = Math.max(0, Math.round((totalDays - workedDays) * 100) / 100);
 
           return (
-            <div className="p-4 rounded-2xl bg-stone-50/90 border border-stone-200/70 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-600">
-                  Attendance & Schedule Breakdown
-                </span>
-                {summary.totalLoggedHours > 0 && (
-                  <span className="text-xs font-semibold text-stone-500 font-mono">
-                    Total Logged Hours: <span className="font-bold text-stone-800">{summary.totalLoggedHours} hrs</span>
+            <div className="space-y-3">
+              <div className="p-4 rounded-2xl bg-stone-50/90 border border-stone-200/70 space-y-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-stone-700">
+                    Attendance & Schedule Breakdown
                   </span>
-                )}
+                  {summary.totalLoggedHours > 0 && (
+                    <span className="text-xs font-semibold text-stone-500 font-mono">
+                      Total Logged Hours: <span className="font-bold text-stone-800">{summary.totalLoggedHours} hrs</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-bold border border-emerald-200 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    Present Days: {present}
+                  </span>
+
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
+                    late > 0 ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-stone-100 text-stone-500 border-stone-200'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${late > 0 ? 'bg-amber-500' : 'bg-stone-300'}`} />
+                    Late Days: {late} {late > 0 && (lateGrace > 0 || latePenalized > 0) ? `(${lateGrace} Grace • ${latePenalized} Penalized)` : ''}
+                  </span>
+
+                  {halfDay > 0 && (
+                    <span className="px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 text-xs font-bold border border-amber-200 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      Half Days (0.5x): {halfDay}
+                    </span>
+                  )}
+
+                  {shortHours > 0 && (
+                    <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-bold border border-rose-200 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-rose-500" />
+                      Short Hours (&lt;4h): {shortHours}
+                    </span>
+                  )}
+
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
+                    absent > 0 ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-stone-100 text-stone-500 border-stone-200'
+                  }`}>
+                    <span className={`w-2 h-2 rounded-full ${absent > 0 ? 'bg-rose-500' : 'bg-stone-300'}`} />
+                    Absent Days: {absent}
+                  </span>
+
+                  {leave > 0 && (
+                    <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold border border-blue-200 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-blue-500" />
+                      Paid Leaves: {leave} days
+                    </span>
+                  )}
+
+                  {overtime > 0 && (
+                    <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-bold border border-purple-200 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-purple-500" />
+                      Overtime: {overtime} days ({payslip.overtimeHours || 0} hrs)
+                    </span>
+                  )}
+
+                  {missing > 0 && (
+                    <span className="px-3 py-1 rounded-full bg-orange-100 text-orange-900 text-xs font-bold border border-orange-200 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-orange-500" />
+                      Missing Checkout: {missing}
+                    </span>
+                  )}
+
+                  {manual > 0 && (
+                    <span className="px-3 py-1 rounded-full bg-stone-200 text-stone-800 text-xs font-bold border border-stone-300 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-stone-400" />
+                      Manual Corrections: {manual}
+                    </span>
+                  )}
+                </div>
+
+                {/* Calculation Summary Bar */}
+                <div className="p-3 bg-white rounded-xl border border-stone-200/80 text-xs space-y-1">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
+                    <span className="font-bold text-stone-800">
+                      Paid Days Calculation:
+                    </span>
+                    <span className="font-mono text-stone-700">
+                      {workedDays} / {totalDays} days paid
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-stone-500 leading-relaxed">
+                    Formula: <span className="font-medium text-stone-700">{present} Present + {lateGrace} Late (Grace) + {halfDay * 0.5} Half-day + {leave} Paid Leave</span> = <span className="font-bold text-amber-700">{workedDays} worked days</span> out of {totalDays} total working days.
+                    {lopDays > 0 && (
+                      <span className="ml-1 text-rose-600 font-bold">
+                        (–{lopDays} day(s) Unpaid/Absent deducted from Base Wage)
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-bold border border-emerald-200 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  Present Days: {present}
-                </span>
 
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
-                  late > 0 ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-stone-100 text-stone-500 border-stone-200'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full ${late > 0 ? 'bg-amber-500' : 'bg-stone-300'}`} />
-                  Late Days: {late} {late > 0 && (lateGrace > 0 || latePenalized > 0) ? `(${lateGrace} Grace • ${latePenalized} Penalized)` : ''}
-                </span>
-
-                {halfDay > 0 && (
-                  <span className="px-3 py-1 rounded-full bg-amber-100/90 text-amber-900 text-xs font-bold border border-amber-200 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-500" />
-                    Half Days (0.5x): {halfDay}
-                  </span>
-                )}
-
-                {shortHours > 0 && (
-                  <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-bold border border-rose-200 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-rose-500" />
-                    Short Hours (&lt;4h): {shortHours}
-                  </span>
-                )}
-
-                <span className={`px-3 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
-                  absent > 0 ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-stone-100 text-stone-500 border-stone-200'
-                }`}>
-                  <span className={`w-2 h-2 rounded-full ${absent > 0 ? 'bg-rose-500' : 'bg-stone-300'}`} />
-                  Absent Days: {absent}
-                </span>
-
-                {leave > 0 && (
-                  <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-bold border border-blue-200 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-blue-500" />
-                    Paid Leaves: {leave} days
-                  </span>
-                )}
-
-                {overtime > 0 && (
-                  <span className="px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-bold border border-purple-200 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-purple-500" />
-                    Overtime: {overtime} days ({payslip.overtimeHours || 0} hrs)
-                  </span>
-                )}
-
-                {missing > 0 && (
-                  <span className="px-3 py-1 rounded-full bg-orange-100 text-orange-900 text-xs font-bold border border-orange-200 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-orange-500" />
-                    Missing Checkout: {missing}
-                  </span>
-                )}
-
-                {manual > 0 && (
-                  <span className="px-3 py-1 rounded-full bg-stone-200 text-stone-800 text-xs font-bold border border-stone-300 flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-stone-400" />
-                    Manual Corrections: {manual}
-                  </span>
-                )}
+              {/* HR Attendance & Salary Deduction Policy Card */}
+              <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 text-xs space-y-2">
+                <div className="font-bold text-stone-900 flex items-center gap-1.5">
+                  <span className="text-amber-600 font-extrabold text-sm">⚖️</span>
+                  HR Attendance & Salary Computation Policy Criteria
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-stone-700 text-[11px]">
+                  <div className="p-2.5 bg-white/90 rounded-xl border border-amber-200/50">
+                    <span className="font-bold text-amber-950 block mb-0.5">⏱️ Late Check-in Grace Policy:</span>
+                    First <span className="font-bold">{policy.monthlyLateGraceCount ?? 3} late arrivals</span> per month receive 100% full-day salary (grace window: {policy.lateGraceMinutes ?? 15} mins). Subsequent late arrivals incur a <span className="font-bold">{policy.latePenaltyType || 'HALF_DAY'} (0.5 day)</span> salary deduction.
+                  </div>
+                  <div className="p-2.5 bg-white/90 rounded-xl border border-amber-200/50">
+                    <span className="font-bold text-amber-950 block mb-0.5">🚫 Absent & LOP Penalty:</span>
+                    Unexcused absent days deduct 1 full day of salary pro-rata: <code className="bg-stone-100 px-1 py-0.5 rounded font-mono font-semibold">Base Wage ÷ {totalDays} days</code>.
+                  </div>
+                  <div className="p-2.5 bg-white/90 rounded-xl border border-amber-200/50">
+                    <span className="font-bold text-amber-950 block mb-0.5">📊 Daily Credit Thresholds:</span>
+                    Full Day: <span className="font-bold">≥ {policy.minHoursForFullDay ?? 7.0} hrs</span> • Half Day (0.5x): <span className="font-bold">{policy.minHoursForHalfDay ?? 4.0} – {(policy.minHoursForFullDay ?? 7.0) - 0.1} hrs</span> • Short Hours: <span className="font-bold">&lt; {policy.minHoursForHalfDay ?? 4.0} hrs (0 day credit)</span>.
+                  </div>
+                  <div className="p-2.5 bg-white/90 rounded-xl border border-amber-200/50">
+                    <span className="font-bold text-amber-950 block mb-0.5">⚡ Overtime Rules:</span>
+                    Approved extra hours are paid at <span className="font-bold">{policy.overtimeMultiplier ?? 1.5}x</span> regular hourly rate (threshold: min {policy.overtimeMinMinutes ?? 30} mins overtime).
+                  </div>
+                </div>
               </div>
             </div>
           );
