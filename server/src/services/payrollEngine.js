@@ -68,13 +68,14 @@ async function getApplicableContract(employeeId, periodStart, periodEnd, prisma)
   const contracts = await prisma.contract.findMany({
     where: {
       employeeId,
-      status: { in: ['ACTIVE'] },
+      status: { in: ['ACTIVE', 'EXPIRED'] },
       startDate: { lte: periodEnd },
       OR: [
         { endDate: null },
         { endDate: { gte: periodStart } },
       ],
     },
+    orderBy: { startDate: 'desc' },
     include: {
       salaryStructure: {
         include: {
@@ -90,18 +91,12 @@ async function getApplicableContract(employeeId, periodStart, periodEnd, prisma)
   if (contracts.length === 0) {
     return {
       contract: null,
-      error: `No active contract found for employee covering period ${periodStart.toISOString().split('T')[0]} to ${periodEnd.toISOString().split('T')[0]}.`,
+      error: `No contract found for employee covering period ${periodStart.toISOString().split('T')[0]} to ${periodEnd.toISOString().split('T')[0]}.`,
     };
   }
 
-  if (contracts.length > 1) {
-    return {
-      contract: null,
-      error: `Multiple overlapping contracts found for employee (${contracts.length} contracts). Please resolve the conflict before processing payroll.`,
-    };
-  }
-
-  return { contract: contracts[0], error: null };
+  const contract = contracts.find(c => c.status === 'ACTIVE') || contracts[0];
+  return { contract, error: null };
 }
 
 /**
@@ -582,8 +577,20 @@ async function computeEmployeePayroll({
   }
 
   // Compute salary according to the Payrun's Salary Structure and rules
-  const effectiveStructureId = salaryStructureId;
-  const effectiveRules = rules;
+  const effectiveStructureId = salaryStructureId || contract.salaryStructureId || payrun?.salaryStructureId;
+  let effectiveRules = rules;
+  if (!effectiveRules || effectiveRules.length === 0) {
+    if (contract.salaryStructure?.rules && contract.salaryStructure.rules.length > 0) {
+      effectiveRules = contract.salaryStructure.rules;
+    } else if (effectiveStructureId) {
+      effectiveRules = await prisma.salaryRule.findMany({
+        where: { salaryStructureId: effectiveStructureId, isActive: true },
+        orderBy: { sequence: 'asc' },
+      });
+    } else {
+      effectiveRules = [];
+    }
+  }
 
   // Step 2: Calculate attendance stats
   const attendanceStats = await calculateAttendanceStats(

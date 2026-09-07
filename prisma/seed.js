@@ -15,6 +15,7 @@ const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
+const { computeEmployeePayroll } = require('../server/src/services/payrollEngine');
 
 const prisma = new PrismaClient();
 
@@ -799,7 +800,7 @@ async function main() {
   const attendanceBatch = [];
   const overtimeBatch = [];
   const startDate = new Date('2026-06-01');
-  const endDate = new Date('2026-08-31');
+  const endDate = new Date('2026-09-30');
 
   const empScheduleTimes = {};
   for (const emp of activeEmployees) {
@@ -1019,73 +1020,44 @@ async function main() {
     let runGross = 0, runDeductions = 0, runNet = 0;
 
     for (const emp of payrunEmployees) {
-      const contract = contractMap[emp.id];
-      if (!contract) continue;
+      const result = await computeEmployeePayroll({ employee: emp, payrun, prisma });
+      if (!result.success) continue;
 
-      const wage = contract.wage;
-      const basic = Math.round(wage);
-      const hra = Math.round(basic * 0.50);
-      const transport = 2000;
-      const medical = 2000;
-
-      const hasOt = (emp.employeeCode.charCodeAt(emp.employeeCode.length - 1) % 3 === 0);
-      const overtimeHours = hasOt ? randomBetween(2, 6) : 0;
-      const hourlyRate = Math.round((wage / period.totalDays) / 8);
-      const overtimeRate = Math.round(hourlyRate * 1.5);
-      const overtimeAmount = Math.round(overtimeHours * overtimeRate);
-
-      const gross = basic + hra + transport + medical + overtimeAmount;
-      const pf = Math.round(basic * 0.12);
-      const pt = 200;
-      const tds = Math.max(0, Math.round(gross * 0.1 - 2500));
-      const deductions = pf + pt + tds;
-      const net = gross - deductions;
-
-      runGross += gross;
-      runDeductions += deductions;
-      runNet += net;
-
-      const lines = [
-        { name: 'Basic Salary', code: 'BASIC', category: 'BASIC', sequence: 1, amount: basic, quantity: 1, rate: basic },
-        { name: 'House Rent Allowance', code: 'HRA', category: 'ALLOWANCE', sequence: 2, amount: hra, quantity: 1, rate: hra },
-        { name: 'Transport Allowance', code: 'TRANSPORT', category: 'ALLOWANCE', sequence: 3, amount: transport, quantity: 1, rate: transport },
-        { name: 'Medical Allowance', code: 'MEDICAL', category: 'ALLOWANCE', sequence: 4, amount: medical, quantity: 1, rate: medical },
-      ];
-
-      if (overtimeAmount > 0) {
-        lines.push({ name: 'Overtime Pay', code: 'OT', category: 'ALLOWANCE', sequence: 4.5, amount: overtimeAmount, quantity: overtimeHours, rate: overtimeRate });
-      }
-
-      lines.push(
-        { name: 'Gross Salary', code: 'GROSS', category: 'GROSS', sequence: 5, amount: gross, quantity: 1, rate: gross },
-        { name: 'Provident Fund', code: 'PF', category: 'DEDUCTION', sequence: 6, amount: pf, quantity: 1, rate: pf },
-        { name: 'Professional Tax', code: 'PT', category: 'DEDUCTION', sequence: 7, amount: pt, quantity: 1, rate: pt },
-        { name: 'Income Tax (TDS)', code: 'TDS', category: 'DEDUCTION', sequence: 8, amount: tds, quantity: 1, rate: tds },
-        { name: 'Net Salary', code: 'NET', category: 'NET', sequence: 9, amount: net, quantity: 1, rate: net }
-      );
+      runGross += result.grossSalary;
+      runDeductions += result.totalDeductions;
+      runNet += result.netSalary;
 
       await prisma.payslip.create({
         data: {
           payrunId: payrun.id,
           employeeId: emp.id,
-          contractId: contract.id,
-          salaryStructureId: contract.salaryStructureId,
+          contractId: result.contractId,
+          salaryStructureId: result.salaryStructureId,
           periodStart: new Date(period.start),
           periodEnd: new Date(period.end),
-          workedDays: period.totalDays,
-          totalWorkingDays: period.totalDays,
-          leaveDays: 0,
-          overtimeHours,
-          overtimeRate: overtimeHours > 0 ? overtimeRate : 0,
-          overtimeAmount,
+          workedDays: result.workedDays,
+          totalWorkingDays: result.totalWorkingDays,
+          leaveDays: result.leaveDays,
+          overtimeHours: result.overtimeHours,
+          overtimeRate: result.overtimeRate || 0,
+          overtimeAmount: result.overtimeAmount || 0,
           status: 'PAID',
-          grossSalary: gross,
-          totalDeductions: deductions,
-          netSalary: net,
+          grossSalary: result.grossSalary,
+          totalDeductions: result.totalDeductions,
+          netSalary: result.netSalary,
           hasWarnings: false,
           hasErrors: false,
           lines: {
-            create: lines
+            create: result.lines.map(line => ({
+              name: line.name,
+              code: line.code,
+              category: line.category,
+              sequence: line.sequence || 1,
+              amount: line.amount,
+              quantity: line.quantity || 1,
+              rate: line.rate || line.amount,
+              salaryRuleId: line.salaryRuleId || null,
+            }))
           }
         }
       });
@@ -1093,7 +1065,11 @@ async function main() {
 
     await prisma.payrun.update({
       where: { id: payrun.id },
-      data: { totalGross: runGross, totalDeductions: runDeductions, totalNet: runNet }
+      data: {
+        totalGross: Math.round(runGross * 100) / 100,
+        totalDeductions: Math.round(runDeductions * 100) / 100,
+        totalNet: Math.round(runNet * 100) / 100
+      }
     });
   }
 
@@ -1114,82 +1090,60 @@ async function main() {
 
   for (let idx = 0; idx < 100; idx++) {
     const emp = activeEmployees[idx];
-    const contract = contractMap[emp.id];
-    if (!contract) continue;
+    const isPeriodAdjusted = idx === 12;
+    const isOverride = idx === 5 || idx === 6;
 
-    const wage = contract.wage;
-    const basic = Math.round(wage);
-    const hra = Math.round(basic * 0.50);
-    const transport = 2000;
-    const medical = 2000;
+    const result = await computeEmployeePayroll({
+      employee: emp,
+      payrun: septPayrun,
+      payslip: isPeriodAdjusted ? { effectivePeriodStart: new Date('2026-08-15'), effectivePeriodEnd: new Date('2026-09-15') } : null,
+      prisma
+    });
 
-    const hasOt = (idx % 3 === 0);
-    const overtimeHours = hasOt ? randomBetween(2, 6) : 0;
-    const hourlyRate = Math.round((wage / 22) / 8);
-    const overtimeRate = Math.round(hourlyRate * 1.5);
-    const overtimeAmount = Math.round(overtimeHours * overtimeRate);
+    if (!result.success) continue;
 
-    const gross = basic + hra + transport + medical + overtimeAmount;
-    const pf = Math.round(basic * 0.12);
-    const pt = 200;
-    const tds = Math.max(0, Math.round(gross * 0.1 - 2500));
-    const deductions = pf + pt + tds;
-    const net = gross - deductions;
-
-    currentGross += gross;
-    currentDeductions += deductions;
-    currentNet += net;
+    currentGross += result.grossSalary;
+    currentDeductions += result.totalDeductions;
+    currentNet += result.netSalary;
 
     const isMissingBank = !emp.bankAccountNumber;
-    const isOverride = idx === 5 || idx === 6;
-    const isPeriodAdjusted = idx === 12;
-
-    const lines = [
-      { name: 'Basic Salary', code: 'BASIC', category: 'BASIC', sequence: 1, amount: basic, quantity: 1, rate: basic },
-      { name: 'House Rent Allowance', code: 'HRA', category: 'ALLOWANCE', sequence: 2, amount: hra, quantity: 1, rate: hra },
-      { name: 'Transport Allowance', code: 'TRANSPORT', category: 'ALLOWANCE', sequence: 3, amount: transport, quantity: 1, rate: transport },
-      { name: 'Medical Allowance', code: 'MEDICAL', category: 'ALLOWANCE', sequence: 4, amount: medical, quantity: 1, rate: medical },
-    ];
-
-    if (overtimeAmount > 0) {
-      lines.push({ name: 'Overtime Pay', code: 'OT', category: 'ALLOWANCE', sequence: 4.5, amount: overtimeAmount, quantity: overtimeHours, rate: overtimeRate });
-    }
-
-    lines.push(
-      { name: 'Gross Salary', code: 'GROSS', category: 'GROSS', sequence: 5, amount: gross, quantity: 1, rate: gross },
-      { name: 'Provident Fund', code: 'PF', category: 'DEDUCTION', sequence: 6, amount: pf, quantity: 1, rate: pf },
-      { name: 'Professional Tax', code: 'PT', category: 'DEDUCTION', sequence: 7, amount: pt, quantity: 1, rate: pt },
-      { name: 'Income Tax (TDS)', code: 'TDS', category: 'DEDUCTION', sequence: 8, amount: tds, quantity: 1, rate: tds },
-      { name: 'Net Salary', code: 'NET', category: 'NET', sequence: 9, amount: net, quantity: 1, rate: net }
-    );
 
     await prisma.payslip.create({
       data: {
         payrunId: septPayrun.id,
         employeeId: emp.id,
-        contractId: contract.id,
-        salaryStructureId: contract.salaryStructureId,
+        contractId: result.contractId,
+        salaryStructureId: result.salaryStructureId,
         periodStart: new Date('2026-09-01'),
         periodEnd: new Date('2026-09-30'),
         effectivePeriodStart: isPeriodAdjusted ? new Date('2026-08-15') : null,
         effectivePeriodEnd: isPeriodAdjusted ? new Date('2026-09-15') : null,
         isOverride,
         overrideWarning: isOverride ? 'Structure rule mismatch override applied by HR' : null,
-        workedDays: 22,
-        totalWorkingDays: 22,
-        leaveDays: 0,
-        overtimeHours,
-        overtimeRate: overtimeHours > 0 ? overtimeRate : 0,
-        overtimeAmount,
+        workedDays: result.workedDays,
+        totalWorkingDays: result.totalWorkingDays,
+        leaveDays: result.leaveDays,
+        overtimeHours: result.overtimeHours,
+        overtimeRate: result.overtimeRate || 0,
+        overtimeAmount: result.overtimeAmount || 0,
         status: 'COMPUTED',
-        grossSalary: gross,
-        totalDeductions: deductions,
-        netSalary: net,
+        grossSalary: result.grossSalary,
+        totalDeductions: result.totalDeductions,
+        netSalary: result.netSalary,
         hasWarnings: isMissingBank || isOverride || isPeriodAdjusted,
         hasErrors: false,
         validationNotes: isMissingBank ? ['Employee bank account details are missing'] : null,
         lines: {
-          create: lines
+          create: result.lines.map(line => ({
+            name: line.name,
+            code: line.code,
+            category: line.category,
+            sequence: line.sequence || 1,
+            amount: line.amount,
+            quantity: line.quantity || 1,
+            rate: line.rate || line.amount,
+            salaryRuleId: line.salaryRuleId || null,
+          }))
         }
       }
     });
@@ -1197,7 +1151,11 @@ async function main() {
 
   await prisma.payrun.update({
     where: { id: septPayrun.id },
-    data: { totalGross: currentGross, totalDeductions: currentDeductions, totalNet: currentNet }
+    data: {
+      totalGross: Math.round(currentGross * 100) / 100,
+      totalDeductions: Math.round(currentDeductions * 100) / 100,
+      totalNet: Math.round(currentNet * 100) / 100
+    }
   });
 
   console.log('✅ 4 Historical PAID Payruns and 1 Current COMPUTED Payrun created\n');

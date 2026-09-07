@@ -1,7 +1,7 @@
 const prisma = require('../config/prisma');
 const { CreatePayrunSchema } = require('../validators/schemas');
 const { sendSuccess, sendError, sendPaginated } = require('../utils/response');
-const { computeEmployeePayroll } = require('../services/payrollEngine');
+const { computeEmployeePayroll, calculateAttendanceStats } = require('../services/payrollEngine');
 const { validatePayrun } = require('../services/payrollValidation');
 const { detectAnomalies } = require('../services/payrollAnomaly');
 const pdfService = require('../services/pdfService');
@@ -659,6 +659,13 @@ const getPayslip = async (req, res, next) => {
     const pStart = payslip.effectivePeriodStart ? new Date(payslip.effectivePeriodStart) : new Date(payslip.periodStart);
     const pEnd = payslip.effectivePeriodEnd ? new Date(payslip.effectivePeriodEnd) : new Date(payslip.periodEnd);
 
+    const stats = await calculateAttendanceStats(
+      payslip.employeeId,
+      pStart,
+      pEnd,
+      prisma
+    );
+
     const attendances = await prisma.attendance.findMany({
       where: {
         employeeId: payslip.employeeId,
@@ -667,40 +674,28 @@ const getPayslip = async (req, res, next) => {
       select: { status: true, workedHours: true },
     });
 
+    let totalLoggedHours = 0;
+    for (const a of attendances) {
+      if (a.workedHours) totalLoggedHours += a.workedHours;
+    }
+
     const attendanceSummary = {
-      present: 0,
-      late: 0,
-      absent: 0,
-      overtime: 0,
-      missingCheckout: 0,
-      manualCorrection: 0,
-      leaveDays: payslip.leaveDays || 0,
-      totalLoggedHours: 0,
+      ...stats.attendanceSummary,
+      leaveDays: payslip.leaveDays || stats.leaveDays || 0,
+      totalLoggedHours: Math.round(totalLoggedHours * 100) / 100,
+      hasDailyLogs: attendances.length > 0,
     };
 
-    if (attendances.length === 0) {
-      attendanceSummary.present = Math.max(0, (payslip.workedDays || 0) - (payslip.leaveDays || 0));
-      attendanceSummary.hasDailyLogs = false;
-      attendanceSummary.totalLoggedHours = Math.round((payslip.workedDays || 0) * 8 * 100) / 100;
-    } else {
-      attendanceSummary.hasDailyLogs = true;
-      for (const a of attendances) {
-        if (a.workedHours) attendanceSummary.totalLoggedHours += a.workedHours;
-        switch (a.status) {
-          case 'PRESENT': attendanceSummary.present++; break;
-          case 'LATE': attendanceSummary.late++; break;
-          case 'ABSENT': attendanceSummary.absent++; break;
-          case 'OVERTIME': attendanceSummary.overtime++; break;
-          case 'MISSING_CHECKOUT': attendanceSummary.missingCheckout++; break;
-          case 'MANUAL_CORRECTION': attendanceSummary.manualCorrection++; break;
-        }
-      }
-      attendanceSummary.totalLoggedHours = Math.round(attendanceSummary.totalLoggedHours * 100) / 100;
-    }
+    const schedulePolicy = payslip.employee?.workingSchedule || null;
+    const absentDays = Math.max(0, Math.round(((payslip.totalWorkingDays || 0) - (payslip.workedDays || 0)) * 100) / 100);
+    const absentDeduction = Math.round(((payslip.contract?.wage || 0) / Math.max(1, payslip.totalWorkingDays || 1)) * absentDays * 100) / 100;
 
     return sendSuccess(res, {
       ...payslip,
       attendanceSummary,
+      schedulePolicy,
+      absentDays,
+      absentDeduction,
     });
   } catch (err) {
     next(err);
